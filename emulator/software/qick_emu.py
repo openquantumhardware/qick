@@ -131,8 +131,20 @@ class AxiTxn:
 
         Keys with a ``None`` value are omitted so reads don't carry an empty
         ``"data"`` field, etc.
+        Address and data fields are serialized as hexadecimal strings to preserve
+        unsigned values (40-bit addresses, 32-bit data) and avoid sign-extension issues.
         """
-        return json.dumps({k: v for k, v in asdict(self).items() if v is not None}, cls=NpEncoder)
+        txn_dict = {k: v for k, v in asdict(self).items() if v is not None}
+        # Format addr and data as hexadecimal strings for unsigned representation
+        # Mask with 0xFFFFFFFFFF for 40-bit addresses to handle negative signed ints
+        if "addr" in txn_dict:
+            txn_dict["addr"] = f"0x{txn_dict['addr'] & 0xFFFFFFFFFF:010X}"
+        if "data" in txn_dict:
+            txn_dict["data"] = f"0x{txn_dict['data'] & 0xFFFFFFFF:08X}"
+        # Format stream words as hexadecimal strings
+        if "words" in txn_dict:
+            txn_dict["words"] = [f"0x{w & 0xFFFFFFFF:08X}" for w in txn_dict["words"]]
+        return json.dumps(txn_dict, cls=NpEncoder)
 
 
 class AxiRecorder:
@@ -431,6 +443,15 @@ def default_addrmap_skeleton() -> AddrMap:
         "MODE_REG":   RegDef(0x10),
         "WE_REG":     RegDef(0x14),
     }
+    am.reg_defs_by_type["axis_pfb_readout_v3"] = {
+        "id0_reg":   RegDef(0x00), "id1_reg":   RegDef(0x04),
+        "id2_reg":   RegDef(0x08), "id3_reg":   RegDef(0x0C),
+        "freq0_reg": RegDef(0x10), "phase0_reg": RegDef(0x14),
+        "freq1_reg": RegDef(0x18), "phase1_reg": RegDef(0x1C),
+        "freq2_reg": RegDef(0x20), "phase2_reg": RegDef(0x24),
+        "freq3_reg": RegDef(0x28), "phase3_reg": RegDef(0x2C),
+    }
+
     am.reg_defs_by_type["axis_pfb_readout_v4"] = {
         "PFB_CH": RegDef(0x10), "OUTSEL": RegDef(0x14),
         "NCO_FREQ": RegDef(0x18), "NCO_PHASE": RegDef(0x1C),
@@ -586,8 +607,18 @@ class MockPFBReadout(MockIpDriver):
         out_ch = cfg.get('pfb_port', 0)
         pfb_ch = cfg.get('pfb_ch', 0)
         f_int = cfg.get('f_int', 0)
-        self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
-        self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel")
+        phase_int = cfg.get('phase_int', 0)
+
+        if self.ip_type == "axis_pfb_readout_v3":
+            packet = pfb_ch // 8
+            index = pfb_ch % 8
+            id_val = (index << 8) + packet
+            self.soc.reg_write(self.fullpath, f"id{out_ch}_reg", id_val, comment=f"PFB ch{pfb_ch}->out{out_ch} id: {id_val}")
+            self.soc.reg_write(self.fullpath, f"freq{out_ch}_reg", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq: {f_int}")
+            self.soc.reg_write(self.fullpath, f"phase{out_ch}_reg", phase_int, comment=f"PFB ch{pfb_ch}->out{out_ch} phase: {phase_int}")
+        else:
+            self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq: {f_int}")
+            self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel: {pfb_ch}")
 
 
 class MockAxisReadoutV2(MockIpDriver):
@@ -710,6 +741,11 @@ class QickEmu:
         self.cfg_path = pathlib.Path(qick_config_json)
         self.soccfg = QickConfig(str(self.cfg_path))
         self.raw_cfg = json.loads(self.cfg_path.read_text())
+
+        ## QickEmu does not support DDR4 buffers, so we remove the key if it exists but is empty.
+        if 'ddr4_buf' in self.soccfg._cfg and not self.soccfg._cfg['ddr4_buf']:
+            del self.soccfg._cfg['ddr4_buf']
+            del self.raw_cfg['ddr4_buf']
 
         if addrmap is None:
             self.addrmap = AddrMap.from_qick_config(self.raw_cfg)
@@ -997,7 +1033,7 @@ class QickEmu:
         * ``sgmem_ch{N}.mem`` — envelope data, one per declared generator
           channel with ``maxlen > 0`` and a non-empty stream (``style="const"``
           pulses produce no envelope so they're skipped).
-        * ``axi_replay.jsonl`` — the ordered AXI-Lite transaction log.
+        * ``axi_replay.jsonl`` — the ordered AXI-Lite transaction log (hexadecimal strings for addresses and data).
 
         Parameters
         ----------
@@ -1458,9 +1494,11 @@ class QickEmu:
             ("dac1", "dac_out_ch1.csv"),
             ("dac2", "dac_out_ch2.csv"),
             ("avg0", "avg_out_ch0.csv"),
-            ("avg1", "avg_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
             ("dec0", "dec_out_ch0.csv"),
-            ("dec1", "dec_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
+            ("avg1", "avg_out_ch1.csv"),
+            ("dec1", "dec_out_ch1.csv"),
+            ("avg2", "avg_out_ch2.csv"),
+            ("dec2", "dec_out_ch2.csv"),
             ("mr",  "mr_out.csv"),
         ]:
             p = emu_dir / name
@@ -1747,6 +1785,72 @@ class QickEmu:
         scale = {"fs": 1e3, "ps": 1e0, "ns": 1e-3, "us": 1e-6, "ms": 1e-9}[time_unit]
         return t_ps * scale, samples
 
+    def load_dac_all(
+        self,
+        emu_dir: Union[str, pathlib.Path],
+        *,
+        time_unit: str = "us",
+        absolute_time: bool = False,
+    ) -> Dict[int, Tuple[np.ndarray, np.ndarray]]:
+        """Load DAC samples from all available generator channels.
+
+        Similar to ``load_dac``, but loads and returns data for all available
+        DAC channels in the emulation directory. Returns a dictionary mapping
+        channel index to (time, samples) tuples.
+
+        Parameters
+        ----------
+        emu_dir : str or pathlib.Path
+            Directory containing the ``dac_out_ch*.csv`` files.
+        time_unit : {'fs', 'ps', 'ns', 'us', 'ms'}
+            Unit for the returned time axis.
+        absolute_time : bool
+            If ``True``, return raw sim-time values instead of normalising
+            to the first DAC sample.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping channel index (int) to (time, samples) tuples.
+            Each tuple contains:
+            - time : numpy.ndarray
+                Time axis in ``time_unit``.
+            - samples : numpy.ndarray
+                Flat DAC stream aligned to time axis.
+        """
+        emu_dir = pathlib.Path(emu_dir)
+        dac_data = {}
+
+        # Find all available dac_out_ch*.csv files
+        pattern = emu_dir / "dac_out_ch*.csv"
+        dac_files = sorted(emu_dir.glob("dac_out_ch*.csv"))
+
+        if not dac_files:
+            # Try to load the generic dac_out.csv if no per-channel files exist
+            if (emu_dir / "dac_out.csv").exists():
+                dac_files = [emu_dir / "dac_out.csv"]
+            else:
+                raise FileNotFoundError(f"No dac_out CSV files in {emu_dir}")
+
+        for csv_file in dac_files:
+            # Extract channel number from filename (e.g., "dac_out_ch0.csv" -> 0)
+            # or default to 0 if it's just "dac_out.csv"
+            if "ch" in csv_file.stem:
+                ch = int(csv_file.stem.split("ch")[-1])
+            else:
+                ch = 0
+
+            try:
+                t, samples = self.load_dac(emu_dir, gen_ch=ch, time_unit=time_unit, absolute_time=absolute_time)
+                dac_data[ch] = (t, samples)
+            except FileNotFoundError:
+                continue
+
+        if not dac_data:
+            raise FileNotFoundError(f"Failed to load any DAC channels from {emu_dir}")
+
+        return dac_data
+
     def load_mr(
         self,
         emu_dir: Union[str, pathlib.Path],
@@ -1930,6 +2034,7 @@ class QickEmu:
         prog,
         *,
         length_norm: bool = True,
+        skip_average: bool = False,
     ) -> List[np.ndarray]:
         """Load accumulated I/Q shots shaped like ``prog.acquire(soc)``.
 
@@ -1948,12 +2053,17 @@ class QickEmu:
             If True (default), divide accumulated sums by ``ro["length"]``
             to match ``acquire()``'s length normalization. Skipped for
             edge-counting readouts.
+        skip_average : bool, optional
+            If True, skip the averaging over reps (default False). This is
+            used when thresholding is needed, as threshold should be applied
+            to raw data before averaging.
 
         Returns
         -------
         list of numpy.ndarray
-            One entry per readout channel, shaped
-            ``(trigs, *remaining_loop_dims, 2)``.
+            One entry per readout channel. Shape is
+            ``(trigs, *remaining_loop_dims, 2)`` by default, or
+            ``(*loop_dims, trigs, 2)`` if ``skip_average=True``.
         """
         emu_dir = pathlib.Path(emu_dir)
 
@@ -1973,13 +2083,22 @@ class QickEmu:
             # Reshape flat (N, 2) into (*loop_dims, trigs, 2).
             shape = tuple(prog.loop_dims) + (ro["trigs"], 2)
             d = d.reshape(shape)
-            # Average over the reps/avg axis.
-            d = d.mean(axis=prog.avg_level)
-            if length_norm and not ro.get("edge_counting", False):
-                d = d / ro["length"]
-            # Move trigs axis to the front (acquire() convention).
-            d = np.moveaxis(d, -2, 0)
-            result.append(d)
+            # When skip_average=True, we want raw data before averaging (to preserve reps dimension)
+            # When skip_average=False, we average and normalize
+            if skip_average:
+                # Keep raw data with reps dimension: (*loop_dims, trigs, 2)
+                # But still apply length normalization
+                if length_norm and not ro.get("edge_counting", False):
+                    d = d / ro["length"]
+                result.append(d)  # (*loop_dims, trigs, 2) = (3, 10, 2, 2) - same as HW acc_buf
+            else:
+                # Average over the reps/avg axis.
+                d = d.mean(axis=prog.avg_level)
+                if length_norm and not ro.get("edge_counting", False):
+                    d = d / ro["length"]
+                # Normalize format (trigs, *loop_dims, 2)
+                d = np.moveaxis(d, -2, 0)
+                result.append(d)
         return result
 
     def export_vivado_files(
@@ -1989,7 +2108,8 @@ class QickEmu:
     ) -> pathlib.Path:
         """Convert the JSONL AXI replay into the flat format ``tb_qick_emu.sv`` expects.
 
-        ``prepare()`` writes ``axi_replay.jsonl`` (one JSON record per line).
+        ``prepare()`` writes ``axi_replay.jsonl`` (one JSON record per line) with
+        hexadecimal strings for addresses and data.
         The Vivado-compatible testbench reads a simpler whitespace-separated
         ``"HEXADDR HEXDATA"`` file via ``$fscanf``; this helper rewrites the
         JSONL into that format and prints the current board's address-routing
@@ -2033,10 +2153,24 @@ class QickEmu:
                 if not line:
                     continue
                 txn = json.loads(line)
-                addr = int(txn["addr"])
-                data = int(txn["data"])
+
+                # Parse addr and data - they can be int or hex string
+                # Mask with 0xFFFFFFFFFF for 40-bit addresses, 0xFFFFFFFF for data
+                addr_str = txn["addr"]
+                if isinstance(addr_str, str):
+                    addr = int(addr_str, 16)
+                else:
+                    addr = int(addr_str)
+                addr &= 0xFFFFFFFFFF
+                data_str = txn["data"]
+                if isinstance(data_str, str):
+                    data = int(data_str, 16)
+                else:
+                    data = int(data_str)
+                data &= 0xFFFFFFFF
+
                 comment = txn.get("comment", "")
-                fout.write(f"{addr:08X} {data:08X}  # {comment}\n")
+                fout.write(f"{addr:010X} {data:08X}  # {comment}\n")
 
         ## I think this is not needed anymore
 

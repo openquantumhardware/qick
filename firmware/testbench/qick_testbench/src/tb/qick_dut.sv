@@ -167,15 +167,12 @@ module qick_dut #(
     // AXIS ADC1 Readout
     output logic                     axis_adc1_ro1_tready,
     input logic                      axis_adc1_ro1_tvalid,
-    input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata
+    input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata,
 
-   //  // Readout1 Buffer Averaged Data AXIS (for axis_readout_v2)
-   //  output logic                     m0_axis_buf1_avg_tvalid,
-   //  output logic [63:0]              m0_axis_buf1_avg_tdata,
-   //  // Readout1 Buffer Decimated Data AXIS
-   //  output logic                     m1_axis_buf1_dec_tvalid,
-   //  output logic [31:0]              m1_axis_buf1_dec_tdata
-
+    // AXIS ADC2 Readout
+    output logic                     axis_adc2_ro2_tready,
+    input logic                      axis_adc2_ro2_tvalid,
+    input logic [N_DDS_RO*16-1:0]    axis_adc2_ro2_tdata
  );
 
    // Signal Generator 0 Path signals
@@ -205,11 +202,14 @@ module qick_dut #(
    logic              sgt1_sg1_axis_tready;
 
    // ++++++++++++ Signal Generator 2 (mux8) Path signals
-   // tproc wave port m2 -> sg_translator
-   wire [167:0]       tproc_sgt2_axis_tdata ;
-   wire               tproc_sgt2_axis_tvalid;
-   logic              tproc_sgt2_axis_tready;
-   // sg_translator m_mux4 (40-bit) -> axis_sg_mux8_v1
+   wire [167:0]       tproc_sg2cdc_axis_tdata ;
+   wire               tproc_sg2cdc_axis_tvalid;
+   logic              tproc_sg2cdc_axis_tready;
+
+   wire [167:0]       sg2cdc_sgt2_axis_tdata ;
+   wire               sg2cdc_sgt2_axis_tvalid;
+   logic              sg2cdc_sgt2_axis_tready;
+
    wire [39:0]        sgt2_sg2_axis_tdata ;
    wire               sgt2_sg2_axis_tvalid;
    logic              sgt2_sg2_axis_tready;
@@ -246,17 +246,48 @@ module qick_dut #(
    logic                     buf1_m0_axis_avg_tvalid;
    logic [63:0]              buf1_m0_axis_avg_tdata;
    logic                     buf1_m0_axis_avg_tlast;
-   // Readout0 Buffer Decimated Data AXIS
+   // Readout1 Buffer Decimated Data AXIS
    logic                     buf1_m1_axis_dec_tvalid;
    logic [31:0]              buf1_m1_axis_dec_tdata;
    logic                     buf1_m1_axis_dec_tlast;
-   // Readout0 Buffer Register Data AXIS
+   // Readout1 Buffer Register Data AXIS
    logic                     buf1_m2_axis_reg_tvalid;
    logic [63:0]              buf1_m2_axis_reg_tdata;
    wire                      buf1_m2_axis_reg_tready;
 
+   // Readout2 Buffer Averaged Data AXIS
+   logic                     buf2_m0_axis_avg_tvalid;
+   logic [63:0]              buf2_m0_axis_avg_tdata;
+   logic                     buf2_m0_axis_avg_tlast;
+   // Readout2 Buffer Decimated Data AXIS
+   logic                     buf2_m1_axis_dec_tvalid;
+   logic [31:0]              buf2_m1_axis_dec_tdata;
+   logic                     buf2_m1_axis_dec_tlast;
+   // Readout2 Buffer Register Data AXIS
+   logic                     buf2_m2_axis_reg_tvalid;
+   logic [63:0]              buf2_m2_axis_reg_tdata;
+   wire                      buf2_m2_axis_reg_tready;
+
+   // Readout3 Buffer Averaged Data AXIS
+   logic                     buf3_m0_axis_avg_tvalid;
+   logic [63:0]              buf3_m0_axis_avg_tdata;
+   logic                     buf3_m0_axis_avg_tlast;
+   // Readout3 Buffer Decimated Data AXIS
+   logic                     buf3_m1_axis_dec_tvalid;
+   logic [31:0]              buf3_m1_axis_dec_tdata;
+   logic                     buf3_m1_axis_dec_tlast;
+   // Readout3 Buffer Register Data AXIS
+   logic                     buf3_m2_axis_reg_tvalid;
+   logic [63:0]              buf3_m2_axis_reg_tdata;
+   wire                      buf3_m2_axis_reg_tready;
+
+
    wire                       trig_10;
    wire                       trig_11;
+   wire                       trig_12;
+   wire                       trig_13;
+   wire                       trig_14;
+   wire                       trig_15;
 
    // Internal AXI-Lite wires (kept inside qick_dut)
    // Single AXI master with 40-bit address for router
@@ -364,26 +395,83 @@ module qick_dut #(
    // ++++++++++++
 
    // Router output wires for avg1
+   wire  [5:0]       s_axi_buf1_araddr;
+   wire  [2:0]       s_axi_buf1_arprot;
+   wire              s_axi_buf1_arready;
+   wire              s_axi_buf1_arvalid;
+   wire  [5:0]       s_axi_buf1_awaddr;
+   wire  [2:0]       s_axi_buf1_awprot;
+   wire              s_axi_buf1_awready;
+   wire              s_axi_buf1_awvalid;
+   wire              s_axi_buf1_bready;
+   wire  [1:0]       s_axi_buf1_bresp;
+   wire              s_axi_buf1_bvalid;
+   wire  [31:0]      s_axi_buf1_rdata;
+   wire              s_axi_buf1_rready;
+   wire  [1:0]       s_axi_buf1_rresp;
+   wire              s_axi_buf1_rvalid;
+   wire  [31:0]      s_axi_buf1_wdata;
 
-   wire  [5:0]       s_axi_avg1_araddr;
-   wire  [2:0]       s_axi_avg1_arprot;
-   wire              s_axi_avg1_arready;
-   wire              s_axi_avg1_arvalid;
-   wire  [5:0]       s_axi_avg1_awaddr;
-   wire  [2:0]       s_axi_avg1_awprot;
-   wire              s_axi_avg1_awready;
-   wire              s_axi_avg1_awvalid;
-   wire              s_axi_avg1_bready;
-   wire  [1:0]       s_axi_avg1_bresp;
-   wire              s_axi_avg1_bvalid;
-   wire  [31:0]      s_axi_avg1_rdata;
-   wire              s_axi_avg1_rready;
-   wire  [1:0]       s_axi_avg1_rresp;
-   wire              s_axi_avg1_rvalid;
-   wire  [31:0]      s_axi_avg1_wdata;
-   wire              s_axi_avg1_wready;
-   wire  [3:0]       s_axi_avg1_wstrb;
-   wire              s_axi_avg1_wvalid;
+   // Router output wires for buf2
+   wire  [5:0]       s_axi_buf2_araddr;
+   wire  [2:0]       s_axi_buf2_arprot;
+   wire              s_axi_buf2_arready;
+   wire              s_axi_buf2_arvalid;
+   wire  [5:0]       s_axi_buf2_awaddr;
+   wire  [2:0]       s_axi_buf2_awprot;
+   wire              s_axi_buf2_awready;
+   wire              s_axi_buf2_awvalid;
+   wire              s_axi_buf2_bready;
+   wire  [1:0]       s_axi_buf2_bresp;
+   wire              s_axi_buf2_bvalid;
+   wire  [31:0]      s_axi_buf2_rdata;
+   wire              s_axi_buf2_rready;
+   wire  [1:0]       s_axi_buf2_rresp;
+   wire              s_axi_buf2_rvalid;
+   wire  [31:0]      s_axi_buf2_wdata;
+
+   // Router output wires for buf3
+   wire  [5:0]       s_axi_buf3_araddr;
+   wire  [2:0]       s_axi_buf3_arprot;
+   wire              s_axi_buf3_arready;
+   wire              s_axi_buf3_arvalid;
+   wire  [5:0]       s_axi_buf3_awaddr;
+   wire  [2:0]       s_axi_buf3_awprot;
+   wire              s_axi_buf3_awready;
+   wire              s_axi_buf3_awvalid;
+   wire              s_axi_buf3_bready;
+   wire  [1:0]       s_axi_buf3_bresp;
+   wire              s_axi_buf3_bvalid;
+   wire  [31:0]      s_axi_buf3_rdata;
+   wire              s_axi_buf3_rready;
+   wire  [1:0]       s_axi_buf3_rresp;
+   wire              s_axi_buf3_rvalid;
+   wire  [31:0]      s_axi_buf3_wdata;
+
+   // AXI router output signals for PFB Readout
+   logic  [7:0]    s_axi_pfb_ro_awaddr;
+   logic  [2:0]    s_axi_pfb_ro_awprot;
+   logic           s_axi_pfb_ro_awvalid;
+   logic           s_axi_pfb_ro_awready;
+   logic  [31:0]   s_axi_pfb_ro_wdata;
+   logic  [3:0]    s_axi_pfb_ro_wstrb;
+   logic           s_axi_pfb_ro_wvalid;
+   logic           s_axi_pfb_ro_wready;
+   logic  [1:0]    s_axi_pfb_ro_bresp;
+   logic           s_axi_pfb_ro_bvalid;
+   logic           s_axi_pfb_ro_bready;
+   logic  [7:0]    s_axi_pfb_ro_araddr;
+   logic  [2:0]    s_axi_pfb_ro_arprot;
+   logic           s_axi_pfb_ro_arvalid;
+   logic           s_axi_pfb_ro_arready;
+   logic  [31:0]   s_axi_pfb_ro_rdata;
+   logic  [1:0]    s_axi_pfb_ro_rresp;
+   logic           s_axi_pfb_ro_rvalid;
+   logic           s_axi_pfb_ro_rready;
+
+   wire              s_axi_buf1_wready;
+   wire  [3:0]       s_axi_buf1_wstrb;
+   wire              s_axi_buf1_wvalid;
 
    // AXI router output signals for Readout2 (ROV2)
    logic  [7:0]    s_axi_rov2_awaddr;
@@ -411,9 +499,12 @@ module qick_dut #(
    logic           sg0_sel;
    logic           sg1_sel;
    logic           sg2_sel;   // ++++++++++++ mux8 SG2 config select
-   logic           avg0_sel;
-   logic           avg1_sel;
+   logic           buf0_sel;
+   logic           buf1_sel;
+   logic           buf2_sel;
+   logic           buf3_sel;
    logic           rov2_sel;
+   logic           pfb_ro_sel;
 
 
    // Instantiate AXI Router
@@ -522,26 +613,26 @@ module qick_dut #(
       .s_sg2_rvalid    (s_axi_sg2_rvalid    ),
       .s_sg2_rready    (s_axi_sg2_rready    ),
       // ++++++++++++
-      .s_avg0_awaddr   (s_axi_avg0_awaddr   ),
+      .s_buf0_awaddr   (s_axi_buf0_awaddr   ),
+      .s_buf0_awprot   (s_axi_buf0_awprot   ),
+      .s_buf0_awvalid  (s_axi_buf0_awvalid  ),
+      .s_buf0_awready  (s_axi_buf0_awready  ),
+      .s_buf0_wdata    (s_axi_buf0_wdata    ),
+      .s_buf0_wstrb    (s_axi_buf0_wstrb    ),
+      .s_buf0_wvalid   (s_axi_buf0_wvalid   ),
+      .s_buf0_wready   (s_axi_buf0_wready   ),
+      .s_buf0_bresp    (s_axi_buf0_bresp    ),
+      .s_buf0_bvalid   (s_axi_buf0_bvalid   ),
+      .s_buf0_bready   (s_axi_buf0_bready   ),
+      .s_buf0_araddr   (s_axi_buf0_araddr   ),
+      .s_buf0_arprot   (s_axi_buf0_arprot   ),
+      .s_buf0_arvalid  (s_axi_buf0_arvalid  ),
+      .s_buf0_arready  (s_axi_buf0_arready  ),
+      .s_buf0_rdata    (s_axi_buf0_rdata    ),
+      .s_buf0_rresp    (s_axi_buf0_rresp    ),
+      .s_buf0_rvalid   (s_axi_buf0_rvalid   ),
+      .s_buf0_rready   (s_axi_buf0_rready   ),
 
-      .s_avg0_awprot   (s_axi_avg0_awprot   ),
-      .s_avg0_awvalid  (s_axi_avg0_awvalid  ),
-      .s_avg0_awready  (s_axi_avg0_awready  ),
-      .s_avg0_wdata    (s_axi_avg0_wdata    ),
-      .s_avg0_wstrb    (s_axi_avg0_wstrb    ),
-      .s_avg0_wvalid   (s_axi_avg0_wvalid   ),
-      .s_avg0_wready   (s_axi_avg0_wready   ),
-      .s_avg0_bresp    (s_axi_avg0_bresp    ),
-      .s_avg0_bvalid   (s_axi_avg0_bvalid   ),
-      .s_avg0_bready   (s_axi_avg0_bready   ),
-      .s_avg0_araddr   (s_axi_avg0_araddr   ),
-      .s_avg0_arprot   (s_axi_avg0_arprot   ),
-      .s_avg0_arvalid  (s_axi_avg0_arvalid  ),
-      .s_avg0_arready  (s_axi_avg0_arready  ),
-      .s_avg0_rdata    (s_axi_avg0_rdata    ),
-      .s_avg0_rresp    (s_axi_avg0_rresp    ),
-      .s_avg0_rvalid   (s_axi_avg0_rvalid   ),
-      .s_avg0_rready   (s_axi_avg0_rready   ),
       .s_rov2_awaddr   (s_axi_rov2_awaddr   ),
       .s_rov2_awprot   (s_axi_rov2_awprot   ),
       .s_rov2_awvalid  (s_axi_rov2_awvalid  ),
@@ -561,34 +652,98 @@ module qick_dut #(
       .s_rov2_rresp    (s_axi_rov2_rresp    ),
       .s_rov2_rvalid   (s_axi_rov2_rvalid   ),
       .s_rov2_rready   (s_axi_rov2_rready   ),
-      .s_avg1_awaddr   (s_axi_avg1_awaddr   ),
-      .s_avg1_awprot   (s_axi_avg1_awprot   ),
-      .s_avg1_awvalid  (s_axi_avg1_awvalid  ),
-      .s_avg1_awready  (s_axi_avg1_awready  ),
-      .s_avg1_wdata    (s_axi_avg1_wdata    ),
-      .s_avg1_wstrb    (s_axi_avg1_wstrb    ),
-      .s_avg1_wvalid   (s_axi_avg1_wvalid   ),
-      .s_avg1_wready   (s_axi_avg1_wready   ),
-      .s_avg1_bresp    (s_axi_avg1_bresp    ),
-      .s_avg1_bvalid   (s_axi_avg1_bvalid   ),
-      .s_avg1_bready   (s_axi_avg1_bready   ),
-      .s_avg1_araddr   (s_axi_avg1_araddr   ),
-      .s_avg1_arprot   (s_axi_avg1_arprot   ),
-      .s_avg1_arvalid  (s_axi_avg1_arvalid  ),
-      .s_avg1_arready  (s_axi_avg1_arready  ),
-      .s_avg1_rdata    (s_axi_avg1_rdata    ),
-      .s_avg1_rresp    (s_axi_avg1_rresp    ),
-      .s_avg1_rvalid   (s_axi_avg1_rvalid   ),
-      .s_avg1_rready   (s_axi_avg1_rready   ),
+
+      .s_pfb_ro_awaddr (s_axi_pfb_ro_awaddr ),
+      .s_pfb_ro_awprot (s_axi_pfb_ro_awprot ),
+      .s_pfb_ro_awvalid(s_axi_pfb_ro_awvalid),
+      .s_pfb_ro_awready(s_axi_pfb_ro_awready),
+      .s_pfb_ro_wdata  (s_axi_pfb_ro_wdata  ),
+      .s_pfb_ro_wstrb  (s_axi_pfb_ro_wstrb  ),
+      .s_pfb_ro_wvalid (s_axi_pfb_ro_wvalid ),
+      .s_pfb_ro_wready (s_axi_pfb_ro_wready ),
+      .s_pfb_ro_bresp  (s_axi_pfb_ro_bresp  ),
+      .s_pfb_ro_bvalid (s_axi_pfb_ro_bvalid ),
+      .s_pfb_ro_bready (s_axi_pfb_ro_bready ),
+      .s_pfb_ro_araddr (s_axi_pfb_ro_araddr ),
+      .s_pfb_ro_arprot (s_axi_pfb_ro_arprot ),
+      .s_pfb_ro_arvalid(s_axi_pfb_ro_arvalid),
+      .s_pfb_ro_arready(s_axi_pfb_ro_arready),
+      .s_pfb_ro_rdata  (s_axi_pfb_ro_rdata  ),
+      .s_pfb_ro_rresp  (s_axi_pfb_ro_rresp  ),
+      .s_pfb_ro_rvalid (s_axi_pfb_ro_rvalid ),
+      .s_pfb_ro_rready (s_axi_pfb_ro_rready ),
+
+      .s_buf1_awaddr   (s_axi_buf1_awaddr   ),
+      .s_buf1_awprot   (s_axi_buf1_awprot   ),
+      .s_buf1_awvalid  (s_axi_buf1_awvalid  ),
+      .s_buf1_awready  (s_axi_buf1_awready  ),
+      .s_buf1_wdata    (s_axi_buf1_wdata    ),
+      .s_buf1_wstrb    (s_axi_buf1_wstrb    ),
+      .s_buf1_wvalid   (s_axi_buf1_wvalid   ),
+      .s_buf1_wready   (s_axi_buf1_wready   ),
+      .s_buf1_bresp    (s_axi_buf1_bresp    ),
+      .s_buf1_bvalid   (s_axi_buf1_bvalid   ),
+      .s_buf1_bready   (s_axi_buf1_bready   ),
+      .s_buf1_araddr   (s_axi_buf1_araddr   ),
+      .s_buf1_arprot   (s_axi_buf1_arprot   ),
+      .s_buf1_arvalid  (s_axi_buf1_arvalid  ),
+      .s_buf1_arready  (s_axi_buf1_arready  ),
+      .s_buf1_rdata    (s_axi_buf1_rdata    ),
+      .s_buf1_rresp    (s_axi_buf1_rresp    ),
+      .s_buf1_rvalid   (s_axi_buf1_rvalid   ),
+      .s_buf1_rready   (s_axi_buf1_rready   ),
+
+      .s_buf2_awaddr   (s_axi_buf2_awaddr   ),
+      .s_buf2_awprot   (s_axi_buf2_awprot   ),
+      .s_buf2_awvalid  (s_axi_buf2_awvalid  ),
+      .s_buf2_awready  (s_axi_buf2_awready  ),
+      .s_buf2_wdata    (s_axi_buf2_wdata    ),
+      .s_buf2_wstrb    (s_axi_buf2_wstrb    ),
+      .s_buf2_wvalid   (s_axi_buf2_wvalid   ),
+      .s_buf2_wready   (s_axi_buf2_wready   ),
+      .s_buf2_bresp    (s_axi_buf2_bresp    ),
+      .s_buf2_bvalid   (s_axi_buf2_bvalid   ),
+      .s_buf2_bready   (s_axi_buf2_bready   ),
+      .s_buf2_araddr   (s_axi_buf2_araddr   ),
+      .s_buf2_arprot   (s_axi_buf2_arprot   ),
+      .s_buf2_arvalid  (s_axi_buf2_arvalid  ),
+      .s_buf2_arready  (s_axi_buf2_arready  ),
+      .s_buf2_rdata    (s_axi_buf2_rdata    ),
+      .s_buf2_rresp    (s_axi_buf2_rresp    ),
+      .s_buf2_rvalid   (s_axi_buf2_rvalid   ),
+      .s_buf2_rready   (s_axi_buf2_rready   ),
+
+      .s_buf3_awaddr   (s_axi_buf3_awaddr   ),
+      .s_buf3_awprot   (s_axi_buf3_awprot   ),
+      .s_buf3_awvalid  (s_axi_buf3_awvalid  ),
+      .s_buf3_awready  (s_axi_buf3_awready  ),
+      .s_buf3_wdata    (s_axi_buf3_wdata    ),
+      .s_buf3_wstrb    (s_axi_buf3_wstrb    ),
+      .s_buf3_wvalid   (s_axi_buf3_wvalid   ),
+      .s_buf3_wready   (s_axi_buf3_wready   ),
+      .s_buf3_bresp    (s_axi_buf3_bresp    ),
+      .s_buf3_bvalid   (s_axi_buf3_bvalid   ),
+      .s_buf3_bready   (s_axi_buf3_bready   ),
+      .s_buf3_araddr   (s_axi_buf3_araddr   ),
+      .s_buf3_arprot   (s_axi_buf3_arprot   ),
+      .s_buf3_arvalid  (s_axi_buf3_arvalid  ),
+      .s_buf3_arready  (s_axi_buf3_arready  ),
+      .s_buf3_rdata    (s_axi_buf3_rdata    ),
+      .s_buf3_rresp    (s_axi_buf3_rresp    ),
+      .s_buf3_rvalid   (s_axi_buf3_rvalid   ),
+      .s_buf3_rready   (s_axi_buf3_rready   ),
+
       // Output select signals
       .tproc_sel       (tproc_sel           ),
       .sg0_sel         (sg0_sel             ),
       .sg1_sel         (sg1_sel             ),
       .sg2_sel         (sg2_sel             ),
-      .avg0_sel        (avg0_sel            ),
-
+      .buf0_sel        (buf0_sel            ),
       .rov2_sel        (rov2_sel            ),
-      .avg1_sel        (avg1_sel            )
+      .buf1_sel        (buf1_sel            ),
+      .pfb_ro_sel      (pfb_ro_sel          ),
+      .buf2_sel        (buf2_sel            ),
+      .buf3_sel        (buf3_sel            )
    );
 
    // Instantiate AXI Master (connected to router)
@@ -856,9 +1011,9 @@ module qick_dut #(
       .m1_axis_tdata        ( tproc_sg1cdc_axis_tdata        ),
       .m1_axis_tvalid       ( tproc_sg1cdc_axis_tvalid       ),
       .m1_axis_tready       ( tproc_sg1cdc_axis_tready       ),
-      .m2_axis_tdata        ( tproc_sgt2_axis_tdata         ),
-      .m2_axis_tvalid       ( tproc_sgt2_axis_tvalid        ),
-      .m2_axis_tready       ( tproc_sgt2_axis_tready        ),
+      .m2_axis_tdata        ( tproc_sg2cdc_axis_tdata       ),
+      .m2_axis_tvalid       ( tproc_sg2cdc_axis_tvalid      ),
+      .m2_axis_tready       ( tproc_sg2cdc_axis_tready      ),
       .m3_axis_tdata        ( /*m3_axis_tdata*/        ),
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/       ),
       .m3_axis_tready       ( 1'b0 /*m3_axis_tready*/       ),
@@ -911,10 +1066,10 @@ module qick_dut #(
       .trig_9_o             ( /*trig_9_o*/             ),   // TODO: to DDR4
       .trig_10_o            ( trig_10              ),       // to Readouts
       .trig_11_o            ( trig_11              ),       // to Readouts
-      .trig_12_o            ( /*trig_12_o*/            ),
-      .trig_13_o            ( /*trig_13_o*/            ),
-      .trig_14_o            ( /*trig_14_o*/            ),
-      .trig_15_o            ( /*trig_15_o*/            ),
+      .trig_12_o            ( trig_12              ),       // to PFB Readout
+      .trig_13_o            ( trig_13              ),       // to PFB Readout
+      .trig_14_o            ( trig_14              ),       // to PFB Readout
+      .trig_15_o            ( trig_15              ),       // to PFB Readout
       .trig_16_o            ( /*trig_16_o*/            ),
       .trig_17_o            ( /*trig_17_o*/            ),
       .trig_18_o            ( /*trig_18_o*/            ),
@@ -953,7 +1108,7 @@ module qick_dut #(
 
    // CDC for signal generator
    axis_cdcsync_v1 #(
-      .N                         (2),     // Number of inputs/outputs.
+      .N                         (3),     // Number of inputs/outputs.
       .B                         (168),   // Number of data bits.
       // ++++++++++++ ADD EMULATOR PARAMETER
       .EMULATOR                  (EMULATOR)
@@ -969,9 +1124,9 @@ module qick_dut #(
       .s1_axis_tready            (tproc_sg1cdc_axis_tready),
       .s1_axis_tvalid            (tproc_sg1cdc_axis_tvalid),
       .s1_axis_tdata             (tproc_sg1cdc_axis_tdata),
-      .s2_axis_tready            (/*s2_axis_tready*/),
-      .s2_axis_tvalid            (1'b0 /*s2_axis_tvalid*/),
-      .s2_axis_tdata             (168'd0 /*s2_axis_tdata*/),
+      .s2_axis_tready            (tproc_sg2cdc_axis_tready),
+      .s2_axis_tvalid            (tproc_sg2cdc_axis_tvalid),
+      .s2_axis_tdata             (tproc_sg2cdc_axis_tdata),
       .s3_axis_tready            (/*s3_axis_tready*/),
       .s3_axis_tvalid            (1'b0 /*s3_axis_tvalid*/),
       .s3_axis_tdata             (168'd0 /*s3_axis_tdata*/),
@@ -1020,9 +1175,9 @@ module qick_dut #(
       .m1_axis_tready            (sg1cdc_sgt1_axis_tready),
       .m1_axis_tvalid            (sg1cdc_sgt1_axis_tvalid),
       .m1_axis_tdata             (sg1cdc_sgt1_axis_tdata),
-      .m2_axis_tready            (1'b1 /*m2_axis_tready*/),
-      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
-      .m2_axis_tdata             (/*m2_axis_tdata*/),
+      .m2_axis_tready            (sg2cdc_sgt2_axis_tready),
+      .m2_axis_tvalid            (sg2cdc_sgt2_axis_tvalid),
+      .m2_axis_tdata             (sg2cdc_sgt2_axis_tdata),
       .m3_axis_tready            (1'b1 /*m3_axis_tready*/),
       .m3_axis_tvalid            (/*m3_axis_tvalid*/),
       .m3_axis_tdata             (/*m3_axis_tdata*/),
@@ -1266,9 +1421,9 @@ module qick_dut #(
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (tproc_sgt2_axis_tdata),
-      .s_axis_tvalid          (tproc_sgt2_axis_tvalid),
-      .s_axis_tready          (tproc_sgt2_axis_tready),
+      .s_axis_tdata           (sg2cdc_sgt2_axis_tdata),
+      .s_axis_tvalid          (sg2cdc_sgt2_axis_tvalid),
+      .s_axis_tready          (sg2cdc_sgt2_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tdata    (),
       .m_gen_v6_axis_tvalid   (),
@@ -1549,25 +1704,25 @@ module qick_dut #(
 `endif
 
    // Router output wires for avg0
-   wire  [5:0]       s_axi_avg0_araddr;
-   wire  [2:0]       s_axi_avg0_arprot;
-   wire              s_axi_avg0_arready;
-   wire              s_axi_avg0_arvalid;
-   wire  [5:0]       s_axi_avg0_awaddr;
-   wire  [2:0]       s_axi_avg0_awprot;
-   wire              s_axi_avg0_awready;
-   wire              s_axi_avg0_awvalid;
-   wire              s_axi_avg0_bready;
-   wire  [1:0]       s_axi_avg0_bresp;
-   wire              s_axi_avg0_bvalid;
-   wire  [31:0]      s_axi_avg0_rdata;
-   wire              s_axi_avg0_rready;
-   wire  [1:0]       s_axi_avg0_rresp;
-   wire              s_axi_avg0_rvalid;
-   wire  [31:0]      s_axi_avg0_wdata;
-   wire              s_axi_avg0_wready;
-   wire  [3:0]       s_axi_avg0_wstrb;
-   wire              s_axi_avg0_wvalid;
+   wire  [5:0]       s_axi_buf0_araddr;
+   wire  [2:0]       s_axi_buf0_arprot;
+   wire              s_axi_buf0_arready;
+   wire              s_axi_buf0_arvalid;
+   wire  [5:0]       s_axi_buf0_awaddr;
+   wire  [2:0]       s_axi_buf0_awprot;
+   wire              s_axi_buf0_awready;
+   wire              s_axi_buf0_awvalid;
+   wire              s_axi_buf0_bready;
+   wire  [1:0]       s_axi_buf0_bresp;
+   wire              s_axi_buf0_bvalid;
+   wire  [31:0]      s_axi_buf0_rdata;
+   wire              s_axi_buf0_rready;
+   wire  [1:0]       s_axi_buf0_rresp;
+   wire              s_axi_buf0_rvalid;
+   wire  [31:0]      s_axi_buf0_wdata;
+   wire              s_axi_buf0_wready;
+   wire  [3:0]       s_axi_buf0_wstrb;
+   wire              s_axi_buf0_wvalid;
 
    axis_avg_buffer #(
       .N_AVG                  (13               ),
@@ -1581,25 +1736,25 @@ module qick_dut #(
       // AXI Slave I/F for configuration.
       .s_axi_aclk             (ps_clk       ),
       .s_axi_aresetn          (ps_resetn    ),
-      .s_axi_araddr           (s_axi_avg0_araddr    ),
-      .s_axi_arprot           (s_axi_avg0_arprot    ),
-      .s_axi_arready          (s_axi_avg0_arready   ),
-      .s_axi_arvalid          (s_axi_avg0_arvalid   ),
-      .s_axi_awaddr           (s_axi_avg0_awaddr    ),
-      .s_axi_awprot           (s_axi_avg0_awprot    ),
-      .s_axi_awready          (s_axi_avg0_awready   ),
-      .s_axi_awvalid          (s_axi_avg0_awvalid   ),
-      .s_axi_bready           (s_axi_avg0_bready    ),
-      .s_axi_bresp            (s_axi_avg0_bresp     ),
-      .s_axi_bvalid           (s_axi_avg0_bvalid    ),
-      .s_axi_rdata            (s_axi_avg0_rdata     ),
-      .s_axi_rready           (s_axi_avg0_rready    ),
-      .s_axi_rresp            (s_axi_avg0_rresp     ),
-      .s_axi_rvalid           (s_axi_avg0_rvalid    ),
-      .s_axi_wdata            (s_axi_avg0_wdata     ),
-      .s_axi_wready           (s_axi_avg0_wready    ),
-      .s_axi_wstrb            (s_axi_avg0_wstrb     ),
-      .s_axi_wvalid           (s_axi_avg0_wvalid    ),
+      .s_axi_araddr           (s_axi_buf0_araddr    ),
+      .s_axi_arprot           (s_axi_buf0_arprot    ),
+      .s_axi_arready          (s_axi_buf0_arready   ),
+      .s_axi_arvalid          (s_axi_buf0_arvalid   ),
+      .s_axi_awaddr           (s_axi_buf0_awaddr    ),
+      .s_axi_awprot           (s_axi_buf0_awprot    ),
+      .s_axi_awready          (s_axi_buf0_awready   ),
+      .s_axi_awvalid          (s_axi_buf0_awvalid   ),
+      .s_axi_bready           (s_axi_buf0_bready    ),
+      .s_axi_bresp            (s_axi_buf0_bresp     ),
+      .s_axi_bvalid           (s_axi_buf0_bvalid    ),
+      .s_axi_rdata            (s_axi_buf0_rdata     ),
+      .s_axi_rready           (s_axi_buf0_rready    ),
+      .s_axi_rresp            (s_axi_buf0_rresp     ),
+      .s_axi_rvalid           (s_axi_buf0_rvalid    ),
+      .s_axi_wdata            (s_axi_buf0_wdata     ),
+      .s_axi_wready           (s_axi_buf0_wready    ),
+      .s_axi_wstrb            (s_axi_buf0_wstrb     ),
+      .s_axi_wvalid           (s_axi_buf0_wvalid    ),
 
       // Trigger input.
       .trigger                (trig_10              ),
@@ -1655,8 +1810,6 @@ module qick_dut #(
 `endif
 
 
-
-// `ifndef VERILATOR
 
    wire              axis_ro1_avg1_tready;
    wire              axis_ro1_avg1_tvalid;
@@ -1721,25 +1874,25 @@ module qick_dut #(
       // AXI Slave I/F for configuration.
       .s_axi_aclk             (ps_clk               ),
       .s_axi_aresetn          (ps_resetn            ),
-      .s_axi_araddr           (s_axi_avg1_araddr    ),
-      .s_axi_arprot           (s_axi_avg1_arprot    ),
-      .s_axi_arready          (s_axi_avg1_arready   ),
-      .s_axi_arvalid          (s_axi_avg1_arvalid   ),
-      .s_axi_awaddr           (s_axi_avg1_awaddr    ),
-      .s_axi_awprot           (s_axi_avg1_awprot    ),
-      .s_axi_awready          (s_axi_avg1_awready   ),
-      .s_axi_awvalid          (s_axi_avg1_awvalid   ),
-      .s_axi_bready           (s_axi_avg1_bready    ),
-      .s_axi_bresp            (s_axi_avg1_bresp     ),
-      .s_axi_bvalid           (s_axi_avg1_bvalid    ),
-      .s_axi_rdata            (s_axi_avg1_rdata     ),
-      .s_axi_rready           (s_axi_avg1_rready    ),
-      .s_axi_rresp            (s_axi_avg1_rresp     ),
-      .s_axi_rvalid           (s_axi_avg1_rvalid    ),
-      .s_axi_wdata            (s_axi_avg1_wdata     ),
-      .s_axi_wready           (s_axi_avg1_wready    ),
-      .s_axi_wstrb            (s_axi_avg1_wstrb     ),
-      .s_axi_wvalid           (s_axi_avg1_wvalid    ),
+      .s_axi_araddr           (s_axi_buf1_araddr    ),
+      .s_axi_arprot           (s_axi_buf1_arprot    ),
+      .s_axi_arready          (s_axi_buf1_arready   ),
+      .s_axi_arvalid          (s_axi_buf1_arvalid   ),
+      .s_axi_awaddr           (s_axi_buf1_awaddr    ),
+      .s_axi_awprot           (s_axi_buf1_awprot    ),
+      .s_axi_awready          (s_axi_buf1_awready   ),
+      .s_axi_awvalid          (s_axi_buf1_awvalid   ),
+      .s_axi_bready           (s_axi_buf1_bready    ),
+      .s_axi_bresp            (s_axi_buf1_bresp     ),
+      .s_axi_bvalid           (s_axi_buf1_bvalid    ),
+      .s_axi_rdata            (s_axi_buf1_rdata     ),
+      .s_axi_rready           (s_axi_buf1_rready    ),
+      .s_axi_rresp            (s_axi_buf1_rresp     ),
+      .s_axi_rvalid           (s_axi_buf1_rvalid    ),
+      .s_axi_wdata            (s_axi_buf1_wdata     ),
+      .s_axi_wready           (s_axi_buf1_wready    ),
+      .s_axi_wstrb            (s_axi_buf1_wstrb     ),
+      .s_axi_wvalid           (s_axi_buf1_wvalid    ),
 
       // Trigger input.
       .trigger                (trig_11              ),
@@ -1773,31 +1926,192 @@ module qick_dut #(
       .m2_axis_tdata          (buf1_m2_axis_reg_tdata )
    );
 
-// `else
 
-//    assign s_axi_rov2_awready = 0;
-//    assign s_axi_rov2_wready = 0;
-//    assign s_axi_rov2_bresp = 0;
-//    assign s_axi_rov2_bvalid = 0;
-//    assign s_axi_rov2_arready = 0;
-//    assign s_axi_rov2_rdata = 0;
-//    assign s_axi_rov2_rresp = 0;
-//    assign s_axi_rov2_rvalid = 0;
+   // axis_pfb_readout_v3 signals
+   logic                     pfb_ro_m0_axis_tvalid;
+   logic [31:0]              pfb_ro_m0_axis_tdata;
+   logic                     pfb_ro_m1_axis_tvalid;
+   logic [31:0]              pfb_ro_m1_axis_tdata;
+   logic                     pfb_ro_m2_axis_tvalid;
+   logic [31:0]              pfb_ro_m2_axis_tdata;
+   logic                     pfb_ro_m3_axis_tvalid;
+   logic [31:0]              pfb_ro_m3_axis_tdata;
 
-//    assign s_axi_avg1_awready = 0;
-//    assign s_axi_avg1_wready = 0;
-//    assign s_axi_avg1_bresp = 0;
-//    assign s_axi_avg1_bvalid = 0;
-//    assign s_axi_avg1_arready = 0;
-//    assign s_axi_avg1_rdata = 0;
-//    assign s_axi_avg1_rresp = 0;
-//    assign s_axi_avg1_rvalid = 0;
+   assign axis_adc2_ro2_tready = 1'b1;
 
-//    assign axis_adc1_ro1_tready = 0;
+   // axis_pfb_readout_v3 instance
+   axis_pfb_readout_v3 #(
+      .EMULATOR               (EMULATOR         )
+   )
+   u_axis_pfb_readout_v3 (
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk             (ps_clk               ),
+      .s_axi_aresetn          (ps_resetn            ),
+      .s_axi_araddr           (s_axi_pfb_ro_araddr  ),
+      .s_axi_arprot           (s_axi_pfb_ro_arprot  ),
+      .s_axi_arready          (s_axi_pfb_ro_arready ),
+      .s_axi_arvalid          (s_axi_pfb_ro_arvalid ),
+      .s_axi_awaddr           (s_axi_pfb_ro_awaddr  ),
+      .s_axi_awprot           (s_axi_pfb_ro_awprot  ),
+      .s_axi_awready          (s_axi_pfb_ro_awready ),
+      .s_axi_awvalid          (s_axi_pfb_ro_awvalid ),
+      .s_axi_bready           (s_axi_pfb_ro_bready  ),
+      .s_axi_bresp            (s_axi_pfb_ro_bresp   ),
+      .s_axi_bvalid           (s_axi_pfb_ro_bvalid  ),
+      .s_axi_rdata            (s_axi_pfb_ro_rdata   ),
+      .s_axi_rready           (s_axi_pfb_ro_rready  ),
+      .s_axi_rresp            (s_axi_pfb_ro_rresp   ),
+      .s_axi_rvalid           (s_axi_pfb_ro_rvalid  ),
+      .s_axi_wdata            (s_axi_pfb_ro_wdata   ),
+      .s_axi_wready           (s_axi_pfb_ro_wready  ),
+      .s_axi_wstrb            (s_axi_pfb_ro_wstrb   ),
+      .s_axi_wvalid           (s_axi_pfb_ro_wvalid  ),
 
-//    assign s1_axis_tdata = 0;
-//    assign s1_axis_tvalid = 0;
+      // Reset and clock.
+      .aresetn                (ro_resetn            ),
+      .aclk                   (ro_clk               ),
 
-// `endif
+      // S_AXIS for input samples
+      .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
+      .s_axis_tdata           (axis_adc2_ro2_tdata  ),
 
- endmodule
+      // M_AXIS for CH0-3 output.
+      .m0_axis_tvalid         (pfb_ro_m0_axis_tvalid),
+      .m0_axis_tdata          (pfb_ro_m0_axis_tdata ),
+      .m1_axis_tvalid         (pfb_ro_m1_axis_tvalid),
+      .m1_axis_tdata          (pfb_ro_m1_axis_tdata ),
+      .m2_axis_tvalid         (pfb_ro_m2_axis_tvalid),
+      .m2_axis_tdata          (pfb_ro_m2_axis_tdata ),
+      .m3_axis_tvalid         (pfb_ro_m3_axis_tvalid),
+      .m3_axis_tdata          (pfb_ro_m3_axis_tdata )
+   );
+
+
+   axis_avg_buffer #(
+      .N_AVG                  (13               ),
+      .N_BUF                  (12               ),
+      .B                      (16               ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR               (EMULATOR         )
+      // +++++++++++++
+   )
+   u_axis_avg_buffer_2 ( 
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk             (ps_clk               ),
+      .s_axi_aresetn          (ps_resetn            ),
+      .s_axi_araddr           (s_axi_buf2_araddr    ),
+      .s_axi_arprot           (s_axi_buf2_arprot    ),
+      .s_axi_arready          (s_axi_buf2_arready   ),
+      .s_axi_arvalid          (s_axi_buf2_arvalid   ),
+      .s_axi_awaddr           (s_axi_buf2_awaddr    ),
+      .s_axi_awprot           (s_axi_buf2_awprot    ),
+      .s_axi_awready          (s_axi_buf2_awready   ),
+      .s_axi_awvalid          (s_axi_buf2_awvalid   ),
+      .s_axi_bready           (s_axi_buf2_bready    ),
+      .s_axi_bresp            (s_axi_buf2_bresp     ),
+      .s_axi_bvalid           (s_axi_buf2_bvalid    ),
+      .s_axi_rdata            (s_axi_buf2_rdata     ),
+      .s_axi_rready           (s_axi_buf2_rready    ),
+      .s_axi_rresp            (s_axi_buf2_rresp     ),
+      .s_axi_rvalid           (s_axi_buf2_rvalid    ),
+      .s_axi_wdata            (s_axi_buf2_wdata     ),
+      .s_axi_wready           (s_axi_buf2_wready    ),
+      .s_axi_wstrb            (s_axi_buf2_wstrb     ),
+      .s_axi_wvalid           (s_axi_buf2_wvalid    ),
+
+      // Trigger input.
+      .trigger                (trig_12              ),
+
+      // AXIS Slave for input data.
+      .s_axis_aresetn         (ro_resetn             ),
+      .s_axis_aclk            (ro_clk                ),
+      .s_axis_tvalid          (pfb_ro_m0_axis_tvalid ),
+      .s_axis_tdata           (pfb_ro_m0_axis_tdata  ),
+
+      // Reset and clock for m0 and m1.
+      .m_axis_aclk            (ps_clk         ),
+      .m_axis_aresetn         (ps_resetn      ),
+
+      // AXIS Master for averaged output.
+      .m0_axis_tready         (1'b1 /*buf1_m0_axis_avg_tready*/),
+      .m0_axis_tvalid         (buf2_m0_axis_avg_tvalid),
+      .m0_axis_tdata          (buf2_m0_axis_avg_tdata ),
+      .m0_axis_tlast          (buf2_m0_axis_avg_tlast),
+
+      // AXIS Master for decimated output.
+      .m1_axis_tready         (1'b1 /*buf1_m1_axis_dec_tready*/),
+      .m1_axis_tvalid         (buf2_m1_axis_dec_tvalid),
+      .m1_axis_tdata          (buf2_m1_axis_dec_tdata ),
+      .m1_axis_tlast          (buf2_m1_axis_dec_tlast),
+
+      // AXIS Master for register output to TPROC Data In Interface
+      .m2_axis_tready         (buf2_m2_axis_reg_tready),
+      .m2_axis_tvalid         (buf2_m2_axis_reg_tvalid),
+      .m2_axis_tdata          (buf2_m2_axis_reg_tdata )
+   );
+
+   axis_avg_buffer #(
+      .N_AVG                  (13               ),
+      .N_BUF                  (12               ),
+      .B                      (16               ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR               (EMULATOR         )
+      // +++++++++++++
+   )
+   u_axis_avg_buffer_3 ( 
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk             (ps_clk               ),
+      .s_axi_aresetn          (ps_resetn            ),
+      .s_axi_araddr           (s_axi_buf3_araddr    ),
+      .s_axi_arprot           (s_axi_buf3_arprot    ),
+      .s_axi_arready          (s_axi_buf3_arready   ),
+      .s_axi_arvalid          (s_axi_buf3_arvalid   ),
+      .s_axi_awaddr           (s_axi_buf3_awaddr    ),
+      .s_axi_awprot           (s_axi_buf3_awprot    ),
+      .s_axi_awready          (s_axi_buf3_awready   ),
+      .s_axi_awvalid          (s_axi_buf3_awvalid   ),
+      .s_axi_bready           (s_axi_buf3_bready    ),
+      .s_axi_bresp            (s_axi_buf3_bresp     ),
+      .s_axi_bvalid           (s_axi_buf3_bvalid    ),
+      .s_axi_rdata            (s_axi_buf3_rdata     ),
+      .s_axi_rready           (s_axi_buf3_rready    ),
+      .s_axi_rresp            (s_axi_buf3_rresp     ),
+      .s_axi_rvalid           (s_axi_buf3_rvalid    ),
+      .s_axi_wdata            (s_axi_buf3_wdata     ),
+      .s_axi_wready           (s_axi_buf3_wready    ),
+      .s_axi_wstrb            (s_axi_buf3_wstrb     ),
+      .s_axi_wvalid           (s_axi_buf3_wvalid    ),
+
+      // Trigger input.
+      .trigger                (trig_13              ),
+
+      // AXIS Slave for input data.
+      .s_axis_aresetn         (ro_resetn             ),
+      .s_axis_aclk            (ro_clk                ),
+      .s_axis_tvalid          (pfb_ro_m1_axis_tvalid ),
+      .s_axis_tdata           (pfb_ro_m1_axis_tdata  ),
+
+      // Reset and clock for m0 and m1.
+      .m_axis_aclk            (ps_clk         ),
+      .m_axis_aresetn         (ps_resetn      ),
+
+      // AXIS Master for averaged output.
+      .m0_axis_tready         (1'b1 /*buf3_m0_axis_avg_tready*/),
+      .m0_axis_tvalid         (buf3_m0_axis_avg_tvalid),
+      .m0_axis_tdata          (buf3_m0_axis_avg_tdata ),
+      .m0_axis_tlast          (buf3_m0_axis_avg_tlast),
+
+      // AXIS Master for decimated output.
+      .m1_axis_tready         (1'b1 /*buf3_m1_axis_dec_tready*/),
+      .m1_axis_tvalid         (buf3_m1_axis_dec_tvalid),
+      .m1_axis_tdata          (buf3_m1_axis_dec_tdata ),
+      .m1_axis_tlast          (buf3_m1_axis_dec_tlast),
+
+      // AXIS Master for register output to TPROC Data In Interface
+      .m2_axis_tready         (buf3_m2_axis_reg_tready),
+      .m2_axis_tvalid         (buf3_m2_axis_reg_tvalid),
+      .m2_axis_tdata          (buf3_m2_axis_reg_tdata )
+   );
+
+
+endmodule

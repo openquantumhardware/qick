@@ -386,7 +386,7 @@ generate
 endgenerate
 
 // Control block.
-ctrl ctrl_i
+ctrl_sg_mux8 ctrl_i
  	(
 		// Reset and clock.
 		.rstn			(aresetn		),

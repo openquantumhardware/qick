@@ -4,6 +4,11 @@
  * independent DDS blocks.
  */
 module ddsprod_v
+	#(
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
+	)
 	(
 		// Clock.
 		input	wire			aclk			,
@@ -81,7 +86,12 @@ genvar i;
 generate
 	for (i=0; i<N; i=i+1) begin: GEN_ddsprod
 		// DDS prod block.
-		ddsprod ddsprod_i
+		ddsprod 
+		#(
+			// Emulator flag.
+			.EMULATOR(EMULATOR)
+		)
+		ddsprod_i
 			(
 				// Clock.
 				.aclk			(aclk		),
