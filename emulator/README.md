@@ -49,6 +49,20 @@ It is meant for:
 
 Each time a program calls `acquire()` / `acquire_decimated()` against the emulator, `qick_emu.py` writes out the recorded AXI transactions and memory contents, invokes `make verilate` / the compiled testbench (`emulator/testbench/`) via Verilator, and parses the resulting CSVs back into the same data shape a real board would return.
 
+## Running in Google Colab (no install)
+
+Every notebook here (and in [`tutorial/`](tutorial/)) can be opened directly in Google Colab — nothing to install on your machine. Click the notebook's **"Open in Colab"** badge, then run its first cell, **"Colab Setup"**. That cell:
+
+1. Clones this repo (`openquantumhardware/qick`, branch `merge-hrl-main`) into the Colab runtime.
+2. Installs Verilator 5.042 — from a prebuilt binary in a few seconds if available, falling back to a ~10-15 minute source build otherwise.
+3. Installs the Python dependencies needed to run `QickEmu`.
+
+Everything after that cell is a normal QICK notebook — `prog.acquire_decimated(soc)` and friends work exactly as described below. Locally (i.e. with the `qick-venv` kernel from the setup below), that same cell detects it isn't running in Colab and does nothing.
+
+Colab assigns a fresh VM per runtime, so the first cell's setup cost is paid once per session, not once per notebook — reopening another notebook in the *same* connected runtime reuses what's already installed and just updates the repo checkout.
+
+**Want to run locally instead?** Read on.
+
 ## Requirements
 
 Running the emulator means **compiling a Verilog testbench with Verilator**, not just installing Python packages. Most first-run failures come from the C++/Verilator toolchain, not from `qick` itself. Requirements below are grouped so you can tell which ones matter for which failure.
@@ -163,6 +177,10 @@ QICK library version mismatch: 0.2.366 remote (the board), 0.2.88 local (the PC)
 This compares the firmware config's recorded `qick` version against your installed `qick` version. It's informational, not fatal, on its own — but if you do hit a `KeyError` during `QickConfig` init, it's the first thing to check.
 
 ### How `qick_emu_config.json` is built (and why there's no generator script)
+
+**This subsection is entirely optional and only matters if you want to *change* what the emulator models.** QICK is designed around the ZCU216 board with the QICK box analog front-end — that's the reference hardware, and `qick_emu_config.json` already models (a reduced subset of) exactly that. For normal use — the tutorials, testing your own programs, CI — there is nothing to configure here; skip this subsection.
+
+It's included for the rare case where you specifically want the emulator to represent *different* hardware.
 
 `qick_emu_config.json` is **hand-written**, not derived automatically from a board's bitstream. Its own `_comment` field says as much: it was manually adapted from a real ZCU216 `soc.get_cfg()` dump, then trimmed down to only the IP blocks the Verilator testbench (`emulator/testbench/QICKEmu_harness.sv`, plus the fixed source list in `emulator/testbench/Makefile`) actually instantiates:
 
