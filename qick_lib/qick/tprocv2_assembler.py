@@ -303,7 +303,7 @@ def get_src_type (src : str) -> str:
     :returns (tuple): Type of Source
     """
     src_type = 'X'
-    REG = re.findall('s(\d+)|r(\d+)|w(\d+)|#([ubh0-9A-F\-]+)',src) #S,R,W,Signed, Unsigned, Binary, Hexa
+    REG = re.findall(r's(\d+)|r(\d+)|w(\d+)|#([ubh0-9A-F\-]+)',src) #S,R,W,Signed, Unsigned, Binary, Hexa
     if not REG:
         raise RuntimeError('get_src_type: Source Data not Recognized '+src )
     #print('Register Type> ',REG, REG[0])
@@ -324,7 +324,7 @@ def get_src_type (src : str) -> str:
 
 def check_num(num_str : str) -> bool:
     r = False
-    num     = re.search('^(\d+)', num_str)
+    num     = re.search(r'^(\d+)', num_str)
     extr_num = num.group(0) if num else ''
     if (extr_num == num_str):
         r = True
@@ -332,14 +332,14 @@ def check_num(num_str : str) -> bool:
 
 def check_lit(lit_str : str) -> bool:
     r = False
-    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)', lit_str)
+    lit     = re.search(r'#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)', lit_str)
     extr_lit = lit.group(0) if lit else ''
     if (extr_lit == lit_str):
         r = True
     return r
 
 def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
-    LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
+    LIT = re.findall(r'#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
     if ( not LIT or not check_lit(lit)):
         raise RuntimeError("get_imm_dt: Data Format incorrect "+ lit )
     LIT = LIT[0]
@@ -373,7 +373,7 @@ def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
 
 def check_reg(name_reg : str) -> bool:
     r = False
-    name     = re.search('s(\d+)|r(\d+)|w(\d+)', name_reg)
+    name     = re.search(r's(\d+)|r(\d+)|w(\d+)', name_reg)
     extr_reg = name.group(0) if name else ''
     if (extr_reg == name_reg):
         r = True
@@ -385,7 +385,7 @@ def get_reg_addr (reg : str, Type : str) -> str:
     """
     if not check_reg(reg): #extr_num == name_num):
         raise RuntimeError('get_reg_addr: Register '+ reg +' Name error' )
-    REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)[0]
+    REG = re.findall(r's(\d+)|r(\d+)|w(\d+)', reg)[0]
     if (Type=='Dest'):
         if (REG[0]): ## is SREG
             if (int(REG[0]) > 15): raise RuntimeError('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
@@ -747,7 +747,7 @@ class Assembler():
 
                     # CHANGE ALIAS
                     ###############################################################
-                    cmd_words = re.split(' |\(|\)|\[|\]', command)
+                    cmd_words = re.split(r' |\(|\)|\[|\]', command)
                     for key in Alias_List:
                         CHANGE = find_pattern(key, command)
                         if (key in cmd_words):
@@ -770,7 +770,7 @@ class Assembler():
                     ## SINGLE PARAMETERS CHECK
                     ###########################################################
                     if ('OP' in command_info):
-                        comp_OP_PARAM = "#b(\d+)"
+                        comp_OP_PARAM = r"#b(\d+)"
                         param_op = re.findall(comp_OP_PARAM, command_info['OP'])
                         if param_op:
                             try:
@@ -1328,7 +1328,7 @@ class Instruction():
     def __PROCESS_MEM_ADDR (ADDR_CMD : str) -> tuple:
         AI = '0'
         rsA0 = rsA1 = 'x'
-        comp_ADDR_FMT = "s(\d+)|r(\d+)|&(\d+)|\s*([A-Z]{3}|[A-Z]{2}|\+|\-)"
+        comp_ADDR_FMT = r"s(\d+)|r(\d+)|&(\d+)|\s*([A-Z]{3}|[A-Z]{2}|\+|\-)"
         param_op  = re.findall(comp_ADDR_FMT, ADDR_CMD)
         if (len(param_op)==1 ) :
             ## CHECK FOR OPERAND
@@ -1394,7 +1394,7 @@ class Instruction():
             #### Get Data Source
             if 'ADDR' not in current:
                 raise RuntimeError('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
-            comp_addr = "&(\d+)"
+            comp_addr = r"&(\d+)"
             address = re.findall(comp_addr, current['ADDR'])
             current['LIT'] = current['ADDR']
             if not address[0]: # LITERAL
@@ -1449,7 +1449,7 @@ class Instruction():
             if (RD!='15'):
                 logger.warning('Instruction.REG_WR: Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
         else:
-            comp_OP_PARAM = "^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
+            comp_OP_PARAM = r"^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
             RD    = re.findall(comp_OP_PARAM, current ['DST'])
             if not RD:
                 raise RuntimeError('Instruction.REG_WR: Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
@@ -1542,7 +1542,7 @@ class Instruction():
             AI = '0'
             ADDR = '_00000000000_000000'
         else:
-            comp_addr = "&(\d+)|s(\d+)"
+            comp_addr = r"&(\d+)|s(\d+)"
             addr = re.findall(comp_addr, current['ADDR'])
             try:
                 if (addr[0][0]): # LITERAL
@@ -1599,7 +1599,7 @@ class Instruction():
                     if 'DATA' not in current:
                         raise RuntimeError('Instruction.PORT_WR: No Port Register found in line ' + str(current['LINE']) )
                     AI=Sp = '0'
-                    comp_REG_FMT = "r(\d+)"
+                    comp_REG_FMT = r"r(\d+)"
                     param_op  = re.findall(comp_REG_FMT, current['DATA'])
                     if not param_op:
                         raise RuntimeError('Instruction.PORT_WR: Register Selection Error, should be dreg in line ' + str(current['LINE']) )
