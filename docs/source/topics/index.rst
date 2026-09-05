@@ -27,6 +27,8 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
 
    asmv2_cheatsheet
    tutorials
+   tprocv2_migration
+   example_code
 
 .. toctree::
    :maxdepth: 1
@@ -70,6 +72,12 @@ Topic Descriptions
 **tutorials**
     Link to the full Jupyter notebook tutorials.
 
+**tprocv2_migration**
+    Short migration guide for tProc v1 users: hardware sweeps, timing calls, pulse playback, and units.
+
+**example_code**
+    Larger example codebases shared by QICK collaborators, for both tProc v1 and v2.
+
 **xcom**
     XCOM: Full mesh network for multi-board synchronization and low-latency communication. Covers hardware requirements, communication protocol, command set, and Python interface.
 
@@ -89,5 +97,7 @@ When to Use Each Topic
 - **Not sure whether to use `acquire` or `acquire_decimated`?** See :doc:`readout_modes`
 - **Using external clock?** Refer to :doc:`reference_clock`
 - **Writing assembly code?** Keep :doc:`asmv2_cheatsheet` handy
+- **Coming from tProc v1?** Start with :doc:`tprocv2_migration`
+- **Looking for full example experiments?** See :doc:`example_code`
 - **Synchronizing multiple boards?** Read :doc:`xcom` for the network-based solution
 - **Need XCOM command details?** See :doc:`XCOM-commands` for the complete command reference
