@@ -3,7 +3,10 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build
+# Defaults to the project venv (../.venv, see docs/requirements.txt) if it
+# exists, so 'make html' works without manually activating it first.
+# Override with 'make SPHINXBUILD=... html' to use a different interpreter/env.
+SPHINXBUILD   = $(if $(wildcard ../.venv/bin/sphinx-build),../.venv/bin/sphinx-build,sphinx-build)
 PAPER         =
 BUILDDIR      = _build
 

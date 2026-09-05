@@ -32,6 +32,9 @@ __pycache__/
 .installed.cfg
 *.egg
 
+# Docs build venv (see docs/requirements.txt, docs/Makefile)
+/.venv/
+
 # Distribution / packaging
 build/
 dist/
