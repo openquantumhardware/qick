@@ -30,7 +30,7 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 | 08 | `08_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
 | 09 | `09_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
 
-### Advanced (10–14)
+### Advanced (10–15)
 
 | # | Notebook | Description |
 |:-|:---|:---|
@@ -39,6 +39,7 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 | 12 | `12_DSP_Blocks_And_Correlators.ipynb` | FIR filters, DDS tuning, hardware correlators |
 | 13 | `13_Custom_Firmware_Integration.ipynb` | Adding custom Verilog/VHDL, AXI-lite interface, rebuilding |
 | 14 | `14_XCOM_Network_Synchronization.ipynb` | Full mesh network for multi-board synchronization and low-latency communication (requires FMC transceiver board) |
+| 15 | `15_QICKBox_RF_Daughtercards.ipynb` | QICKBox RF/Balun daughtercards: attenuators, ADMV8818 tunable filters, saturation checks (requires QICKBox with RF daughtercards) |
 
 ## Usage
 
@@ -93,11 +94,13 @@ print(f"tProc cores: {soc.num_tprocs}")
 
 * Notebooks 00–09 are self-contained and work on any QICK setup
 
-* Notebooks 10–14 require additional hardware resources (multi-board, streaming, DSP48)
+* Notebooks 10–15 require additional hardware resources (multi-board, streaming, DSP48, QICKBox)
 
 * Notebook 13 requires a licensed Vivado installation for custom firmware compilation
 
 * Notebook 14 (XCOM) requires additional hardware: FMC transceiver board and external hub
+
+* Notebook 15 requires a QICKBox with RF (and optionally Balun) daughtercards installed
 
 ## Troubleshooting
 

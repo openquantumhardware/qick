@@ -86,13 +86,14 @@ The documentation is organized as a **progressive learning path** from beginner 
 
 .. toctree::
    :maxdepth: 2
-   :caption:  4. Advanced Tutorials (10-14)
+   :caption:  4. Advanced Tutorials (10-15)
 
    tutorials/10_Multi_Board_Synchronization
    tutorials/11_Streaming_And_RealTime_Processing
    tutorials/12_DSP_Blocks_And_Correlators
    tutorials/13_Custom_Firmware_Integration
    tutorials/14_XCOM_Network_Synchronization
+   tutorials/15_QICKBox_RF_Daughtercards
 
 The **firmware overview** is the map: which boards QICK supports, which
 cores live on each one, and how the tProcessor, signal generators, and
