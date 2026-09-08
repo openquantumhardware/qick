@@ -35,6 +35,17 @@ And two envelope types:
 * **COMPLEX** (``ENVELOPE_TYPE = "COMPLEX"``): separate memories for real and imaginary parts.
 * **REAL** (``ENVELOPE_TYPE = "REAL"``): real part only; the imaginary part is forced to zero.
 
+.. figure:: images/firmware/sg_v6-blocks.svg
+   :align: center
+   :width: 80%
+
+   Top-level block diagram: ``ctrl_sgv6`` reads the descriptor FIFO and
+   drives the ``bram_tdp`` read address, the ``N_DDS``-wide DDS array, and
+   the output mux/gain, while ``axis_to_bram_sg_nt`` independently loads
+   envelope samples into the same memory. The three-way mux (envelope ×
+   DDS product / raw DDS / raw envelope) matches ``sgv6.sv``'s ``src_la``
+   select -- verified directly against the RTL, not just the block names.
+
 --------------------------------------------------------------------
 2. Synthesis Parameters
 --------------------------------------------------------------------

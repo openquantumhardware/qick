@@ -133,6 +133,15 @@ also how the Python driver computes it -- see Section 5).
 3. Datapath
 --------------------------------------------------------------------
 
+.. figure:: images/firmware/mr_buffer_et-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram: ``NM`` independent capture/storage lanes
+   (``axis_to_bram_trig`` + ``bram_tdp``) on the write-side clock,
+   drained through a single ``bram_to_axis_nt`` reader on the read-side
+   clock -- matches ``mr_buffer.sv``'s own header description exactly.
+
 3.1 Write side -- ``axis_to_bram_trig`` (one instance per channel)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

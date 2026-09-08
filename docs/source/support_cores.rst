@@ -13,6 +13,13 @@ don't belong to either one. Each is 1-7 RTL files, so rather than a
 full page per core (as :doc:`/readout_v2`, :doc:`/sg_v6`, etc. get), they
 share this one page, one section each.
 
+.. figure:: images/firmware/support_cores-blocks.svg
+   :align: center
+   :width: 85%
+
+   Block diagram of all three cores -- each is small enough that this is
+   effectively its full internal structure, not a simplification.
+
 .. _support-constant-iq:
 
 ------------------------------------------------------------------------

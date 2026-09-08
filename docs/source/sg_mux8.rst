@@ -56,6 +56,16 @@ tones rather than 8, and (for V1/V2) drive a DAC-side digital mixer
 (``AxisSgMux8V1.HAS_MIXER = False`` -- see the Python Interface section).
 The mux4 RTL is out of scope for this document.
 
+.. figure:: images/firmware/sg_mux8-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram. The 8-bit mask and sample count arrive over
+   ``S_AXIS`` and are queued in ``fifo_sync``; ``ctrl_sgmux8`` pops one
+   descriptor at a time and gates the 8 ``dds_top_sgmux8`` tone slots
+   (each internally phase-coherent NCO + DDS + gain) with mask/en. The
+   summed, requantized output feeds ``M_AXIS``.
+
 .. _sgmux8-synth-params:
 
 --------------------------------------------------------------------

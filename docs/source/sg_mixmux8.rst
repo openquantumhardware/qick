@@ -93,6 +93,16 @@ up (or down) in frequency, which is what lets ``axis_sg_mixmux8_v1``
 (unlike ``axis_sg_mux8_v1``) place its whole multi-tone output away from DC,
 including outside the DAC's first Nyquist zone.
 
+.. figure:: images/firmware/sg_mixmux8-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram -- identical control/FIFO structure to
+   ``axis_sg_mux8_v1``, but each ``dds_top_mixmux8`` tone slot is a
+   complex (I/Q) oscillator and the adder tree is duplicated for both
+   rails. ``M_AXIS`` carries the already-summed I/Q comb to the RFDC's
+   own mixer on the DAC tile -- there is no mixer inside this IP.
+
 .. note::
 
    This page documents only ``axis_sg_mixmux8_v1``'s own RTL and driver.

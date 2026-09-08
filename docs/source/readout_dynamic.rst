@@ -55,6 +55,18 @@ Both are single-tone readouts (one DDS-driven downconversion frequency at a
 time per channel) -- like ``axis_readout_v2`` and unlike the PFB-based
 readouts, they do not channelize multiple simultaneous tones.
 
+.. figure:: images/firmware/dyn_readout-blocks.svg
+   :align: center
+   :width: 80%
+
+   Block diagram of ``readout_top_dynro`` (``axis_dyn_readout_v1`` is a
+   thin pass-through wrapper around it, so its ports are effectively the
+   IP's own). The ADC stream is down-converted once and fans out to both
+   outputs: straight to ``M0_AXIS`` for the pre-decimation view, and
+   through ``fir_decim8_dynro`` to ``M1_AXIS`` for the decimated stream
+   that feeds :doc:`/avg_buffer`. ``fifo_sync`` carries the tProc-pushed
+   config descriptor (freq/phase/mode) into ``down_conversion_dynro``.
+
 --------------------------------------------------------------------
 2. Synthesis Parameters
 --------------------------------------------------------------------

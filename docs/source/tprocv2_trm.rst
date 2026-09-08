@@ -375,77 +375,22 @@ Complete Instruction Header Reference
 3.1. Block Diagram with Data Flow
 ---------------------------------
 
-The diagram below shows how data moves through the tProcessor. Follow the arrows to understand pipeline stages.
+The diagram below shows tProcessor v2's top-level composition, verified
+directly against ``tprocv2.sv``'s own instantiations: the AXI-Lite register
+bank feeds the start/stop/time-base control and the PS memory-DMA path;
+``qproc_core`` (the 5-stage pipeline this chapter covers instruction by
+instruction, plus its program/data/wave memories) drives the
+``qproc_dispatcher``, which is the actual mechanism behind ``WPORT_WR``/
+``TRIG``/``DPORT_WR`` reaching the outside world -- each gets its own
+async FIFO plus a time comparator against the running ``t_clk`` time base
+(see Section 3.3, *FIFO Depth and Flow Control*, below for the FIFO side
+of this).
 
-::
+.. figure:: images/firmware/tprocv2-blocks.svg
+   :align: center
+   :width: 95%
 
-    +=======================================================================+
-    ||                           PS (ARM)                                   ||
-    ||  +-------------------+    +-------------------+                      ||
-    ||  | Python script     |    | DMA controller    |                      ||
-    ||  | (notebook, CLI)   |<-->| (AXI master)      |                      ||
-    ||  +---------+---------+    +---------+---------+                      ||
-    ||            |                        |                                ||
-    +=============|========================|================================+
-                  |                        |
-                  | (AXI‑Lite)             | (AXI‑Stream, DMA)
-                  v                        v
-    +=======================================================================+
-    ||                          tProcessor                                  ||
-    ||                                                                      ||
-    ||  +------------------+     +---------------------------------------+  ||
-    ||  | AXI_REG bank     |     | Dispatcher (t_clk domain)             |  ||
-    ||  | * tproc_ctrl     |     |                                       |  ||
-    ||  | * tproc_cfg      |     |  +--------+    +--------+    +-----+  |  ||
-    ||  | * core_cfg       |     |  | WFIFO  |    | DFIFO  |    | TFIFO| |  ||
-    ||  | * src_dt         |     |  |(168b)  |    | (32b)  |    | (1b) | |  ||
-    ||  +------------------+     |  +---+----+    +---+----+    +--+--+  |  ||
-    ||         |                 |      |             |            |     |  ||
-    ||         v                 |      v             v            v     |  ||
-    ||  +==================+     |  +-------+    +-------+    +-------+  |  ||
-    ||  || CORE (c_clk)   ||     |  | 48‑bit|    | 48‑bit|    | 48‑bit|  |  ||
-    ||  ||                ||     |  |compar |    |compar |    |compar |  |  ||
-    ||  || +-----------+  ||     |  |  &    |    |  &    |    |  &    |  |  ||
-    ||  || | 5‑stage   |  ||     |  +---+---+    +---+---+    +---+---+  |  ||
-    ||  || | pipeline  |  ||     |      |            |            |      |  ||
-    ||  || | * Fetch   |  ||     |      v            v            v      |  ||
-    ||  || | * Decode  |  ||     |  +-------+    +-------+    +-------+  |  ||
-    ||  || | * Read    |  ||     |  | WPORT |    | DPORT |    | TRIG  |  |  ||
-    ||  || | * Execute |  ||     |  | (analog|   | (digital|   | (1‑bit| |  ||
-    ||  || | * Write   |  ||     |  | wave) |    | data) |    | out)  |  |  ||
-    ||  || +-----------+  ||     |  +---+---+    +---+---+    +---+---+  |  ||
-    ||  ||       |        ||     |      |            |            |      |  ||
-    ||  ||       v        ||     +======|============|============|======+  ||
-    ||  || +----+----+    ||            v            v            v         ||
-    ||  || | ALU     |    ||        [DACs]       [PMODs]      [Triggers]    ||
-    ||  || | (DSP)   |    ||                                                ||
-    ||  || +----+----+    ||                                                ||
-    ||  ||      |         ||                                                ||
-    ||  ||      v         ||                                                ||
-    ||  || +----+----+    ||                                                ||
-    ||  || | DIV     |    ||                                                ||
-    ||  || | (32 cyc)|    ||                                                ||
-    ||  || +----+----+    ||                                                ||
-    ||  ||      |         ||                                                ||
-    ||  ||      v         ||                                                ||
-    ||  || +----+----+    ||                                                ||
-    ||  || | LFSR    |    ||                                                ||
-    ||  || |(PRNG)   |    ||                                                ||
-    ||  || +---------+    ||                                                ||
-    ||  ||                ||                                                ||
-    ||  || +-----------+  ||                                                ||
-    ||  || | Memories  |  ||                                                ||
-    ||  || | * PMEM    |  ||                                                ||
-    ||  || | * DMEM    |  ||                                                ||
-    ||  || | * WMEM    |  ||                                                ||
-    ||  || +-----------+  ||                                                ||
-    ||  +==================+                                                ||
-    ||                                                                      ||
-    ||  +------------------+                                                ||
-    ||  | IN_PORT (AXI‑S)  | <─── from ADC or external source               ||
-    ||  | (feedback data)  |                                                ||
-    ||  +------------------+                                                ||
-    +=======================================================================+
+   Top-level block diagram of ``tprocv2.sv``.
 
 3.2. Clock Domain Crossing (CDC) Explained
 -------------------------------------------

@@ -33,6 +33,17 @@ configuration (DDS/IIR/output-select/puncturing registers) is written
 through a shared register set and latched into the target lane by writing
 `ADDR_REG` (the lane index) then pulsing `WE_REG`.
 
+```{figure} images/firmware/kidsim-blocks.svg
+:align: center
+:width: 90%
+
+One representative `kidsim_top` lane (of `L`), matching `kidsim_top.sv`'s
+own documented datapath: `punct` selects one sample per frame, `kidsim`
+does the demodulate-by-DDS / IIR-filter / remodulate resonator
+simulation, and the output mux falls back to a delay-matched bypass of
+the raw input when that lane's sample isn't the punctured one.
+```
+
 ## 2. Synthesis Parameters
 
 ```{list-table}

@@ -51,6 +51,17 @@ Two source files in ``firmware/ip/axis_signal_gen_v4/src/`` -- ``dither.v``
 and ``random_gen.v`` -- are **not part of the active datapath**; see
 :ref:`sgv4-dithering` below.
 
+.. figure:: images/firmware/sg_v4-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram. Same envelope-memory/FIFO building blocks as
+   SG-v6, but the envelope x DDS complex product goes through a single
+   ``Gain`` stage and then a *static* real/imag select (``OUTSEL_REG``,
+   set once from Zynq) instead of SG-v6's per-descriptor 3-way mux --
+   this core always runs the DDS path and outputs one 16-bit value per
+   lane.
+
 --------------------------------------------------------------------
 2. Synthesis Parameters
 --------------------------------------------------------------------

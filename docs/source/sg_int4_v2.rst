@@ -55,6 +55,15 @@ via its own DDS + envelope multiplier) -- it is not multiplexed like
 ``axis_sg_mux4_v1``, which drives several simultaneous tones from one
 channel.
 
+.. figure:: images/firmware/sg_int4_v2-blocks.svg
+   :align: center
+   :width: 80%
+
+   Top-level block diagram. Unlike SG-v6, there's a single real/imag
+   ``bram_tdp`` pair at the raw (1/4-rate) table rate -- ``fir_0`` does the
+   x4 interpolation before the DDS mixer, and there's no output mux: this
+   core always runs the DDS + multiplier path (see the note below).
+
 .. note::
 
    Unlike SG-v6, ``axis_sg_int4_v2`` has **no** ``GEN_DDS``/``ENVELOPE_TYPE``

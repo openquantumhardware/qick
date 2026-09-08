@@ -66,7 +66,7 @@ The documentation is organized as a **progressive learning path** from beginner 
 
 .. toctree::
    :maxdepth: 2
-   :caption:  2. Jupyter Notebook Tutorials
+   :caption:  2. Basic Tutorials (00-05)
 
    tutorials/00_Getting_Started
    tutorials/01_Basic_Sequencing
@@ -74,22 +74,35 @@ The documentation is organized as a **progressive learning path** from beginner 
    tutorials/03_Advanced_Timing
    tutorials/04_Real_Time_Feedback
    tutorials/05_Dynamic_Parameters_Subroutines
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  3. Intermediate Tutorials (06-09)
+
    tutorials/06_Generators_And_Readouts
    tutorials/07_Advanced_Generators_And_Readouts
    tutorials/08_Hardware_Buffers
    tutorials/09_Appendix_Tips_And_Limits
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  4. Advanced Tutorials (10-14)
+
    tutorials/10_Multi_Board_Synchronization
    tutorials/11_Streaming_And_RealTime_Processing
    tutorials/12_DSP_Blocks_And_Correlators
    tutorials/13_Custom_Firmware_Integration
    tutorials/14_XCOM_Network_Synchronization
 
+The **firmware overview** is the map: which boards QICK supports, which
+cores live on each one, and how the tProcessor, signal generators, and
+readouts fit together on the FPGA -- read this before diving into any
+specific core's page or the assembly-level tProcessor reference.
+
 .. toctree::
    :maxdepth: 2
-   :caption:  3. Hardware & Firmware Reference
+   :caption:  5. Firmware Overview
 
-   tprocv2_trm
-   tprocv1
    firmware
 
 The **readout system** turns ADC samples into the I/Q data your program gets
@@ -102,7 +115,7 @@ level detail.
 
 .. toctree::
    :maxdepth: 2
-   :caption:  4. Readout System
+   :caption:  6. Readout System
 
    readout
    readout_v2
@@ -121,7 +134,7 @@ full worked Python examples shared across the family.
 
 .. toctree::
    :maxdepth: 2
-   :caption:  5. Signal Generators
+   :caption:  7. Signal Generators
 
    generators
    sg_v6
@@ -138,25 +151,46 @@ it's exposed to Python.
 
 .. toctree::
    :maxdepth: 2
-   :caption:  6. Support & Utility Cores
+   :caption:  8. Support & Utility Cores
 
    support_cores
 
 .. toctree::
    :maxdepth: 2
-   :caption:  7. Technical Topics
-
-   topics/index
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  8. Python API Reference
+   :caption:  9. Python API Reference
 
    modules
 
 .. toctree::
    :maxdepth: 2
-   :caption:  9. Community
+   :caption:  10. Technical Topics
+
+   topics/index
+
+The **tProcessor v2 reference manual** is assembly-level detail --
+instruction encodings, register bit-fields, timing model -- for when you're
+writing or debugging tProc assembly directly, not something you need to read
+top-to-bottom to use QICK day to day.
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  11. tProcessor v2 Reference
+
+   tprocv2_trm
+
+**tProc v1** is the previous-generation tProcessor, superseded by v2 on all
+current firmware. Only relevant if you're maintaining pre-v2 code or
+firmware.
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  12. Legacy: tProc v1
+
+   tprocv1
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  13. Community
 
    contact
    papers
@@ -169,15 +203,16 @@ Learning Path Recommendations
 1. Read the :doc:`quick_start` guide to set up your board
 2. Complete the **Basic Tutorials** (00-05) to understand core concepts
 3. Work through **Intermediate Tutorials** (06-09) for practical measurements
-4. Explore **Advanced Tutorials** (10-13) for specialized applications
+4. Read :doc:`firmware` for the big picture, then explore **Advanced
+   Tutorials** (10-14) for specialized applications
 
 **Already familiar with QICK?** Jump directly to:
 
-- :doc:`tprocv2_trm` for tProcessor instruction reference
 - :doc:`readout` and :doc:`generators` for the readout/generator hardware
   reference, organized by which core is on your channel
-- :doc:`topics/index` for deep dives on specific topics
 - :doc:`modules` for full API documentation
+- :doc:`topics/index` for deep dives on specific topics
+- :doc:`tprocv2_trm` for tProcessor instruction reference
 
 Academic Papers
 ================

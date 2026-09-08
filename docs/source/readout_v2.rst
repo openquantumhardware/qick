@@ -32,6 +32,19 @@ The datapath, in order:
    decimation by 8.
 3. Output to ``axis_avg_buffer``'s ``s_axis``.
 
+.. figure:: images/firmware/readout_v2-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram of the current fusesoc-ported RTL
+   (``readout_top_ro_v2.sv`` / ``down_conversion_ro_v2.sv``), verified
+   directly against that source. **Note:** this reflects ``N_DDS=8``
+   (fixed by the shared, reused ``fir_decim8_dynro`` block) and a 3-way
+   ``OUTSEL`` mux (product/dds/raw ADC) inside ``down_conversion_ro_v2``,
+   which differs from the ``N_DDS=16`` / no-``OUTSEL`` description above
+   -- that prose describes the pre-fusesoc-port ``firmware/ip/
+   axis_readout_v2/`` RTL and hasn't been reconciled with the port yet.
+
 --------------------------------------------------------------------
 2. Frequency/Output Control (``ctrl.sv``)
 --------------------------------------------------------------------

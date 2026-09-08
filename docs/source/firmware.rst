@@ -42,6 +42,15 @@ Sampling frequency of ADC blocks is given by the variable ``soc.fs_adc``.
 Sampling frequency of DACs is stored in variable ``soc.fs_dac``.
 Fast-speed buffers were removed to save memory space. Raw data can be captured after x8 down-sampling.
 
+.. figure:: images/firmware/firmware-overview.svg
+   :align: center
+   :width: 85%
+
+   System-level block diagram: the tProcessor sequences the signal
+   generators (SG) and readouts, which sit between it and the DACs/ADCs;
+   the Zynq PS configures everything over AXI (purple) and is the boundary
+   between the PS (software) and PL (FPGA fabric) sides of the chip.
+
 Signal Generator v6 (SG-v6)
 ---------------------------
 

@@ -135,6 +135,15 @@ computed once, shared if two outputs pick the same channel -- there is no way
 to independently re-tune the same PFB channel differently on two outputs
 simultaneously.
 
+.. figure:: images/firmware/readout_pfb_v2-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram: DDS mixing happens once per PFB channel
+   (``ddsprod_v``, always active for all 8), and ``pfb_mux`` only picks
+   which already-mixed channel reaches each output -- the "DDS-before-mux"
+   ordering described above.
+
 2.2 Register Map
 ^^^^^^^^^^^^^^^^^
 
@@ -198,6 +207,16 @@ v3 has **no ``OUTSEL_REG``**/output-mode-selection mux at all (confirmed:
 ``ddsprod.sv`` in v3/v4 has no ``OUTSEL_REG`` port, unlike v2's; the Python
 driver sets ``HAS_OUTSEL = False`` for ``AxisPFBReadoutV3``) -- each output
 always carries the demodulated product, nothing else.
+
+.. figure:: images/firmware/readout_pfb_v3-blocks.svg
+   :align: center
+   :width: 85%
+
+   Top-level block diagram -- the opposite ordering from v2:
+   ``pfb_chsel`` picks a raw channel per output first, then ``ddsprod_v``
+   applies an independent per-output DDS. v4 (below) is the same diagram
+   with ``NOUT=8`` instead of 4 -- RTL-identical apart from the doubled
+   instance arrays.
 
 3.2 Register Map
 ^^^^^^^^^^^^^^^^^
