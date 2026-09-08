@@ -520,5 +520,5 @@ Related Documentation
 * :doc:`/avg_buffer` - Averaged/raw buffer IP downstream of every readout variant
 * :doc:`/mr_buffer_et` - Multi-rate buffer (DDR4/streaming) shared readout path
 * :doc:`topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
-* :doc:`topics/tutorials` - tProc v2 tutorial examples
+* :doc:`tutorials/index` - tProc v2 tutorial examples
 * `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

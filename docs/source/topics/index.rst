@@ -26,7 +26,6 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
    :caption: Quick Reference
 
    asmv2_cheatsheet
-   tutorials
    tprocv2_migration
    example_code
 

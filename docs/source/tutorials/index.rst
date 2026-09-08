@@ -19,32 +19,33 @@ Tutorials
    :maxdepth: 1
    :caption: Basic Tutorials (00-05)
 
-   ../tutorials/00_Getting_Started
-   ../tutorials/01_Basic_Sequencing
-   ../tutorials/02_Parameter_Sweeps
-   ../tutorials/03_Advanced_Timing
-   ../tutorials/04_Real_Time_Feedback
-   ../tutorials/05_Dynamic_Parameters_Subroutines
+   00_Getting_Started
+   01_Basic_Sequencing
+   02_Parameter_Sweeps
+   03_Advanced_Timing
+   04_Real_Time_Feedback
+   05_Dynamic_Parameters_Subroutines
 
 .. toctree::
    :maxdepth: 1
    :caption: Intermediate Tutorials (06-09)
 
-   ../tutorials/06_Generators_And_Readouts
-   ../tutorials/07_Advanced_Generators_And_Readouts
-   ../tutorials/08_Hardware_Buffers
-   ../tutorials/09_Appendix_Tips_And_Limits
+   06_Generators_And_Readouts
+   07_Advanced_Generators_And_Readouts
+   08_Hardware_Buffers
+   09_Appendix_Tips_And_Limits
 
 .. toctree::
    :maxdepth: 1
-   :caption: Advanced Tutorials (10-14)
+   :caption: Advanced Tutorials (10-15)
 
-   ../tutorials/10_Multi_Board_Synchronization
-   ../tutorials/11_Streaming_And_RealTime_Processing
-   ../tutorials/12_DSP_Blocks_And_Correlators
-   ../tutorials/13_Custom_Firmware_Integration
-   ../tutorials/14_XCOM_Network_Synchronization
-   ../tutorials/README
+   10_Multi_Board_Synchronization
+   11_Streaming_And_RealTime_Processing
+   12_DSP_Blocks_And_Correlators
+   13_Custom_Firmware_Integration
+   14_XCOM_Network_Synchronization
+   15_QICKBox_RF_Daughtercards
+   README
 
 Running the Tutorials
 =====================
@@ -112,5 +113,5 @@ See Also
 ========
 
 - :doc:`../quick_start` - Quick installation guide
-- :doc:`asmv2_cheatsheet` - tProc v2 cheatsheet
-- :doc:`timing` - More details on timeline management
+- :doc:`../topics/asmv2_cheatsheet` - tProc v2 cheatsheet
+- :doc:`../topics/timing` - More details on timeline management
