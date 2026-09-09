@@ -73,7 +73,7 @@ Best Practices
 Related Documentation
 ---------------------
 
-* :doc:`/sg_v6` - Signal Generator v6
-* :doc:`/readout` - Readout system
-* :doc:`/firmware` - Clock domains and sample rates
+* :doc:`/firmware/generators/sg_v6` - Signal Generator v6
+* :doc:`/firmware/readouts/index` - Readout system
+* :doc:`/firmware/index` - Clock domains and sample rates
 * :doc:`changing_fs` - Custom sample rates

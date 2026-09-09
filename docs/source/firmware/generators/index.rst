@@ -5,6 +5,17 @@ Signal Generators - QICK Firmware
   :local:
   :depth: 2
 
+.. toctree::
+   :maxdepth: 2
+   :caption:  7. Signal Generators
+   :hidden:
+
+   sg_v6
+   sg_mux8
+   sg_mixmux8
+   sg_int4_v2
+   sg_v4
+
 Overview
 --------
 
@@ -26,29 +37,29 @@ below.
     - Tones
     - Envelope
     - Typical use
-  * - :doc:`/sg_v6`
+  * - :doc:`sg_v6`
     - 1 (arbitrary shape)
     - Yes, full rate
     - The default choice for shaped pulses (Gaussian, DRAG, flat-top) --
       qubit drive, readout drive.
-  * - :doc:`/sg_int4_v2`
+  * - :doc:`sg_int4_v2`
     - 1 (arbitrary shape)
     - Yes, 4x-interpolated
     - Same use case as SG-v6 on boards/channels where this lighter-weight
       core is instantiated instead; has a DAC-side mixer (``HAS_MIXER``).
-  * - :doc:`/sg_v4`
+  * - :doc:`sg_v4`
     - 1 (arbitrary shape)
     - Yes, full rate
     - Legacy predecessor to SG-v6; not used in any board design currently
       in this repository. Documented for driver/backward-compatibility
       reference, not for new designs.
-  * - :doc:`/sg_mux8`
+  * - :doc:`sg_mux8`
     - up to 8 (fixed CW)
     - No
     - Playing several simultaneous fixed tones from one channel -- e.g. a
       frequency comb, or driving several resonators/qubits at once without
       one DAC channel per tone.
-  * - :doc:`/sg_mixmux8`
+  * - :doc:`sg_mixmux8`
     - up to 8 (fixed CW)
     - No
     - Same as SG-Mux8, plus a shared DAC-side mixer so the whole comb can be
@@ -86,21 +97,21 @@ which core is behind a given channel: declare it once with
 :meth:`.QickProgram.declare_gen`, define named pulses with
 :meth:`.QickProgram.add_pulse` (and :meth:`.QickProgram.add_envelope` first,
 if it needs a shape), then play them with :meth:`.QickProgram.pulse`. See
-:doc:`/sg_v6`'s "Python Usage" section for worked examples (single pulse,
-shaped pulse, multiple queued pulses), and :doc:`/sg_mixmux8`'s Python
+:doc:`sg_v6`'s "Python Usage" section for worked examples (single pulse,
+shaped pulse, multiple queued pulses), and :doc:`sg_mixmux8`'s Python
 section for the multiplexed-generator variant (``mux_freqs``/``mux_gains``
 instead of one ``freq``/``gain`` per pulse).
 
 Related Documentation
 ----------------------
 
-* :doc:`/sg_v6` - the flagship arbitrary-envelope generator (start here)
-* :doc:`/sg_int4_v2`, :doc:`/sg_v4` - other single-tone arbitrary generators
-* :doc:`/sg_mux8`, :doc:`/sg_mixmux8` - multiplexed (multi-tone) generators
-* :doc:`/firmware` - which generator core is on which channel, on the
+* :doc:`sg_v6` - the flagship arbitrary-envelope generator (start here)
+* :doc:`sg_int4_v2`, :doc:`sg_v4` - other single-tone arbitrary generators
+* :doc:`sg_mux8`, :doc:`sg_mixmux8` - multiplexed (multi-tone) generators
+* :doc:`../index` - which generator core is on which channel, on the
   reference board
-* :doc:`topics/gen_config` - shared pulse configuration options
+* :doc:`/topics/gen_config` - shared pulse configuration options
   (``outsel``/``mode``/``stdysel``)
-* :doc:`topics/freq_matching` - keeping generator and readout frequencies
+* :doc:`/topics/freq_matching` - keeping generator and readout frequencies
   in sync
-* :doc:`/readout` - the readout-side counterpart to this page
+* :doc:`../readouts/index` - the readout-side counterpart to this page

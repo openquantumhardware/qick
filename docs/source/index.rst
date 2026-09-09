@@ -79,57 +79,29 @@ specific core's page or the assembly-level tProcessor reference.
    :maxdepth: 2
    :caption:  5. Firmware Overview
 
-   firmware
+   firmware/index
 
 The **readout system** turns ADC samples into the I/Q data your program gets
 back. QICK offers several down-converter and buffer cores with different
 tradeoffs (software- vs. tProc-configured, on-chip BRAM vs. DDR4 capture,
 plus a resonator simulator for hardware-in-the-loop testing) -- start at
-:doc:`readout` for the concepts and the normal ``declare_readout()``/
+:doc:`firmware/readouts/index` for the concepts and the normal ``declare_readout()``/
 ``acquire()`` workflow, then dip into a specific core's page for register-
 level detail.
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  6. Readout System
-
-   readout
-   readout_v2
-   readout_dynamic
-   readout_pfb
-   avg_buffer
-   mr_buffer_et
-   kidsim
 
 The **signal generators** turn your program's pulse definitions into DAC
 output. QICK offers both single-tone arbitrary-envelope generators (for
 shaped pulses) and multiplexed fixed-tone generators (for playing several
-simultaneous tones from one channel) -- start at :doc:`generators` for an
-overview of which core fits which experiment, then see :doc:`sg_v6` for the
+simultaneous tones from one channel) -- start at :doc:`firmware/generators/index` for an
+overview of which core fits which experiment, then see :doc:`firmware/generators/sg_v6` for the
 full worked Python examples shared across the family.
 
-.. toctree::
-   :maxdepth: 2
-   :caption:  7. Signal Generators
-
-   generators
-   sg_v6
-   sg_mux8
-   sg_mixmux8
-   sg_int4_v2
-   sg_v4
 
 The **support & utility cores** are smaller IP blocks -- a constant-IQ tone
 source, a tProc-output register/trigger helper, and an AXI-Stream buffering
 core -- that don't fit into either the readout or signal-generator families
-above; see :doc:`support_cores` for what each one does and how (or whether)
+above; see :doc:`firmware/support_cores` for what each one does and how (or whether)
 it's exposed to Python.
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  8. Support & Utility Cores
-
-   support_cores
 
 .. toctree::
    :maxdepth: 2
@@ -179,12 +151,12 @@ Learning Path Recommendations
 1. Read the :doc:`quick_start` guide to set up your board
 2. Complete the **Basic Tutorials** (00-05) to understand core concepts
 3. Work through **Intermediate Tutorials** (06-09) for practical measurements
-4. Read :doc:`firmware` for the big picture, then explore **Advanced
+4. Read :doc:`firmware/index` for the big picture, then explore **Advanced
    Tutorials** (10-14) for specialized applications
 
 **Already familiar with QICK?** Jump directly to:
 
-- :doc:`readout` and :doc:`generators` for the readout/generator hardware
+- :doc:`firmware/readouts/index` and :doc:`firmware/generators/index` for the readout/generator hardware
   reference, organized by which core is on your channel
 - :doc:`modules` for full API documentation
 - :doc:`topics/index` for deep dives on specific topics

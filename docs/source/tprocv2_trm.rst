@@ -15,7 +15,7 @@ QICK tProcessor v2 - Complete Reference Manual
 .. note::
   This is the complete reference manual for the qick_processor (tProcV2).
   For system-level firmware overview (signal generators, readout, channel assignments),
-  see :doc:`/firmware`. If you are working with older, legacy tProc v1
+  see :doc:`/firmware/index`. If you are working with older, legacy tProc v1
   hardware (``axis_tproc64x32_x8``) instead, see :doc:`/tprocv1`.
 
   This document was updated to match the current RTL (``firmware/rtl_lib/``).
@@ -5290,7 +5290,7 @@ For complete API documentation, see Chapter 12.
   driver, and ``Waveform`` actually lives in ``qick.asm_v2``, not
   ``qick.qick_asm``. The examples below use the real, current
   :class:`.QickProgram`-based workflow (the same one used throughout
-  :doc:`/sg_v6`, :doc:`/readout`, and :doc:`/generators`), verified against
+  :doc:`/firmware/generators/sg_v6`, :doc:`/firmware/readouts/index`, and :doc:`/firmware/generators/index`), verified against
   ``qick.asm_v2``/``qick.qick_asm``/``qick.drivers.tproc`` in this session.
   Raw assembly is still shown where it's genuinely the right tool -- true
   hardware-timed conditional branching (:ref:`tproc-conditional-feedback`)
@@ -5333,7 +5333,7 @@ reps/rounds for you.
 ---------------------------------------------------
 
 This example sends a pulse and captures its raw (decimated) waveform on a
-readout channel -- see :doc:`topics/readout_modes` for accumulated
+readout channel -- see :doc:`/topics/readout_modes` for accumulated
 (``acquire()``) vs. decimated (``acquire_decimated()``) readout.
 
 .. code-block:: python
@@ -5371,7 +5371,7 @@ you write it with high-level Python calls, not hand-assembled instructions:
 :meth:`.QickProgramV2.read_and_jump` combines a readout-register read with a
 conditional jump, and :meth:`.QickProgramV2.label` marks the jump target.
 This condensed example is adapted from the full working version in
-:doc:`tutorials/04_Real_Time_Feedback`.
+:doc:`/tutorials/04_Real_Time_Feedback`.
 
 .. code-block:: python
 
@@ -5486,12 +5486,12 @@ This example combines everything: DAC pulse, ADC capture, and data analysis.
 ------------------------------------------
 
 The Signal Generator v6 (SG-v6) is one of several waveform generation
-cores QICK supports for DAC outputs -- see :doc:`/generators` for the full
-family and :doc:`/firmware` for how many channels of which type your
+cores QICK supports for DAC outputs -- see :doc:`/firmware/generators/index` for the full
+family and :doc:`/firmware/index` for how many channels of which type your
 specific board has (it varies by board, see :ref:`std-firmware-per-board`).
 
 For complete documentation and worked Python examples (basic pulse, shaped
-envelope, queued pulses), see :doc:`/sg_v6`'s "Python Usage" section --
+envelope, queued pulses), see :doc:`/firmware/generators/sg_v6`'s "Python Usage" section --
 they use the same :meth:`.QickProgram.declare_gen`/
 :meth:`.QickProgram.add_pulse`/:meth:`.QickProgram.pulse` pattern as every
 other example in this chapter.
@@ -5501,15 +5501,15 @@ other example in this chapter.
 
 The readout system captures ADC data, triggered by a dedicated single-bit
 ``trig_N_o`` pin per buffer instance (see :ref:`tproc-ports` in
-:doc:`/firmware` for the full pin model -- it is *not* a bit within a
+:doc:`/firmware/index` for the full pin model -- it is *not* a bit within a
 channel-numbered data word). QICK supports several readout variants
-(single-tone, tProc-configured, and channelized/PFB) -- see :doc:`/readout`
+(single-tone, tProc-configured, and channelized/PFB) -- see :doc:`/firmware/readouts/index`
 for the family overview and :ref:`std-firmware-per-board` for which
 variant(s) your board uses.
 
 For the normal workflow (:meth:`.QickProgram.declare_readout`,
 :meth:`.QickProgramV2.trigger`, :meth:`.AcquireMixin.acquire`/
-:meth:`.AcquireMixin.acquire_decimated`), see :doc:`/readout`'s "Python
+:meth:`.AcquireMixin.acquire_decimated`), see :doc:`/firmware/readouts/index`'s "Python
 Interface" section, or the worked examples earlier in this chapter (all of
 which declare and trigger a readout channel the same way).
 
@@ -5575,9 +5575,9 @@ tProc/firmware timing, unaffected by PS-side overhead:
 13.10. Repository of Examples
 -----------------------------
 
-This documentation's own tutorial notebooks (:doc:`tutorials/index`) are
+This documentation's own tutorial notebooks (:doc:`/tutorials/index`) are
 the primary worked-example resource, all runnable on real hardware (or, for
-tutorials 00-07, on the :doc:`tutorials/index`'s Colab-runnable emulator
+tutorials 00-07, on the :doc:`/tutorials/index`'s Colab-runnable emulator
 port):
 
 .. list-table:: Tutorial Notebooks Covering This Chapter's Topics
@@ -5586,13 +5586,13 @@ port):
 
   * - Notebook
     - Covers
-  * - :doc:`tutorials/01_Basic_Sequencing`
+  * - :doc:`/tutorials/01_Basic_Sequencing`
     - Basic pulses, sequences, acquisition (§13.1-13.2)
-  * - :doc:`tutorials/04_Real_Time_Feedback`
+  * - :doc:`/tutorials/04_Real_Time_Feedback`
     - Conditional pulses, active reset, thresholding (§13.3)
-  * - :doc:`tutorials/02_Parameter_Sweeps`
+  * - :doc:`/tutorials/02_Parameter_Sweeps`
     - 1D/2D sweeps with ``QickSweep1D``/``add_loop`` (§13.4)
-  * - :doc:`tutorials/06_Generators_And_Readouts`
+  * - :doc:`/tutorials/06_Generators_And_Readouts`
     - Generators, readouts, I/Q mixing (§13.5-13.7)
 
 13.11. Where to Find More Examples
@@ -5601,7 +5601,7 @@ port):
 For more elaborate examples (multi-qubit experiments, advanced feedback
 loops, calibration routines), refer to:
 
-- **Tutorial series** (:doc:`tutorials/index`) – The full 00-14 series,
+- **Tutorial series** (:doc:`/tutorials/index`) – The full 00-14 series,
   from basic sequencing through streaming/DSP, custom firmware
   integration, and XCOM multi-board network synchronization.
 - **Official QICK Demos Repository** –

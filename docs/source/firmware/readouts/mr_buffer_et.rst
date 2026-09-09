@@ -10,7 +10,7 @@ The **Multi-Rate buffer with External Trigger** (``mr_buffer_et``) is a
 small on-chip capture buffer that taps a readout's *undecimated* data
 stream -- the downconverted but not-yet-decimated samples, straight out of
 the digital mixer, before the readout's FIR/decimate-by-N stage. This is in
-contrast to :doc:`/avg_buffer`'s raw buffer and the DDR4 buffer
+contrast to :doc:`avg_buffer`'s raw buffer and the DDR4 buffer
 (``axis_buffer_ddr_v1``), which both see the *decimated* stream. Because it
 sits upstream of decimation, ``mr_buffer_et`` sees the full ADC-rate signal
 (useful for looking at spurs, noise, or transient/settling behavior that
@@ -80,7 +80,7 @@ In board designs (see e.g.
 (``axis_switch_mr``) whose inputs are the ``m0_axis`` ports of the board's
 dynamic readouts (``axis_dyn_readout_v1``) -- the undecimated tap; compare
 with the ``m1_axis`` port of the same readouts, which is the decimated
-stream that feeds :doc:`/avg_buffer`. Its own ``m00_axis`` output feeds an
+stream that feeds :doc:`avg_buffer`. Its own ``m00_axis`` output feeds an
 AXI-DMA (``axi_dma_mr``) that drains captured data to PS-side (CPU)
 memory. In that same board design the instance is parameterized with
 ``B=32`` (a packed 16-bit I / 16-bit Q sample) and ``N=10`` (1024-deep
@@ -133,7 +133,7 @@ also how the Python driver computes it -- see Section 5).
 3. Datapath
 --------------------------------------------------------------------
 
-.. figure:: images/firmware/mr_buffer_et-blocks.svg
+.. figure:: /images/firmware/mr_buffer_et-blocks.svg
    :align: center
    :width: 85%
 
@@ -385,10 +385,10 @@ the ``TOTAL_WORDS`` quantity from Section 3.2.
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/avg_buffer` -- the buffer that captures the *decimated* stream
+* :doc:`avg_buffer` -- the buffer that captures the *decimated* stream
   from the same readouts (accumulated and raw-decimated modes);
   ``mr_buffer_et`` instead captures the undecimated stream.
-* :doc:`/readout_v2` and :doc:`/readout_dynamic` -- the readouts whose
+* :doc:`readout_v2` and :doc:`readout_dynamic` -- the readouts whose
   undecimated output (``m0_axis`` on the dynamic readouts) feeds this
   block via ``axis_switch_mr``.
 * :doc:`/tprocv2_trm` -- the tProcessor trigger port that starts a
@@ -401,7 +401,7 @@ Related Documentation
    buffer block and is easy to confuse with ``mr_buffer_et``, but the two
    are quite different. Per its own driver docstring, ``AxisBufferDdrV1``
    "is fed by the downconverted+decimated data stream coming out of the
-   readout" -- i.e. the *same* stream that feeds :doc:`/avg_buffer`, not
+   readout" -- i.e. the *same* stream that feeds :doc:`avg_buffer`, not
    the undecimated stream ``mr_buffer_et`` sees -- and it streams
    continuously into off-chip DDR4 memory (via an AXI memory-mapped port,
    ``rstart_reg``/``wstart_reg``/``wnburst_reg`` etc.) rather than a small

@@ -259,6 +259,6 @@ Related Documentation
 ---------------------
 
 * :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
-* :doc:`/firmware` - Firmware overview and channel assignments
-* :doc:`/sg_v6` - Signal Generator v6 documentation
-* :doc:`/readout` - Readout system documentation
+* :doc:`/firmware/index` - Firmware overview and channel assignments
+* :doc:`/firmware/generators/sg_v6` - Signal Generator v6 documentation
+* :doc:`/firmware/readouts/index` - Readout system documentation

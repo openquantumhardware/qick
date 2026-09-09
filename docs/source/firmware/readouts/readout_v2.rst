@@ -7,7 +7,7 @@ Readout v2 (axis_readout_v2) - QICK Firmware
   :depth: 2
 
 **axis_readout_v2** is the digital down-converter (DDC) IP that sits between
-the RFDC's ADC output and :doc:`/avg_buffer`. It is the readout used on
+the RFDC's ADC output and :doc:`avg_buffer`. It is the readout used on
 tProc-v1-style single-tone (non-multiplexed, non-PFB) readout channels. The
 module lives under ``firmware/ip/axis_readout_v2/`` and is exposed to Python
 through ``qick.drivers.readout.AxisReadoutV2``.
@@ -19,7 +19,7 @@ through ``qick.drivers.readout.AxisReadoutV2``.
 ``axis_readout_v2`` mixes the ADC's real-valued input samples down to
 baseband with an on-chip DDS, then applies an FIR anti-aliasing filter and
 decimates by 8 before handing the complex (I, Q) stream to
-:doc:`/avg_buffer`. Unlike the newer PFB-based readouts, it demodulates a
+:doc:`avg_buffer`. Unlike the newer PFB-based readouts, it demodulates a
 single, software-tunable frequency (no simultaneous multi-tone channelizer).
 
 The datapath, in order:
@@ -32,7 +32,7 @@ The datapath, in order:
    decimation by 8.
 3. Output to ``axis_avg_buffer``'s ``s_axis``.
 
-.. figure:: images/firmware/readout_v2-blocks.svg
+.. figure:: /images/firmware/readout_v2-blocks.svg
    :align: center
    :width: 85%
 
@@ -146,16 +146,16 @@ I/Q before the output mux -- this is the "product" ``outsel`` value.
      - none
      - This readout is PYNQ/software-configured only; it has no
        ``tproc_ctrl`` connection (unlike the dynamic readouts, see
-       :doc:`/readout_dynamic`).
+       :doc:`readout_dynamic`).
 
 --------------------------------------------------------------------
 5. Python Interface
 --------------------------------------------------------------------
 
-As with the buffer (:doc:`/avg_buffer`), normal programs configure this
+As with the buffer (:doc:`avg_buffer`), normal programs configure this
 readout via :meth:`.QickProgram.declare_readout` (``freq``, ``phase``,
 ``sel``, ``gen_ch``), not by writing registers directly -- see
-:doc:`/readout`'s Python Interface section for the full
+:doc:`index`'s Python Interface section for the full
 ``declare_readout()``/``trigger()``/``acquire()`` workflow.
 ``AxisReadoutV2.set_all()``/``set_all_int()`` exist for direct register
 access but are explicitly for debugging: *"Normally the [readout] is
@@ -164,10 +164,10 @@ configured based on parameters supplied in QickProgram.declare_readout()."*
 Related Documentation
 ----------------------
 
-* :doc:`/readout` -- readout system overview and the normal
+* :doc:`index` -- readout system overview and the normal
   ``declare_readout()`` workflow.
-* :doc:`/avg_buffer` -- the buffer downstream of this readout's output.
-* :doc:`/readout_dynamic` -- the tProc-configured readouts
+* :doc:`avg_buffer` -- the buffer downstream of this readout's output.
+* :doc:`readout_dynamic` -- the tProc-configured readouts
   (``axis_readout_v3``/``axis_dyn_readout_v1``), for comparison.
-* :doc:`topics/freq_matching` -- keeping generator and readout frequencies
+* :doc:`/topics/freq_matching` -- keeping generator and readout frequencies
   in sync.

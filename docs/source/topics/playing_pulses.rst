@@ -13,7 +13,7 @@ How to play pulses with QICK
   ``qick.asm_v2`` in the same session that found the problem.
 
 With the tProcessor v2 and Signal Generator v6 (or any of QICK's other
-generator cores -- see :doc:`/generators`), playing a pulse involves three
+generator cores -- see :doc:`/firmware/generators/index`), playing a pulse involves three
 steps, all done through a :class:`.QickProgram` subclass:
 
 .. contents::
@@ -37,7 +37,7 @@ Step 1: Loading a waveform envelope
 
 Each generator with envelope memory (SG-v6, SG-v4, SG-int4-v2 -- not the
 multiplexed SG-Mux8/SG-MixMux8 cores, which play fixed tones instead; see
-:doc:`/generators`) stores I/Q envelope data internally. Multiple envelopes
+:doc:`/firmware/generators/index`) stores I/Q envelope data internally. Multiple envelopes
 can be stored per generator, and one envelope can be reused across several
 pulses (e.g. a Gaussian shape reused for pulses at different frequencies).
 
@@ -120,7 +120,7 @@ play at a given time, relative to the current shot:
 
 **Triggering a readout at the same time as a pulse** -- pass both to the
 same or a separate :meth:`.QickProgramV2.trigger` call at the matching time
-(see :doc:`/readout`'s Python Interface section for the full
+(see :doc:`/firmware/readouts/index`'s Python Interface section for the full
 ``declare_readout``/``trigger``/``acquire`` workflow):
 
 .. code-block:: python
@@ -141,8 +141,8 @@ Related Documentation
 ---------------------
 
 * :doc:`/tprocv2_trm` - tProcessor v2 instruction set and register-level detail
-* :doc:`/generators` - Which generator cores support envelopes vs. fixed tones
-* :doc:`/sg_v6` - Signal Generator v6 documentation, with more worked examples
-* :doc:`/readout` - Declaring and triggering a readout alongside a pulse
-* :doc:`/firmware` - Channel assignments and firmware overview
-* :doc:`../tutorials/index` - tProc v2 tutorial examples
+* :doc:`/firmware/generators/index` - Which generator cores support envelopes vs. fixed tones
+* :doc:`/firmware/generators/sg_v6` - Signal Generator v6 documentation, with more worked examples
+* :doc:`/firmware/readouts/index` - Declaring and triggering a readout alongside a pulse
+* :doc:`/firmware/index` - Channel assignments and firmware overview
+* :doc:`/tutorials/index` - tProc v2 tutorial examples

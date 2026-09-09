@@ -7,11 +7,11 @@ Averager + Buffer (axis_avg_buffer) - QICK Firmware
   :depth: 2
 
 The **Averager + Buffer** (``axis_avg_buffer``) is the IP block that sits
-downstream of a readout (:doc:`/readout`) and turns its decimated I/Q stream
+downstream of a readout (:doc:`index`) and turns its decimated I/Q stream
 into the two kinds of data a QICK program can pull back over PS-PL DMA:
 accumulated points (:meth:`.AcquireMixin.acquire`) and raw decimated
 waveforms (:meth:`.AcquireMixin.acquire_decimated`) -- see
-:doc:`topics/readout_modes` for the software-level distinction. The module
+:doc:`/topics/readout_modes` for the software-level distinction. The module
 lives in the ``qick`` firmware repository under
 ``firmware/ip/axis_avg_buffer/`` and is exposed to Python through
 ``qick.drivers.readout.AxisAvgBuffer`` (and its ``V1pt1``/``V1pt2``/
@@ -228,10 +228,10 @@ extra samples and discarding them.
 Related Documentation
 ----------------------
 
-* :doc:`/readout` -- the readout block that feeds this buffer's ``s_axis``.
-* :doc:`topics/readout_modes` -- ``acquire()`` vs. ``acquire_decimated()``.
+* :doc:`index` -- the readout block that feeds this buffer's ``s_axis``.
+* :doc:`/topics/readout_modes` -- ``acquire()`` vs. ``acquire_decimated()``.
 * :doc:`/tprocv2_trm` -- the tProcessor trigger that starts a capture, and
   the m2_axis feedback port.
-* :doc:`/mr_buffer_et` -- the alternate multi-rate buffer used for
+* :doc:`mr_buffer_et` -- the alternate multi-rate buffer used for
   DDR4/streaming readout of the *undecimated* data stream, as opposed to
   this block's decimated raw buffer.

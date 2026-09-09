@@ -9,7 +9,7 @@ Signal Generator v4 (SG-v4) - QICK Firmware
 **axis_signal_gen_v4** is QICK's original tProc-controlled arbitrary-waveform
 generator: a single real-valued output lane fed by ``N_DDS`` parallel
 DDS-plus-mixer channels, each pairing one complex multiplier with its own
-envelope BRAM. It is the direct predecessor of :doc:`/sg_v6`, and the two
+envelope BRAM. It is the direct predecessor of :doc:`sg_v6`, and the two
 share the same Python driver class (``qick.drivers.generator.AxisSignalGen``)
 -- its docstring states plainly that the class "Supports AxisSignalGen
 V4+V5+V6, since they have the same software interface (ignoring registers
@@ -51,7 +51,7 @@ Two source files in ``firmware/ip/axis_signal_gen_v4/src/`` -- ``dither.v``
 and ``random_gen.v`` -- are **not part of the active datapath**; see
 :ref:`sgv4-dithering` below.
 
-.. figure:: images/firmware/sg_v4-blocks.svg
+.. figure:: /images/firmware/sg_v4-blocks.svg
    :align: center
    :width: 85%
 
@@ -81,7 +81,7 @@ and ``random_gen.v`` -- are **not part of the active datapath**; see
        65536 samples total across the interleaved lanes -- this is what the
        Python driver reports as ``cfg['maxlen']`` (``2**N * N_DDS``, in
        ``AxisSignalGen._init_config``). SG-v6's top-level default for the
-       same parameter is ``N = 16`` (see :doc:`/sg_v6`); the value actually
+       same parameter is ``N = 16`` (see :doc:`sg_v6`); the value actually
        burned into a given bitstream depends on how the block design
        instantiated the core, so read ``soc.gens[i]['maxlen']`` at runtime
        rather than assuming either default.
@@ -113,7 +113,7 @@ SG-v6 -- see :ref:`sgv4-vs-sgv6`). Correspondingly,
 16-entry, 160-bit-wide FIFO (``fifo.vhd``, ``.B(160)``, ``.N(16)``) with
 ``fifo_wr_en = s1_axis_tvalid`` and ``s1_axis_tready = ~fifo_full`` -- there
 is no register staging on the write side, unlike ``axis_readout_v2``'s
-``WE_REG``-pulsed descriptor push (:doc:`/readout_v2`). ``ctrl.sv`` decodes
+``WE_REG``-pulsed descriptor push (:doc:`../readouts/readout_v2`). ``ctrl.sv`` decodes
 the descriptor at the head of the FIFO:
 
 .. list-table:: Waveform descriptor fields (``ctrl.sv`` header comment)
@@ -462,10 +462,10 @@ register through the low-level MMIO interface yourself.
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/sg_v6` -- the successor core; see :ref:`sgv4-vs-sgv6` above for
+* :doc:`sg_v6` -- the successor core; see :ref:`sgv4-vs-sgv6` above for
   the concrete RTL differences.
 * :doc:`/tprocv2_trm` -- tProcessor sequencing/triggering that queues
   waveform descriptors into this core's ``s1_axis``.
-* :doc:`/firmware` -- firmware overview and channel assignments.
-* :doc:`/readout_v2` -- a similarly-legacy, single-tone predecessor core on
+* :doc:`../index` -- firmware overview and channel assignments.
+* :doc:`../readouts/readout_v2` -- a similarly-legacy, single-tone predecessor core on
   the readout (ADC) side, for comparison.

@@ -7,8 +7,8 @@ Dynamic Readouts (axis_readout_v3 / axis_dyn_readout_v1) - QICK Firmware
   :depth: 2
 
 **axis_readout_v3** and **axis_dyn_readout_v1** are the *dynamic* counterparts
-of :doc:`/readout_v2`: digital down-converter (DDC) IP blocks that sit
-between the RFDC's ADC output and :doc:`/avg_buffer`, but whose
+of :doc:`readout_v2`: digital down-converter (DDC) IP blocks that sit
+between the RFDC's ADC output and :doc:`avg_buffer`, but whose
 frequency/phase/output-selection/length are set **by the tProcessor, in real
 time, once per shot**, instead of being written ahead of time as PYNQ
 registers from software. Both modules live under ``firmware/ip/`` (in
@@ -49,13 +49,13 @@ itself, rather than once via a PYNQ register write before the program starts.
   outputs: ``m0_axis``, the down-converted-but-not-yet-decimated stream (8
   complex samples/clock, still subject to the output-selection mux), and
   ``m1_axis``, the final decimated stream (1 complex sample/clock) that feeds
-  :doc:`/avg_buffer`.
+  :doc:`avg_buffer`.
 
 Both are single-tone readouts (one DDS-driven downconversion frequency at a
 time per channel) -- like ``axis_readout_v2`` and unlike the PFB-based
 readouts, they do not channelize multiple simultaneous tones.
 
-.. figure:: images/firmware/dyn_readout-blocks.svg
+.. figure:: /images/firmware/dyn_readout-blocks.svg
    :align: center
    :width: 80%
 
@@ -64,7 +64,7 @@ readouts, they do not channelize multiple simultaneous tones.
    IP's own). The ADC stream is down-converted once and fans out to both
    outputs: straight to ``M0_AXIS`` for the pre-decimation view, and
    through ``fir_decim8_dynro`` to ``M1_AXIS`` for the decimated stream
-   that feeds :doc:`/avg_buffer`. ``fifo_sync`` carries the tProc-pushed
+   that feeds :doc:`avg_buffer`. ``fifo_sync`` carries the tProc-pushed
    config descriptor (freq/phase/mode) into ``down_conversion_dynro``.
 
 --------------------------------------------------------------------
@@ -248,7 +248,7 @@ describing the 88-bit ``s0_axis_tdata``/FIFO word layout:
 
 This is the same freq/phase/nsamp/outsel/mode field set as
 ``axis_readout_v2``'s register-composed descriptor (see
-:doc:`/readout_v2`'s 83-bit FIFO word), plus one extra field, ``phrst``, that
+:doc:`readout_v2`'s 83-bit FIFO word), plus one extra field, ``phrst``, that
 ``axis_readout_v2`` does not have -- and it arrives as a single AXI-Stream
 push from the tProcessor rather than being assembled from five separate
 PYNQ registers and committed with a ``WE_REG`` pulse.
@@ -321,7 +321,7 @@ correction):
 4. Why There's No Register Map
 --------------------------------------------------------------------
 
-Unlike ``axis_readout_v2`` (:doc:`/readout_v2`), neither ``axis_readout_v3``
+Unlike ``axis_readout_v2`` (:doc:`readout_v2`), neither ``axis_readout_v3``
 nor ``axis_dyn_readout_v1`` has an AXI-Lite slave port in its top-level
 Verilog -- there is no ``FREQ_REG``/``PHASE_REG``/``NSAMP_REG``/
 ``OUTSEL_REG``/``MODE_REG``/``WE_REG`` set to document, and no register map
@@ -349,7 +349,7 @@ section to write for this page. The blocks' only I/O is AXI-Stream:
      - master
      - 32 bits
      - Decimated complex (I, Q) output, 1 sample/clock, to
-       :doc:`/avg_buffer`.
+       :doc:`avg_buffer`.
 
 .. list-table:: axis_dyn_readout_v1 top-level ports
    :header-rows: 1
@@ -375,7 +375,7 @@ section to write for this page. The blocks' only I/O is AXI-Stream:
      - master
      - 32 bits
      - Decimated complex (I, Q) output, 1 sample/clock, to
-       :doc:`/avg_buffer`.
+       :doc:`avg_buffer`.
 
 Because there is no register interface, there is also no PYNQ overlay driver
 in the usual sense -- see :ref:`readout-dyn-python`.
@@ -469,7 +469,7 @@ On tProc v2 (``qick.asm_v2.QickProgramV2``), the program builds one
   the instructions (``ConfigReadout``) that push that pre-computed word to
   the readout's ``tproc_ctrl`` port at time ``t``, using the same
   ``WPORT_WR`` wave-memory-write mechanism used to schedule signal-generator
-  pulses (see :doc:`/sg_v6`'s tProc-sequencing section). This is the
+  pulses (see :doc:`../generators/sg_v6`'s tProc-sequencing section). This is the
   run-time source of the ``s0_axis`` descriptor word described in
   :ref:`readout-dyn-descriptor`.
 
@@ -499,13 +499,13 @@ by the same firmware control FSM.
 Related Documentation
 ----------------------
 
-* :doc:`/readout` -- readout system overview.
-* :doc:`/readout_v2` -- the static, PYNQ-register-configured readout these
+* :doc:`index` -- readout system overview.
+* :doc:`readout_v2` -- the static, PYNQ-register-configured readout these
   blocks are the dynamic counterpart of.
-* :doc:`/avg_buffer` -- the buffer downstream of ``m_axis``/``m1_axis``.
+* :doc:`avg_buffer` -- the buffer downstream of ``m_axis``/``m1_axis``.
 * :doc:`/tprocv2_trm` -- tProcessor instruction reference, including
   ``WPORT_WR`` and the timing model used by ``send_readoutconfig()``.
-* :doc:`/sg_v6` -- the signal-generator counterpart of tProc-scheduled,
+* :doc:`../generators/sg_v6` -- the signal-generator counterpart of tProc-scheduled,
   ``WPORT_WR``-driven configuration.
-* :doc:`topics/freq_matching` -- keeping generator and readout frequencies in
+* :doc:`/topics/freq_matching` -- keeping generator and readout frequencies in
   sync.

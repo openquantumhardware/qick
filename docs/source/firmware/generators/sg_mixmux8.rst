@@ -7,7 +7,7 @@ Multiplexed Signal Generator with Mixer (axis_sg_mixmux8_v1) - QICK Firmware
   :depth: 2
 
 **axis_sg_mixmux8_v1** is an 8-tone multiplexed (muxed) signal generator,
-almost identical in its control logic to :doc:`/sg_mux8`
+almost identical in its control logic to :doc:`sg_mux8`
 (``axis_sg_mux8_v1``), but with a **complex (I/Q) datapath** so that its
 output can drive the RFDC's own digital mixer/NCO. The module lives under
 ``firmware/ip/axis_sg_mixmux8_v1/`` and is exposed to Python through
@@ -93,7 +93,7 @@ up (or down) in frequency, which is what lets ``axis_sg_mixmux8_v1``
 (unlike ``axis_sg_mux8_v1``) place its whole multi-tone output away from DC,
 including outside the DAC's first Nyquist zone.
 
-.. figure:: images/firmware/sg_mixmux8-blocks.svg
+.. figure:: /images/firmware/sg_mixmux8-blocks.svg
    :align: center
    :width: 85%
 
@@ -109,7 +109,7 @@ including outside the DAC's first Nyquist zone.
    The RFDC mixer/NCO itself (register layout, valid frequency ranges,
    Nyquist-zone handling) lives in AMD's RF Data Converter IP and the
    ``qick.qick.AxisRFDC``-family driver, not in this IP -- see
-   :doc:`topics/freq_matching` for the software-level picture of how
+   :doc:`/topics/freq_matching` for the software-level picture of how
    generator and readout frequencies are kept consistent.
 
 --------------------------------------------------------------------
@@ -137,7 +137,7 @@ including outside the DAC's first Nyquist zone.
 There is no synthesis parameter that changes the mixer/complex behavior --
 that is hard-wired into the ``dds_compiler_0`` IP core configuration
 (``Output_Selection = "Sine_and_Cosine"``), unlike ``ENVELOPE_TYPE`` or
-``GEN_DDS`` on the arbitrary-waveform generators (:doc:`/sg_v6`).
+``GEN_DDS`` on the arbitrary-waveform generators (:doc:`sg_v6`).
 
 --------------------------------------------------------------------
 3. Datapath
@@ -357,12 +357,12 @@ this one, :meth:`.QickProgram.config_gens` calls it for you from the
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/sg_mux8` -- the real-valued (no DAC mixer) counterpart to this IP;
+* :doc:`sg_mux8` -- the real-valued (no DAC mixer) counterpart to this IP;
   read that page first for the parts of the datapath (FIFO, control FSM,
   adder tree, quantization) that are shared verbatim.
-* :doc:`/sg_v6` -- the arbitrary-envelope (non-muxed) signal generator, for
+* :doc:`sg_v6` -- the arbitrary-envelope (non-muxed) signal generator, for
   comparison with a different generator family.
-* :doc:`topics/freq_matching` -- keeping generator and readout frequencies
+* :doc:`/topics/freq_matching` -- keeping generator and readout frequencies
   (including the shared mixer frequency) consistent.
-* :doc:`/readout` -- readout system overview, including the readout-side
+* :doc:`../readouts/index` -- readout system overview, including the readout-side
   digital mixer that this generator's frequency is often matched against.

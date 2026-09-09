@@ -40,7 +40,7 @@ Decimated (``acquire_decimated``)
 
 The decimating readout streams out the *time-domain* I/Q waveform of the readout
 window itself (after the readout's own decimation stage, not the raw ADC rate --
-see :doc:`/firmware` for the DDC/decimation chain), instead of a single integrated
+see :doc:`/firmware/index` for the DDC/decimation chain), instead of a single integrated
 point.
 
 * Use this to look at the readout waveform directly: verifying that your readout
@@ -91,6 +91,6 @@ interleave other work between rounds.
 See also
 --------
 
-* :doc:`/readout` -- the readout hardware itself (DDC, decimation, buffers).
+* :doc:`/firmware/readouts/index` -- the readout hardware itself (DDC, decimation, buffers).
 * :doc:`timing` -- how readout windows relate to the tProc's timed queues.
 * :doc:`freq_matching` -- keeping generator and readout frequencies in sync.

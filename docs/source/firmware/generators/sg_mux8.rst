@@ -8,7 +8,7 @@ Signal Generator Mux8 (axis_sg_mux8_v1) - QICK Firmware
 
 **axis_sg_mux8_v1** is a fixed-tone, 8-way multiplexed signal generator: it
 plays up to 8 simultaneous, independently-configured DDS tones per channel,
-as opposed to the single-tone arbitrary generators (:doc:`/sg_v6` and its
+as opposed to the single-tone arbitrary generators (:doc:`sg_v6` and its
 siblings) which play one tone at a time but can shape it with an arbitrary
 envelope. There is no envelope memory here -- a "pulse" on this generator is
 just "play some subset of the 8 pre-programmed tones for N samples". The
@@ -56,7 +56,7 @@ tones rather than 8, and (for V1/V2) drive a DAC-side digital mixer
 (``AxisSgMux8V1.HAS_MIXER = False`` -- see the Python Interface section).
 The mux4 RTL is out of scope for this document.
 
-.. figure:: images/firmware/sg_mux8-blocks.svg
+.. figure:: /images/firmware/sg_mux8-blocks.svg
    :align: center
    :width: 85%
 
@@ -336,10 +336,10 @@ zeroes the gain of any unconfigured tone up to ``N_TONES``, then pulses
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/sg_v6` -- the single-tone arbitrary-envelope generator, for
+* :doc:`sg_v6` -- the single-tone arbitrary-envelope generator, for
   contrast with this fixed-tone mux design.
 * :doc:`/tprocv2_trm` -- tProcessor v2 instruction reference, including the
   wave-descriptor mechanism translated by ``sg_translator`` into this core's
   mask/length format.
-* :doc:`/firmware` -- firmware overview and channel assignments.
+* :doc:`../index` -- firmware overview and channel assignments.
 * `axis_sg_mux8_v1 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_sg_mux8_v1>`_

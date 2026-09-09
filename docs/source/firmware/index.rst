@@ -1,6 +1,15 @@
 Firmware
 ========
 
+.. toctree::
+   :maxdepth: 2
+   :caption:  5. Firmware
+   :hidden:
+
+   generators/index
+   readouts/index
+   support_cores
+
 This page provides an overview of the QICK firmware components.
 
 System Overview
@@ -23,15 +32,15 @@ The QICK firmware includes the following components:
      - :doc:`/tprocv2_trm`
    * - Signal generators
      - Board-dependent -- each board's standard firmware provisions its own
-       mix of :doc:`/sg_v6`, :doc:`/sg_int4_v2`, :doc:`/sg_mixmux8`,
-       :doc:`/sg_mux8`; see :ref:`std-firmware-per-board`
-     - :doc:`/generators`, :doc:`/sg_v6`
+       mix of :doc:`generators/sg_v6`, :doc:`generators/sg_int4_v2`, :doc:`generators/sg_mixmux8`,
+       :doc:`generators/sg_mux8`; see :ref:`std-firmware-per-board`
+     - :doc:`generators/index`, :doc:`generators/sg_v6`
    * - Readouts
-     - Board-dependent -- single-tone (:doc:`/readout_v2`,
-       :doc:`/readout_dynamic`) and/or channelized (:doc:`/readout_pfb`);
+     - Board-dependent -- single-tone (:doc:`readouts/readout_v2`,
+       :doc:`readouts/readout_dynamic`) and/or channelized (:doc:`readouts/readout_pfb`);
        see :ref:`std-firmware-per-board`
-     - :doc:`/readout`, :doc:`/readout_dynamic`, :doc:`/readout_pfb`,
-       :doc:`/avg_buffer`
+     - :doc:`readouts/index`, :doc:`readouts/readout_dynamic`, :doc:`readouts/readout_pfb`,
+       :doc:`readouts/avg_buffer`
    * - tProc trigger outputs (``trig_N_o`` pins)
      - Board-dependent single-bit pins -- PMOD bits plus one per averaging
        buffer, plus DDR4/multi-rate-buffer triggers where present; see
@@ -42,7 +51,7 @@ Sampling frequency of ADC blocks is given by the variable ``soc.fs_adc``.
 Sampling frequency of DACs is stored in variable ``soc.fs_dac``.
 Fast-speed buffers were removed to save memory space. Raw data can be captured after x8 down-sampling.
 
-.. figure:: images/firmware/firmware-overview.svg
+.. figure:: /images/firmware/firmware-overview.svg
    :align: center
    :width: 85%
 
@@ -62,22 +71,22 @@ Output channels driving DACs use the **Signal Generator v6**, which has the foll
 * 16 parallel samples per clock cycle (256-bit output bus)
 * Maximum envelope length: 65536 samples per channel
 
-For complete documentation, see :doc:`/sg_v6`. If your board uses a
+For complete documentation, see :doc:`generators/sg_v6`. If your board uses a
 different generator core (multiplexed, interpolated, or the legacy v4), see
-:doc:`/generators` for the full family and which one fits which experiment.
+:doc:`generators/index` for the full family and which one fits which experiment.
 
 Readout System
 --------------
 
 QICK ships several readout IP variants for the DDC/decimation stage --
-:doc:`/readout_v2` (PYNQ-register-configured, single tone),
-:doc:`/readout_dynamic` (``axis_readout_v3``/``axis_dyn_readout_v1``,
-tProc-configured per shot, single tone), and :doc:`/readout_pfb`
+:doc:`readouts/readout_v2` (PYNQ-register-configured, single tone),
+:doc:`readouts/readout_dynamic` (``axis_readout_v3``/``axis_dyn_readout_v1``,
+tProc-configured per shot, single tone), and :doc:`readouts/readout_pfb`
 (``axis_pfb_readout_v2``/``v3``/``v4``, a fixed polyphase-filter-bank
 channelizer that fans one ADC input out to several simultaneous demodulated
 channels). Which one(s) a given board's standard firmware uses, and how many,
 is a per-board decision -- see :ref:`std-firmware-per-board`. All variants
-feed the same downstream block, **Average + Buffer** (:doc:`/avg_buffer`):
+feed the same downstream block, **Average + Buffer** (:doc:`readouts/avg_buffer`):
 
 **Readout Block** (architecture varies by variant -- see the pages above):
 
@@ -94,9 +103,9 @@ feed the same downstream block, **Average + Buffer** (:doc:`/avg_buffer`):
   channel-numbered AXI-Stream space as the readout's own configuration; see
   :ref:`tproc-ports`
 
-For complete documentation, see :doc:`/readout_v2`, :doc:`/readout_dynamic`,
-and :doc:`/readout_pfb` (the DDC/decimation stage, in its several variants)
-and :doc:`/avg_buffer` (the averaged/raw buffer IP and its register map).
+For complete documentation, see :doc:`readouts/readout_v2`, :doc:`readouts/readout_dynamic`,
+and :doc:`readouts/readout_pfb` (the DDC/decimation stage, in its several variants)
+and :doc:`readouts/avg_buffer` (the averaged/raw buffer IP and its register map).
 
 The tProcessor v2
 -----------------
@@ -107,7 +116,7 @@ It runs user-written programs that control waveform generation, data acquisition
 For **complete documentation**, see:
 
 * :doc:`/tprocv2_trm` - Full reference manual (architecture, instruction set, programming examples)
-* :doc:`topics/asmv2_cheatsheet` - Quick reference for assembly programming
+* :doc:`/topics/asmv2_cheatsheet` - Quick reference for assembly programming
 
 **Quick links to tProcessor topics:**
 
@@ -137,14 +146,14 @@ rather than assumed:
    :widths: 18 10 12 12 10 12 12 10 12
 
    * - Board (``tpv2_std`` unless noted)
-     - :doc:`/sg_v6`
-     - :doc:`/sg_int4_v2`
-     - :doc:`/sg_mixmux8`
-     - :doc:`/sg_mux8`
-     - :doc:`/readout_dynamic` (dyn v1)
-     - :doc:`/readout_pfb` (v4)
-     - :doc:`/avg_buffer`
-     - :doc:`/mr_buffer_et`
+     - :doc:`generators/sg_v6`
+     - :doc:`generators/sg_int4_v2`
+     - :doc:`generators/sg_mixmux8`
+     - :doc:`generators/sg_mux8`
+     - :doc:`readouts/readout_dynamic` (dyn v1)
+     - :doc:`readouts/readout_pfb` (v4)
+     - :doc:`readouts/avg_buffer`
+     - :doc:`readouts/mr_buffer_et`
    * - ZCU111 (``firmware/Top/111``)
      - 8
      - 0
@@ -248,7 +257,7 @@ numbers).
    * - ``trig_0_o`` .. ``trig_7_o``
      - ``PMOD0_0_LS`` .. ``PMOD0_7_LS`` (all 8 PMOD0 bits)
    * - ``trig_8_o``
-     - ``mr_buffer_et_0/trigger`` (see :doc:`/mr_buffer_et`)
+     - ``mr_buffer_et_0/trigger`` (see :doc:`readouts/mr_buffer_et`)
    * - ``trig_9_o``
      - ``ddr4/trigger`` (DDR4 streaming capture)
    * - ``trig_10_o`` .. ``trig_19_o``
@@ -413,7 +422,7 @@ same-width streams -- it is a clock-domain-crossing bridge, confirmed by
 tracing each instance's ``aclk`` nets in this board's .tcl (input side tied
 to the tProc core clock, output side tied to the destination tile's own
 clock). It is **not** part of the ``xcom`` multi-board synchronization
-mechanism (:doc:`topics/xcom`) despite the similar name -- that is a wholly
+mechanism (:doc:`/topics/xcom`) despite the similar name -- that is a wholly
 separate IP block with its own network/serial interface. Both CDC instances
 on this board exist purely because DAC tile 0 and the ADC-tile-2-clocked
 readout logic run on clocks independent of the tProc's own core clock, not
@@ -437,7 +446,7 @@ capture path, letting software pick which one of the 10 channels streams to
 DDR4. Separately, the two dynamic readouts' *undecimated* outputs
 (``m0_axis``) feed a 2-input switch (``axis_switch_mr``) into the single
 shared ``mr_buffer_et_0`` instance. This matches, and was cross-checked
-against, the independently-traced fan-out in :doc:`/readout_pfb`'s
+against, the independently-traced fan-out in :doc:`readouts/readout_pfb`'s
 ":ref:`readout-pfb-zcu216`" section.
 
 Checking Your Own Board's Configuration
@@ -453,9 +462,9 @@ your setup. Instead, read them from the running system:
   is *not* guaranteed to equal the tProc waveform-port number -- see
   :ref:`tproc-zcu216-example` for why that mapping can be non-trivial).
 * ``soc.readouts`` -- list of readout drivers (mix of
-  :doc:`/readout_v2`/:doc:`/readout_dynamic`/:doc:`/readout_pfb` types,
+  :doc:`readouts/readout_v2`/:doc:`readouts/readout_dynamic`/:doc:`readouts/readout_pfb` types,
   board-dependent).
-* ``soc.avg_bufs`` -- list of :doc:`/avg_buffer` drivers.
+* ``soc.avg_bufs`` -- list of :doc:`readouts/avg_buffer` drivers.
 * ``print(soccfg)`` -- full human-readable dump of the board's configuration,
   including per-channel generator/readout types and every buffer's
   ``avg_maxlen``/``buf_maxlen``.
@@ -489,13 +498,13 @@ Firmware Parameters
      - Value
    * - Pulse memory length (per SG-v6)
      - 65536 samples ×2 (I/Q) = 128k total (``N=16`` default -- see
-       :doc:`/sg_v6`)
+       :doc:`generators/sg_v6`)
    * - Decimated ADC buffer
      - Board-dependent, ``2**N_BUF`` samples per component (I,Q) -- see
-       :doc:`/avg_buffer`
+       :doc:`readouts/avg_buffer`
    * - Accumulated ADC buffer
      - Board-dependent, ``2**N_AVG`` samples per component (I,Q) -- see
-       :doc:`/avg_buffer`
+       :doc:`readouts/avg_buffer`
    * - tProc v2 program/data memory
      - Synthesis parameters (``PMEM_AW``/``DMEM_AW``), board-dependent --
        see :doc:`/tprocv2_trm`
@@ -512,13 +521,13 @@ Related Documentation
 ---------------------
 
 * :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
-* :doc:`/generators` - Full generator-core family (SG-v6, SG-int4-v2, SG-mixmux8, SG-mux8)
-* :doc:`/sg_v6` - Signal Generator v6 documentation
-* :doc:`/readout` - Readout system overview
-* :doc:`/readout_dynamic` - tProc-configured single-tone readouts (axis_readout_v3 / axis_dyn_readout_v1)
-* :doc:`/readout_pfb` - Polyphase-filter-bank channelized readouts (axis_pfb_readout_v2/v3/v4)
-* :doc:`/avg_buffer` - Averaged/raw buffer IP downstream of every readout variant
-* :doc:`/mr_buffer_et` - Multi-rate buffer (DDR4/streaming) shared readout path
-* :doc:`topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
-* :doc:`tutorials/index` - tProc v2 tutorial examples
+* :doc:`generators/index` - Full generator-core family (SG-v6, SG-int4-v2, SG-mixmux8, SG-mux8)
+* :doc:`generators/sg_v6` - Signal Generator v6 documentation
+* :doc:`readouts/index` - Readout system overview
+* :doc:`readouts/readout_dynamic` - tProc-configured single-tone readouts (axis_readout_v3 / axis_dyn_readout_v1)
+* :doc:`readouts/readout_pfb` - Polyphase-filter-bank channelized readouts (axis_pfb_readout_v2/v3/v4)
+* :doc:`readouts/avg_buffer` - Averaged/raw buffer IP downstream of every readout variant
+* :doc:`readouts/mr_buffer_et` - Multi-rate buffer (DDR4/streaming) shared readout path
+* :doc:`/topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
+* :doc:`/tutorials/index` - tProc v2 tutorial examples
 * `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

@@ -628,9 +628,9 @@ Related Documentation
 
 * :doc:`/tprocv2_trm` -- the current tProcessor (v2), recommended for new
   designs.
-* :doc:`/firmware` -- system-level firmware overview (signal generators,
+* :doc:`/firmware/index` -- system-level firmware overview (signal generators,
   readout, channel assignments).
-* :doc:`/avg_buffer` -- Averager + Buffer readout block, whose ``trigger``
+* :doc:`/firmware/readouts/avg_buffer` -- Averager + Buffer readout block, whose ``trigger``
   input is typically driven from a v1 tProc output channel bit.
 * `tProcessor_64_and_Signal_Generator_V4.pdf
   <https://github.com/openquantumhardware/qick/blob/main/firmware/tProcessor_64_and_Signal_Generator_V4.pdf>`_

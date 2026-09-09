@@ -35,7 +35,7 @@ And two envelope types:
 * **COMPLEX** (``ENVELOPE_TYPE = "COMPLEX"``): separate memories for real and imaginary parts.
 * **REAL** (``ENVELOPE_TYPE = "REAL"``): real part only; the imaginary part is forced to zero.
 
-.. figure:: images/firmware/sg_v6-blocks.svg
+.. figure:: /images/firmware/sg_v6-blocks.svg
    :align: center
    :width: 80%
 
@@ -293,7 +293,7 @@ blocks are instantiated.
 always uses. It is **not** simply "tProc channel - 1": which tProc
 waveform port and DAC each array index maps to is board-specific and, on
 some boards, not a 1:1 mapping at all (see the worked ZCU216 example in
-:doc:`/firmware`'s :ref:`tproc-zcu216-example`). Normal programs never need
+:doc:`../index`'s :ref:`tproc-zcu216-example`). Normal programs never need
 to know this mapping -- declare the channel once by its ``soc.gens[]``
 index, register any envelopes, add named pulses, then play them by name at
 whatever time you choose.
@@ -440,7 +440,7 @@ envelope chaining, advanced tProc sequencing), refer to:
 - **QICK Tutorial Notebooks**: :doc:`/tutorials/06_Generators_And_Readouts`,
   :doc:`/tutorials/07_Advanced_Generators_And_Readouts`
 - **tProcessor Documentation**: :doc:`/tprocv2_trm`
-- **Firmware Overview**: :doc:`/firmware`
+- **Firmware Overview**: :doc:`../index`
 - **Community Examples**: Check the `#qick` channel on the Unitary Fund Discord
 
 --------------------------------------------------------------------
@@ -506,10 +506,10 @@ envelope chaining, advanced tProc sequencing), refer to:
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/generators` - overview of all QICK signal generator types and when to use each
+* :doc:`index` - overview of all QICK signal generator types and when to use each
 * :doc:`/tprocv2_trm` - tProcessor v2 for sequencing and triggering
-* :doc:`/firmware` - Firmware overview and channel assignments
-* :doc:`/sg_mux8`, :doc:`/sg_mixmux8` - multi-tone generators, for playing several simultaneous fixed tones instead of one arbitrary-envelope pulse
-* :doc:`/sg_int4_v2` - a lighter single-tone arbitrary generator (see :doc:`/generators` for the tradeoffs)
-* :doc:`/sg_v4` - the legacy predecessor to SG-v6
+* :doc:`../index` - Firmware overview and channel assignments
+* :doc:`sg_mux8`, :doc:`sg_mixmux8` - multi-tone generators, for playing several simultaneous fixed tones instead of one arbitrary-envelope pulse
+* :doc:`sg_int4_v2` - a lighter single-tone arbitrary generator (see :doc:`index` for the tradeoffs)
+* :doc:`sg_v4` - the legacy predecessor to SG-v6
 * `SG-v6 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

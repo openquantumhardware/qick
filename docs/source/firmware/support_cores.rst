@@ -10,10 +10,10 @@ The three cores on this page -- **axis_constant_iq**, **axis_set_reg**, and
 **axis_streamer** -- are small, single-purpose utility blocks that live under
 ``firmware/ip/`` alongside the readout and signal-generator families but
 don't belong to either one. Each is 1-7 RTL files, so rather than a
-full page per core (as :doc:`/readout_v2`, :doc:`/sg_v6`, etc. get), they
+full page per core (as :doc:`readouts/readout_v2`, :doc:`generators/sg_v6`, etc. get), they
 share this one page, one section each.
 
-.. figure:: images/firmware/support_cores-blocks.svg
+.. figure:: /images/firmware/support_cores-blocks.svg
    :align: center
    :width: 85%
 
@@ -43,9 +43,9 @@ phase that gets mixed up to that frequency.
 This is a deliberate contrast with the two arbitrary/multiplexed generator
 families already documented:
 
-* :doc:`/sg_v6` synthesizes a shaped, arbitrary envelope from a DDS + BRAM
+* :doc:`generators/sg_v6` synthesizes a shaped, arbitrary envelope from a DDS + BRAM
   waveform engine, sequenced pulse-by-pulse by tProc-issued descriptors.
-* :doc:`/sg_mux8` has no envelope memory either, but does have its own
+* :doc:`generators/sg_mux8` has no envelope memory either, but does have its own
   per-tone DDS (up to 8 simultaneous tones), and is still sequenced by the
   tProcessor (a streamed mask + duration selects which tones play, when).
 
@@ -427,12 +427,12 @@ appear wired into a shipped QICK board bitstream either.
 completely different, higher-level, **purely software** abstraction: a
 background Python ``Thread`` that repeatedly calls ``soc.get_tproc_counter()``
 and ``soc.get_accumulated()`` to pull already-accumulated I/Q points out of
-the averaging buffer (:doc:`/avg_buffer`) while a tProc program runs,
+the averaging buffer (:doc:`readouts/avg_buffer`) while a tProc program runs,
 queuing the results for the main thread to consume via ``poll_data()``. It
 never touches an MMIO register map and never references any of
 ``axis_streamer``'s ``START``/``FLUSH``/``MODE``/``NSAMP``/``LOST``/
 ``STATUS`` registers -- its "streaming" is a software polling loop layered
-on top of :doc:`/avg_buffer` and the tProcessor's shot counter, with no
+on top of :doc:`readouts/avg_buffer` and the tProcessor's shot counter, with no
 dependency on the ``axis_streamer`` IP block at all.
 
 So: as verified in this codebase, ``axis_streamer`` currently has no
@@ -447,13 +447,13 @@ drivers.
 Related Documentation
 ----------------------
 
-* :doc:`/sg_v6` -- arbitrary-envelope signal generator; contrast with
+* :doc:`generators/sg_v6` -- arbitrary-envelope signal generator; contrast with
   ``axis_constant_iq``'s lack of any DDS or envelope memory.
-* :doc:`/sg_mux8` -- fixed-tone multiplexed generator; also contrasted with
+* :doc:`generators/sg_mux8` -- fixed-tone multiplexed generator; also contrasted with
   ``axis_constant_iq`` above.
-* :doc:`/avg_buffer` -- the buffer that :class:`.DataStreamer` actually
+* :doc:`readouts/avg_buffer` -- the buffer that :class:`.DataStreamer` actually
   polls, as opposed to ``axis_streamer``.
-* :doc:`/readout_dynamic` -- another block whose Python-side object is
+* :doc:`readouts/readout_dynamic` -- another block whose Python-side object is
   constructed manually rather than through the normal PYNQ overlay-scan
   mechanism, for comparison with ``axis_set_reg``'s pure metadata-tracing
   role.

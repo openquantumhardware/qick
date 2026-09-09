@@ -5,6 +5,18 @@ Readout System - QICK Firmware
   :local:
   :depth: 2
 
+.. toctree::
+   :maxdepth: 2
+   :caption:  6. Readout System
+   :hidden:
+
+   readout_v2
+   readout_dynamic
+   readout_pfb
+   avg_buffer
+   mr_buffer_et
+   kidsim
+
 Overview
 --------
 
@@ -15,10 +27,10 @@ The QICK readout system is built around two main IP blocks:
 
 The readout process is triggered by a dedicated single-bit ``trig_N_o`` pin
 from the tProcessor (one per averaging buffer instance -- see
-:ref:`tproc-ports` in :doc:`/firmware` for the full pin model) and can be
+:ref:`tproc-ports` in :doc:`../index` for the full pin model) and can be
 configured for raw sample capture or coherent averaging.
 
-.. figure:: ../../graphics/qsystem-readout.svg
+.. figure:: ../../../../graphics/qsystem-readout.svg
   :width: 100%
   :align: center
 
@@ -68,17 +80,17 @@ This block receives the decimated data stream and can:
     - Value
   * - Raw buffer length
     - Board-dependent, ``2**N_BUF`` samples per component (I/Q) -- see
-      :doc:`/avg_buffer`
+      :doc:`avg_buffer`
   * - Accumulated buffer length
     - Board-dependent, ``2**N_AVG`` samples per component (I/Q) -- see
-      :doc:`/avg_buffer`
+      :doc:`avg_buffer`
   * - Trigger source
     - One dedicated ``trig_N_o`` pin per buffer instance, *not* a bit
       within a channel-numbered data word -- see :ref:`tproc-ports` in
-      :doc:`/firmware`
+      :doc:`../index`
 
 The buffer IP that stores/accumulates this data (registers, DMA transfer,
-edge-counter mode) is documented separately in :doc:`/avg_buffer`.
+edge-counter mode) is documented separately in :doc:`avg_buffer`.
 
 Python Interface
 ----------------
@@ -95,7 +107,7 @@ The workflow, inside a :class:`.QickProgram` (e.g. an
 3. After running the program, pull the data back with
    :meth:`.AcquireMixin.acquire` (accumulated) or
    :meth:`.AcquireMixin.acquire_decimated` (raw waveform) -- see
-   :doc:`topics/readout_modes` for which one to use.
+   :doc:`/topics/readout_modes` for which one to use.
 
 .. code-block:: python
 
@@ -129,7 +141,7 @@ The workflow, inside a :class:`.QickProgram` (e.g. an
 
 The readout and buffer are still reachable directly, as ``soc.readouts[i]``
 and ``soc.avg_bufs[i]``, for debugging or hand-rolled acquisition outside
-the ``acquire()``/``acquire_decimated()`` flow -- see :doc:`/avg_buffer`'s
+the ``acquire()``/``acquire_decimated()`` flow -- see :doc:`avg_buffer`'s
 Python Interface section for the buffer-level ``config_avg``/
 ``transfer_avg``/``config_buf``/``transfer_buf`` calls this normally sits on
 top of. :meth:`.AbsReadout.set_all`/``set_all_int`` on the readout driver
@@ -150,7 +162,7 @@ Hardware Considerations
   the reference board, i.e. 2k total samples)
 - Average mode: up to ``soc.cfg['readouts'][i]['avg_maxlen']`` I/Q pairs
   (16384 on the reference board, i.e. 32k total) -- read these from your own
-  board's config rather than assuming a number, see :doc:`/avg_buffer`.
+  board's config rather than assuming a number, see :doc:`avg_buffer`.
 
 **Example: Calculating acquisition time**
 
@@ -166,12 +178,12 @@ Hardware Considerations
 Related Documentation
 ---------------------
 
-* :doc:`/avg_buffer` - the averaged/raw buffer IP downstream of this readout
-* :doc:`/readout_pfb` - the polyphase-filter-bank multi-channel readout
+* :doc:`avg_buffer` - the averaged/raw buffer IP downstream of this readout
+* :doc:`readout_pfb` - the polyphase-filter-bank multi-channel readout
   variant (``axis_pfb_readout_v2``/``v3``/``v4``), which channelizes into
   several simultaneous demod outputs instead of one tunable frequency
-* :doc:`topics/readout_modes` - ``acquire()`` vs. ``acquire_decimated()``
+* :doc:`/topics/readout_modes` - ``acquire()`` vs. ``acquire_decimated()``
 * :doc:`/tprocv2_trm` - tProcessor v2 for triggering and sequencing
-* :doc:`/firmware` - Firmware overview and channel assignments
-* :doc:`topics/timing` - Timing considerations for readout
-* :doc:`topics/freq_matching` - Frequency matching between generators and readouts
+* :doc:`../index` - Firmware overview and channel assignments
+* :doc:`/topics/timing` - Timing considerations for readout
+* :doc:`/topics/freq_matching` - Frequency matching between generators and readouts

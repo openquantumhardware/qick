@@ -62,5 +62,5 @@ Related Documentation
 ---------------------
 
 * :doc:`/tprocv2_trm` - tProcessor timing model
-* :doc:`/sg_v6` - Signal Generator v6 documentation
-* :doc:`/readout` - Readout system documentation
+* :doc:`/firmware/generators/sg_v6` - Signal Generator v6 documentation
+* :doc:`/firmware/readouts/index` - Readout system documentation

@@ -33,7 +33,7 @@ configuration (DDS/IIR/output-select/puncturing registers) is written
 through a shared register set and latched into the target lane by writing
 `ADDR_REG` (the lane index) then pulsing `WE_REG`.
 
-```{figure} images/firmware/kidsim-blocks.svg
+```{figure} /images/firmware/kidsim-blocks.svg
 :align: center
 :width: 90%
 
@@ -477,7 +477,7 @@ measured numbers:
 
 ## Related Documentation
 
-* {doc}`/readout` and {doc}`/avg_buffer` -- the real readout chain this IP
+* {doc}`index` and {doc}`avg_buffer` -- the real readout chain this IP
   emulates a resonator in front of, for hardware-in-the-loop testing.
 * `firmware/fusesoc/cores/ip/axis_kidsim_v3/model/kidsim_resonator_demo.ipynb`
   -- Python behavioral model / demo notebook.

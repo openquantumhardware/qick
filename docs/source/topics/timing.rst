@@ -198,5 +198,5 @@ Related Documentation
 ---------------------
 
 * :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
-* :doc:`/firmware` - Firmware overview and clock frequencies
+* :doc:`/firmware/index` - Firmware overview and clock frequencies
 * :doc:`../tprocv2_trm` - Time management section in main manual

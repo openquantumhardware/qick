@@ -8,7 +8,7 @@ PFB Readouts (axis_pfb_readout_v2 / v3 / v4) - QICK Firmware
 
 **axis_pfb_readout_v2**, **axis_pfb_readout_v3**, and **axis_pfb_readout_v4**
 are QICK's polyphase-filter-bank (PFB) readouts: unlike every other readout
-documented so far (:doc:`/readout_v2`, :doc:`/readout_dynamic`), a PFB readout
+documented so far (:doc:`readout_v2`, :doc:`readout_dynamic`), a PFB readout
 channelizes its ADC input into many fixed-frequency slices of the band *in
 hardware*, then lets software/tProc pick which slice(s) to route to its
 output port(s) and fine-tune each with its own DDS. One PFB readout instance
@@ -27,7 +27,7 @@ and its ``AxisPFBReadoutV2``/``V3``/``V4`` subclasses.
   ZCU216 "tpv2_std" board design (``firmware/Top/216/tpv2_std/bd_2023-1.tcl``,
   tracked on branch ``feature/114-integrate-hog-fusesoc``, since it predates
   this branch's docs-only history) instantiates one **axis_pfb_readout_v4**
-  alongside two ``axis_dyn_readout_v1`` (:doc:`/readout_dynamic`) -- see
+  alongside two ``axis_dyn_readout_v1`` (:doc:`readout_dynamic`) -- see
   :ref:`readout-pfb-zcu216` below.
 
 .. _readout-pfb-general:
@@ -52,7 +52,7 @@ All three versions share the same overall pipeline:
 3. **Output routing/selection** -- a subset of the N PFB channels (up to
    NOUT of them) is routed to the block's NOUT physical AXI-Stream output
    ports, which is what actually gets built (see :ref:`readout-pfb-zcu216`)
-   -- each output port typically feeds its own :doc:`/avg_buffer` instance
+   -- each output port typically feeds its own :doc:`avg_buffer` instance
    downstream, one PFB readout thus driving multiple avg_buffers.
 
 Where the three versions differ is **N** (PFB channel count), **NOUT**
@@ -123,7 +123,7 @@ not inferred from naming.
    ``OUTSEL_REG`` across all 8 channels) picks between the demodulated
    product, the raw (delay-matched) PFB channel input, or the raw DDS tone --
    the same product/input/dds encoding pattern used by the single-tone
-   readouts (:doc:`/readout_v2`).
+   readouts (:doc:`readout_v2`).
 3. **pfb_mux** (``pfb_mux.sv``) -- a pure combinational 8-to-1 mux, replicated
    4 times (one per output). Each output's 3-bit ``CH[0-3]SEL_REG`` selects
    which of the 8 already-DDS-mixed channels appears on that output
@@ -135,7 +135,7 @@ computed once, shared if two outputs pick the same channel -- there is no way
 to independently re-tune the same PFB channel differently on two outputs
 simultaneously.
 
-.. figure:: images/firmware/readout_pfb_v2-blocks.svg
+.. figure:: /images/firmware/readout_pfb_v2-blocks.svg
    :align: center
    :width: 85%
 
@@ -208,7 +208,7 @@ v3 has **no ``OUTSEL_REG``**/output-mode-selection mux at all (confirmed:
 driver sets ``HAS_OUTSEL = False`` for ``AxisPFBReadoutV3``) -- each output
 always carries the demodulated product, nothing else.
 
-.. figure:: images/firmware/readout_pfb_v3-blocks.svg
+.. figure:: /images/firmware/readout_pfb_v3-blocks.svg
    :align: center
    :width: 85%
 
@@ -329,7 +329,7 @@ all three versions have in common:
   weird value like -0.48, even though this makes no sense"*, i.e. an
   empirically-determined constant, not one derived from a specific rounding
   operation in RTL (unlike, say, ``axis_dyn_readout_v1``'s offset -- see
-  :doc:`/readout_dynamic`).
+  :doc:`readout_dynamic`).
 * ``_init_config()`` derives ``DOWNSAMPLING = NCH // 2`` (the PFB's
   50%-overlap decimation) and ``CH_OFFSET = NCH // 2`` (the index of the PFB
   channel centered at DC), and publishes ``pfb_nch``, ``pfb_nout``,
@@ -405,7 +405,7 @@ unchanged; only ``NOUT`` differs.
 Normal QICK programs never call ``set_ch``/``set_freq_int`` directly --
 :meth:`.QickProgram.declare_readout` picks the PFB channel/output assignment
 and frequency for you (via ``QickConfig.calc_ro_regs()``), exactly as
-described in :doc:`/readout`'s Python Interface section for the single-tone
+described in :doc:`index`'s Python Interface section for the single-tone
 readouts.
 
 .. _readout-pfb-zcu216:
@@ -417,8 +417,8 @@ readouts.
 The flagship ZCU216 board design (``firmware/Top/216/tpv2_std/bd_2023-1.tcl``,
 tracked on branch ``feature/114-integrate-hog-fusesoc``) instantiates
 **one** ``axis_pfb_readout_v4_0`` (VLNV ``QICK:QICK:axis_pfb_readout_v4:1.0``)
-alongside **two** ``axis_dyn_readout_v1`` instances (:doc:`/readout_dynamic`)
-and **ten** ``axis_avg_buffer`` instances (:doc:`/avg_buffer`) -- tracing the
+alongside **two** ``axis_dyn_readout_v1`` instances (:doc:`readout_dynamic`)
+and **ten** ``axis_avg_buffer`` instances (:doc:`avg_buffer`) -- tracing the
 block-diagram connections (``connect_bd_intf_net``) confirms exactly how that
 10 breaks down, rather than assuming it's all attributable to one core:
 
@@ -458,17 +458,17 @@ AXI-Lite page-granularity convention used elsewhere in this address map
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/readout` -- readout system overview; note its own single-tone
-  framing applies to :doc:`/readout_v2` and :doc:`/readout_dynamic`, not to
+* :doc:`index` -- readout system overview; note its own single-tone
+  framing applies to :doc:`readout_v2` and :doc:`readout_dynamic`, not to
   the PFB family described here.
-* :doc:`/readout_v2` -- the single-tone, PYNQ-register-configured readout
+* :doc:`readout_v2` -- the single-tone, PYNQ-register-configured readout
   the PFB readouts are architecturally different from (one tunable
   demodulator vs. a fixed multi-channel bank).
-* :doc:`/readout_dynamic` -- the tProc-configured single-tone readouts
+* :doc:`readout_dynamic` -- the tProc-configured single-tone readouts
   (``axis_readout_v3``/``axis_dyn_readout_v1``) that share the ZCU216 board
   design with ``axis_pfb_readout_v4`` (see :ref:`readout-pfb-zcu216`).
-* :doc:`/avg_buffer` -- the buffer IP downstream of each PFB output; a PFB
+* :doc:`avg_buffer` -- the buffer IP downstream of each PFB output; a PFB
   readout with NOUT outputs typically drives NOUT separate avg_buffer
   instances, as shown on the ZCU216.
-* :doc:`topics/freq_matching` -- keeping generator and readout frequencies
+* :doc:`/topics/freq_matching` -- keeping generator and readout frequencies
   in sync.

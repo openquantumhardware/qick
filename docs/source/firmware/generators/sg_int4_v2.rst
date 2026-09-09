@@ -7,7 +7,7 @@ Interpolated Signal Generator v2 (axis_sg_int4_v2) - QICK Firmware
   :depth: 2
 
 **axis_sg_int4_v2** is a single-tone, arbitrary-envelope waveform generator.
-Unlike :doc:`/sg_v6`, which runs its DDS and envelope memory at the DAC's
+Unlike :doc:`sg_v6`, which runs its DDS and envelope memory at the DAC's
 full parallel sample rate, ``axis_sg_int4_v2`` stores the envelope at 1/4 of
 the output rate and reconstructs the missing samples with a **4x
 interpolation FIR filter** -- hence "int4". The module lives in the ``qick``
@@ -35,7 +35,7 @@ attribute is defined but not actually read anywhere else in the driver
 stack, so treat it as documentation rather than as something that changes
 behavior).
 
-This is the key architectural difference from :doc:`/sg_v6` (and the older
+This is the key architectural difference from :doc:`sg_v6` (and the older
 ``axis_signal_gen_v4``/``v5``, referred to together as SG-v4/v5/v6 in the
 Python driver): SG-v6 stores the envelope **pre-expanded**, with one BRAM
 pair (real/imag) per parallel DDS lane (``N_DDS`` pairs, default 16), so
@@ -55,7 +55,7 @@ via its own DDS + envelope multiplier) -- it is not multiplexed like
 ``axis_sg_mux4_v1``, which drives several simultaneous tones from one
 channel.
 
-.. figure:: images/firmware/sg_int4_v2-blocks.svg
+.. figure:: /images/firmware/sg_int4_v2-blocks.svg
    :align: center
    :width: 80%
 
@@ -378,14 +378,14 @@ an envelope loaded with :meth:`.QickProgram.add_envelope`).
 Related Documentation
 --------------------------------------------------------------------
 
-* :doc:`/sg_v6` -- SG-v6, the full-rate/full-BRAM sibling generator this
+* :doc:`sg_v6` -- SG-v6, the full-rate/full-BRAM sibling generator this
   page repeatedly compares against.
 * :doc:`/tprocv2_trm` -- tProcessor v2 sequencing (``WPORT_WR``/``add_pulse``
   path that ultimately fills this generator's ``S1_AXIS`` via
   ``qick_sg_translator``).
-* :doc:`/firmware` -- Firmware overview and channel assignments.
-* :doc:`topics/gen_config` -- ``outsel``/``mode``/``stdysel`` semantics
+* :doc:`../index` -- Firmware overview and channel assignments.
+* :doc:`/topics/gen_config` -- ``outsel``/``mode``/``stdysel`` semantics
   (shared across all pulsed generators in this doc set).
-* :doc:`topics/freq_matching` -- keeping generator and readout frequencies
+* :doc:`/topics/freq_matching` -- keeping generator and readout frequencies
   in sync (relevant here because of the required ``mixer_freq``).
 * `axis_sg_int4_v2 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_sg_int4_v2>`_
