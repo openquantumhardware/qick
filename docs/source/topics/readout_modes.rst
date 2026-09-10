@@ -59,12 +59,19 @@ Common setup
 ------------
 
 Both methods require the acquisition to be described first, via
-:meth:`.AcquireMixin.setup_acquire` (which needs the tProc counter address and
-the loop dimensions -- see :meth:`.AcquireMixin.setup_counter` for the subset of
-that needed if you have no readouts at all, e.g. a pure-generator program you
-still want a progress bar for). Both accept the same ``rounds``, ``start_src``,
-``remove_offset``, and ``step_rounds`` arguments; ``step_rounds=True`` in either
-case hands control of the round-by-round loop to your own code via
+:meth:`.AcquireMixin.setup_acquire` (which needs the tProc counter address, the
+loop dimensions, and which loop level to average over -- see
+:meth:`.AcquireMixin.setup_counter` for the subset of that needed if you have no
+readouts at all, e.g. a pure-generator program you still want a progress bar
+for). In practice you rarely call this yourself: :class:`.AveragerProgramV2`
+(and the tProc v1 averager classes) call it for you in ``__init__``, from
+``reps`` and any loops added with ``add_loop()``. You only need
+:meth:`.AcquireMixin.setup_acquire` directly if you build a program on the
+lower-level :class:`.AcquireProgramV2`/:class:`.AcquireMixin` without going
+through :class:`.AveragerProgramV2`. Both ``acquire()``/``acquire_decimated()``
+accept the same ``rounds``, ``start_src``, ``remove_offset``, and
+``step_rounds`` arguments; ``step_rounds=True`` in either case hands control of
+the round-by-round loop to your own code via
 ``prepare_round()``/``finish_round()``/``finish_acquire()``, if you need to
 interleave other work between rounds.
 
