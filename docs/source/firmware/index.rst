@@ -18,7 +18,10 @@ System Overview
 The QICK firmware includes the following components:
 
 * **tProcessor v2** - Real-time co-processor for sequencing and feedback
-* **Signal Generator v6 (SG-v6)** - DDS-based waveform generators for DAC outputs
+* **Signal Generators** - DDS-based waveform generators for DAC outputs; QICK
+  ships several generator cores (:doc:`generators/sg_v6` being the flagship
+  arbitrary-envelope one), and a board's standard firmware provisions its own
+  mix -- see :doc:`generators/index`
 * **Readout System** - ADC data acquisition with DDC, filtering, and averaging
 
 .. list-table::
@@ -60,10 +63,20 @@ Fast-speed buffers were removed to save memory space. Raw data can be captured a
    the Zynq PS configures everything over AXI (purple) and is the boundary
    between the PS (software) and PL (FPGA fabric) sides of the chip.
 
-Signal Generator v6 (SG-v6)
----------------------------
+Signal Generators
+-----------------
 
-Output channels driving DACs use the **Signal Generator v6**, which has the following features:
+QICK ships several signal-generator IP cores for the DAC-output stage --
+:doc:`generators/sg_v6` (arbitrary I/Q envelopes, the flagship/default
+choice), :doc:`generators/sg_int4_v2` (arbitrary envelope, 4x-interpolated,
+lighter-weight), :doc:`generators/sg_mixmux8` and :doc:`generators/sg_mux8`
+(fixed multi-tone/CW, up to 8 simultaneous tones per channel), and the legacy
+:doc:`generators/sg_v4`. Which one(s) a given board's standard firmware uses,
+and how many of each, is a per-board decision -- see
+:ref:`std-firmware-per-board`.
+
+**Signal Generator v6 (SG-v6)**, the flagship arbitrary-envelope core, has
+the following features:
 
 * Supports uploading I/Q envelopes
 * 32-bit resolution for both frequency and phase
@@ -71,9 +84,9 @@ Output channels driving DACs use the **Signal Generator v6**, which has the foll
 * 16 parallel samples per clock cycle (256-bit output bus)
 * Maximum envelope length: 65536 samples per channel
 
-For complete documentation, see :doc:`generators/sg_v6`. If your board uses a
-different generator core (multiplexed, interpolated, or the legacy v4), see
-:doc:`generators/index` for the full family and which one fits which experiment.
+For the full generator family and which one fits which experiment, see
+:doc:`generators/index`. For complete SG-v6 documentation, see
+:doc:`generators/sg_v6`.
 
 Readout System
 --------------
