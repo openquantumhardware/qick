@@ -10,15 +10,26 @@ Prerequisites
 
 - RFSoC board (ZCU111, ZCU216, or RFSoC4x2) with firmware loaded
 - QICK installed (see :doc:`../quick_start`)
-- Firmware bitstream file (`.bit` and its matching `.hwh`) for your board (this must have a tProc v2 core; some notebooks may require more specific features)
+- Firmware bitstream file (`.bit` and its matching `.hwh`) for your board
 - Access to Jupyter notebook on the board
 
-Tutorials
-=========
+List of Tutorials: tProc v2
+===========================
+
+These notebooks must be run with a tProc v2 firmware.
+Some notebooks may have additional firmware or hardware requirements:
+
+* Notebooks 00–09 are self-contained and work on any QICK setup
+* Notebooks 10–15 require additional hardware resources (multi-board, streaming, DSP48, QICKBox)
+* Notebook 13 requires a licensed Vivado installation for custom firmware compilation
+* Notebook 14 (XCOM) requires additional hardware: FMC transceiver board and external hub
+* Notebook 15 requires a QICKBox with RF (and optionally Balun) daughtercards installed
+
+Basic Tutorials
+---------------
 
 .. toctree::
    :maxdepth: 1
-   :caption: Basic Tutorials (00-05)
    :hidden:
 
    00_Getting_Started
@@ -27,34 +38,6 @@ Tutorials
    03_Advanced_Timing
    04_Real_Time_Feedback
    05_Dynamic_Parameters_Subroutines
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Intermediate Tutorials (06-09)
-   :hidden:
-
-   06_Generators_And_Readouts
-   07_Advanced_Generators_And_Readouts
-   08_Hardware_Buffers
-   09_Appendix_Tips_And_Limits
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Advanced Tutorials (10-15)
-   :hidden:
-
-   10_Multi_Board_Synchronization
-   11_Streaming_And_RealTime_Processing
-   12_DSP_Blocks_And_Correlators
-   13_Custom_Firmware_Integration
-   14_XCOM_Network_Synchronization
-   15_QICKBox_RF_Daughtercards
-
-Tutorial Descriptions
-=====================
-
-Basic Tutorials
----------------
 
 .. list-table::
    :header-rows: 1
@@ -84,6 +67,15 @@ Basic Tutorials
 Intermediate Tutorials
 ----------------------
 
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   06_Generators_And_Readouts
+   07_Advanced_Generators_And_Readouts
+   08_Hardware_Buffers
+   09_Appendix_Tips_And_Limits
+
 .. list-table::
    :header-rows: 1
 
@@ -105,6 +97,17 @@ Intermediate Tutorials
 
 Advanced Tutorials
 ------------------
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   10_Multi_Board_Synchronization
+   11_Streaming_And_RealTime_Processing
+   12_DSP_Blocks_And_Correlators
+   13_Custom_Firmware_Integration
+   14_XCOM_Network_Synchronization
+   15_QICKBox_RF_Daughtercards
 
 .. list-table::
    :header-rows: 1
@@ -131,6 +134,52 @@ Advanced Tutorials
      - :doc:`15_QICKBox_RF_Daughtercards`
      - QICKBox RF/Balun daughtercards: attenuators, ADMV8818 tunable filters, saturation checks (requires QICKBox with RF daughtercards)
 
+List of Tutorials: tProc v1
+===========================
+
+These notebooks will run on the "standard" tProc v1-based firmware bitstream that is distributed with the QICK library.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   tprocv1/00_Send_receive_pulse
+   tprocv1/01_Phase_coherent_readout
+   tprocv1/02_Sweeping_variables
+   tprocv1/03_Conditional_logic
+   tprocv1/04_Reading_Math_Writing
+   tprocv1/05_PhaseCoherence_QickProgram
+   tprocv1/06_qubit_demos
+   tprocv1/07_Sweep_ND_variables
+   tprocv1/08_Special_buffers
+   tprocv1/09_photon_counting
+
+.. list-table::
+   :header-rows: 1
+
+   * - #
+     - Notebook
+   * - 00
+     - :doc:`tprocv1/00_Send_receive_pulse`
+   * - 01
+     - :doc:`tprocv1/01_Phase_coherent_readout`
+   * - 02
+     - :doc:`tprocv1/02_Sweeping_variables`
+   * - 03
+     - :doc:`tprocv1/03_Conditional_logic`
+   * - 04
+     - :doc:`tprocv1/04_Reading_Math_Writing`
+   * - 05
+     - :doc:`tprocv1/05_PhaseCoherence_QickProgram`
+   * - 06
+     - :doc:`tprocv1/06_qubit_demos`
+   * - 07
+     - :doc:`tprocv1/07_Sweep_ND_variables`
+   * - 08
+     - :doc:`tprocv1/08_Special_buffers`
+   * - 09
+     - :doc:`tprocv1/09_photon_counting`
+
 Running the Tutorials
 =====================
 
@@ -156,7 +205,6 @@ Running the Tutorials
 
 Remote Execution
 ================
-
 
 .. TODO: needs to explain starting the nameserver; I also suspect this is using make_proxy incorrectly and losing the soccfg object
    we should update the pyro notebook and add that in here
@@ -201,15 +249,6 @@ Common Setup Cell (copy this to any notebook)
    
    print(f"Firmware: {soc.get_cfg()['fw_version']}")
    print(f"tProc cores: {soc.num_tprocs}")
-
-Notes
-=====
-
-* Notebooks 00–09 are self-contained and work on any QICK setup
-* Notebooks 10–15 require additional hardware resources (multi-board, streaming, DSP48, QICKBox)
-* Notebook 13 requires a licensed Vivado installation for custom firmware compilation
-* Notebook 14 (XCOM) requires additional hardware: FMC transceiver board and external hub
-* Notebook 15 requires a QICKBox with RF (and optionally Balun) daughtercards installed
 
 Troubleshooting
 ===============
