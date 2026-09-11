@@ -68,7 +68,7 @@ The documentation is organized as a **progressive learning path** from beginner 
    :maxdepth: 2
    :caption:  2. Tutorials
 
-   tutorials/index
+   tutorials/README
 
 The **firmware overview** is the map: which boards QICK supports, which
 cores live on each one, and how the tProcessor, signal generators, and

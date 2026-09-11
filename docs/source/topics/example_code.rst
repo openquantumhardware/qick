@@ -5,7 +5,7 @@ Example code from the community
    List originally contributed by `Jay Chien <https://github.com/JayChien04717>`_
    (`PR #412 <https://github.com/openquantumhardware/qick/pull/412>`_).
 
-Beyond the tutorials in :doc:`../tutorials/index`, QICK collaborators have shared
+Beyond the tutorials in :doc:`../tutorials/README`, QICK collaborators have shared
 larger example codebases built on top of QICK. These are useful as reference
 for structuring real measurement code, but are maintained independently of
 this repository and are not guaranteed to track the latest QICK release.

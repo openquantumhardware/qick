@@ -145,4 +145,4 @@ Related Documentation
 * :doc:`/firmware/generators/sg_v6` - Signal Generator v6 documentation, with more worked examples
 * :doc:`/firmware/readouts/index` - Declaring and triggering a readout alongside a pulse
 * :doc:`/firmware/index` - Channel assignments and firmware overview
-* :doc:`/tutorials/index` - tProc v2 tutorial examples
+* :doc:`/tutorials/README` - tProc v2 tutorial examples

@@ -5575,9 +5575,9 @@ tProc/firmware timing, unaffected by PS-side overhead:
 13.10. Repository of Examples
 -----------------------------
 
-This documentation's own tutorial notebooks (:doc:`/tutorials/index`) are
+This documentation's own tutorial notebooks (:doc:`/tutorials/README`) are
 the primary worked-example resource, all runnable on real hardware (or, for
-tutorials 00-07, on the :doc:`/tutorials/index`'s Colab-runnable emulator
+tutorials 00-07, on the :doc:`/tutorials/README`'s Colab-runnable emulator
 port):
 
 .. list-table:: Tutorial Notebooks Covering This Chapter's Topics
@@ -5601,7 +5601,7 @@ port):
 For more elaborate examples (multi-qubit experiments, advanced feedback
 loops, calibration routines), refer to:
 
-- **Tutorial series** (:doc:`/tutorials/index`) – The full 00-14 series,
+- **Tutorial series** (:doc:`/tutorials/README`) – The full series,
   from basic sequencing through streaming/DSP, custom firmware
   integration, and XCOM multi-board network synchronization.
 - **Official QICK Demos Repository** –
