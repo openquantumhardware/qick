@@ -20,7 +20,7 @@ QICK and AMD
 
 At a glance
 -----------
-**85 papers**: 3 on the QICK system itself, and 82 across 9 platforms and applications.
+**86 papers**: 3 on the QICK system itself, and 83 across 9 platforms and applications.
 
 *System & software*
 
@@ -43,8 +43,8 @@ At a glance
      - 4
    * - `Biological qubits`_ (new)
      - 2
-   * - `Ultracold molecules`_
-     - 2
+   * - `Ultracold molecules & atoms`_
+     - 3
    * - `Neutral atoms`_
      - 1
 
@@ -204,8 +204,9 @@ Biological qubits
 * `Ramos-Silva, J.N. et al. A Pulsed Live-Cell Quantum Microscope for Entangled Solid State and Biological Qubits. (2026) <https://arxiv.org/abs/2607.03552>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
 
-Ultracold molecules
-^^^^^^^^^^^^^^^^^^^
+Ultracold molecules & atoms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* `Deters, A.D. et al. Ultrafast and high resolution spatial light modulation for cold atoms. (2026) <https://arxiv.org/abs/2608.18071>`_.
 * `Ruttley, D.K. et al. Harnessing resonant dipolar interactions in a hybrid atom-molecule quantum system. (2026) <https://arxiv.org/abs/2607.15976>`_.
 * `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
 
