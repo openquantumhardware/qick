@@ -2,7 +2,7 @@
 QICK Tutorials (Jupyter)
 ==========================
 
-This section contains practical tutorials for learning QICK and the tProc v2.
+This section contains practical tutorials for learning QICK and the tProcessor control core.
 The tutorials are available as Jupyter notebooks and can be run directly on the RFSoC board.
 
 Prerequisites
@@ -191,7 +191,7 @@ Running the Tutorials
 
 .. note::
 
-  Don't have an RFSoC board handy? Tutorials 00-07 are also available
+  Don't have an RFSoC board handy? Tutorials 00-07 for tProc v2 are also available
   ported to the **QICK emulator** (``QickEmu``, a Verilator-based
   software simulation of the firmware) at
   ``emulator/notebooks/tutorial/*_emu.ipynb`` in the

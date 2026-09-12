@@ -19,24 +19,14 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
    gen_config
    readout_modes
    units
-   reference_clock
-   changing_fs
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Quick Reference
-
-   asmv2_cheatsheet
-   tprocv2_migration
-   example_code
 
 .. toctree::
    :maxdepth: 1
    :caption: Advanced Topics
 
-   xcom
-   XCOM-commands
    pyro4
+   changing_fs
+   reference_clock
 
 Topic Descriptions
 ==================
@@ -98,6 +88,5 @@ When to Use Each Topic
 - **Using external clock?** Refer to :doc:`reference_clock`
 - **Writing assembly code?** Keep :doc:`asmv2_cheatsheet` handy
 - **Coming from tProc v1?** Start with :doc:`tprocv2_migration`
-- **Looking for full example experiments?** See :doc:`example_code`
 - **Synchronizing multiple boards?** Read :doc:`xcom` for the network-based solution
 - **Need XCOM command details?** See :doc:`XCOM-commands` for the complete command reference

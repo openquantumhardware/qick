@@ -45,14 +45,6 @@ Quick Links
 - **QICK Paper**: `arXiv:2110.00557 <https://arxiv.org/abs/2110.00557>`_
 - **Community**: :repofile:`Contact & Support <CONTACT.md>`
 
-Extensions & Customization
-===========================
-
-- **Pyro4 Server**: Persist board state across notebooks (`Pyro4 demos <https://github.com/openquantumhardware/qick/blob/main/pyro4/00_nameserver.ipynb>`_)
-- **QCoDeS Driver**: Save instrument configuration (`QCoDeS-QICK <https://github.com/aalto-qcd/qcodes_qick>`_)
-- **QICK-DAWG**: NV centers and quantum defects (`GitHub <https://github.com/sandialabs/qick-dawg>`_)
-- **SpinQICK**: Solid-state spin qubits (`GitHub <https://github.com/HRL-Laboratories/spinqick>`_)
-
 📖 Documentation Navigation
 ============================
 
@@ -60,6 +52,7 @@ The documentation is organized as a **progressive learning path** from beginner 
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption:  Getting Started
 
    quick_start
@@ -67,76 +60,76 @@ The documentation is organized as a **progressive learning path** from beginner 
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption:  Technical References
 
    modules
    topics/index
 
-The **firmware overview** is the map: which boards QICK supports, which
-cores live on each one, and how the tProcessor, signal generators, and
-readouts fit together on the FPGA -- read this before diving into any
-specific core's page or the assembly-level tProcessor reference.
-
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption:  For Experts
 
    firmware/index
-   tprocv2_trm
    tprocv1
-
-The **readout system** turns ADC samples into the I/Q data your program gets
-back. QICK offers several down-converter and buffer cores with different
-tradeoffs (software- vs. tProc-configured, on-chip BRAM vs. DDR4 capture,
-plus a resonator simulator for hardware-in-the-loop testing) -- start at
-:doc:`firmware/readouts/index` for the concepts and the normal ``declare_readout()``/
-``acquire()`` workflow, then dip into a specific core's page for register-
-level detail.
-
-The **signal generators** turn your program's pulse definitions into DAC
-output. QICK offers both single-tone arbitrary-envelope generators (for
-shaped pulses) and multiplexed fixed-tone generators (for playing several
-simultaneous tones from one channel) -- start at :doc:`firmware/generators/index` for an
-overview of which core fits which experiment, then see :doc:`firmware/generators/sg_v6` for the
-full worked Python examples shared across the family.
-
-
-The **support & utility cores** are smaller IP blocks -- a constant-IQ tone
-source, a tProc-output register/trigger helper, and an AXI-Stream buffering
-core -- that don't fit into either the readout or signal-generator families
-above; see :doc:`firmware/support_cores` for what each one does and how (or whether)
-it's exposed to Python.
-
-The **tProcessor v2 reference manual** is assembly-level detail --
-instruction encodings, register bit-fields, timing model -- for when you're
-writing or debugging tProc assembly directly, not something you need to read
-top-to-bottom to use QICK day to day.
-
-**tProc v1** is the previous-generation tProcessor, superseded by v2 on all
-current firmware. Only relevant if you're maintaining pre-v2 code or
-firmware.
+   beta
+   alpha
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption:  Community
 
    contact
+   contributions
    papers
 
-Learning Path Recommendations
-==============================
+.. TODO: too verbose for front page, should move to firmware page (also the prose reeks of LLM)
+    The **firmware overview** is the map: which boards QICK supports, which
+    cores live on each one, and how the tProcessor, signal generators, and
+    readouts fit together on the FPGA -- read this before diving into any
+    specific core's page or the assembly-level tProcessor reference.
+
+    The **readout system** turns ADC samples into the I/Q data your program gets
+    back. QICK offers several down-converter and buffer cores with different
+    tradeoffs (software- vs. tProc-configured, on-chip BRAM vs. DDR4 capture,
+    plus a resonator simulator for hardware-in-the-loop testing) -- start at
+    :doc:`firmware/readouts/index` for the concepts and the normal ``declare_readout()``/
+    ``acquire()`` workflow, then dip into a specific core's page for register-
+    level detail.
+
+    The **signal generators** turn your program's pulse definitions into DAC
+    output. QICK offers both single-tone arbitrary-envelope generators (for
+    shaped pulses) and multiplexed fixed-tone generators (for playing several
+    simultaneous tones from one channel) -- start at :doc:`firmware/generators/index` for an
+    overview of which core fits which experiment, then see :doc:`firmware/generators/sg_v6` for the
+    full worked Python examples shared across the family.
+
+    The **support & utility cores** are smaller IP blocks -- a constant-IQ tone
+    source, a tProc-output register/trigger helper, and an AXI-Stream buffering
+    core -- that don't fit into either the readout or signal-generator families
+    above; see :doc:`firmware/support_cores` for what each one does and how (or whether)
+    it's exposed to Python.
+
+    The **tProcessor v2 reference manual** is assembly-level detail --
+    instruction encodings, register bit-fields, timing model -- for when you're
+    writing or debugging tProc assembly directly, not something you need to read
+    top-to-bottom to use QICK day to day.
+
+    **tProc v1** is the previous-generation tProcessor, superseded by v2 on all
+    current firmware. Only relevant if you're maintaining pre-v2 code or
+    firmware.
 
 **New to QICK?** Start here:
 
 1. Read the :doc:`quick_start` guide to set up your board
-2. Complete the **Basic Tutorials** (00-05) to understand core concepts
-3. Work through **Intermediate Tutorials** (06-09) for practical measurements
-4. Read :doc:`firmware/index` for the big picture, then explore **Advanced
-   Tutorials** (10-14) for specialized applications
+2. Complete the :doc:`tutorials/README` to learn core concepts and apply them in measurements
+3. Read :doc:`firmware/index` for a big-picture view of the QICK firmware
 
 **Already familiar with QICK?** Jump directly to:
 
-- :doc:`firmware/readouts/index` and :doc:`firmware/generators/index` for the readout/generator hardware
+- :doc:`firmware/readouts/index` and :doc:`firmware/generators/index` for the readout/generator firmware
   reference, organized by which core is on your channel
 - :doc:`modules` for full API documentation
 - :doc:`topics/index` for deep dives on specific topics

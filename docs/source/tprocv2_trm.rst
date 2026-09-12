@@ -1,7 +1,7 @@
 .. _tprocv2_trm:
 
 ==================================================
-QICK tProcessor v2 - Complete Reference Manual
+tProcessor v2 - reference manual
 ==================================================
 
 .. meta::

@@ -1,3 +1,14 @@
+===========================
+Community contributions
+===========================
+
+Extensions & Customization
+===========================
+
+- **QCoDeS Driver**: Save instrument configuration (`QCoDeS-QICK <https://github.com/aalto-qcd/qcodes_qick>`_)
+- **QICK-DAWG**: NV centers and quantum defects (`GitHub <https://github.com/sandialabs/qick-dawg>`_)
+- **SpinQICK**: Solid-state spin qubits (`GitHub <https://github.com/HRL-Laboratories/spinqick>`_)
+
 Example code from the community
 =================================
 
