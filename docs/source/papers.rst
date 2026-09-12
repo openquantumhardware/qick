@@ -20,7 +20,7 @@ QICK and AMD
 
 At a glance
 -----------
-**82 papers**: 3 on the QICK system itself, and 79 across 9 platforms and applications.
+**86 papers**: 3 on the QICK system itself, and 83 across 9 platforms and applications.
 
 *System & software*
 
@@ -36,15 +36,15 @@ At a glance
    :widths: 40 8
 
    * - `Superconducting circuits`_
-     - 55
+     - 56
    * - `Spin defects`_
-     - 7
+     - 8
    * - `Quantum dots`_
      - 4
    * - `Biological qubits`_ (new)
      - 2
-   * - `Ultracold molecules`_
-     - 2
+   * - `Ultracold molecules & atoms`_
+     - 3
    * - `Neutral atoms`_
      - 1
 
@@ -54,7 +54,7 @@ At a glance
    :widths: 40 8
 
    * - `Dark matter detection`_
-     - 3
+     - 4
    * - `Single-photon detection`_
      - 3
    * - `Quantum sensors and MKIDs`_
@@ -62,20 +62,20 @@ At a glance
 
 Paper counts
 ------------
-These stats were computed from the next section's list of QICK papers as of May 2, 2026.
+These stats were computed from the next section's list of QICK papers as of September 11, 2026.
 
-.. image:: images/papers/QICKpapers_count_May26.png
+.. image:: images/papers/QICKpapers_count_Sep26.png
    :alt: QICK papers, total count
 
-.. image:: images/papers/QICKpapers_qubit_types_May26.png
+.. image:: images/papers/QICKpapers_qubit_types_Sep26.png
    :alt: QICK papers, by qubit type
 
-.. image:: images/papers/QICKpapers_scaling_May26.png
+.. image:: images/papers/QICKpapers_scaling_Sep26.png
    :alt: QICK papers, superconducting qubits, by topic
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated July 23, 2026.
+This list of academic papers that used the QICK was last updated September 11, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -126,6 +126,7 @@ Gates/couplers
 
 Coherence
 """""""""
+* `DeRose, K. et al. Dissipation Enables Strongly Detuning-Dependent Interference in Pulsed Dynamical Decoupling. (2026) <https://arxiv.org/abs/2607.25176>`_.
 * `Olszewski, M. et al. Krypton-sputtered tantalum films for scalable high-performance quantum devices. (2026) <https://arxiv.org/abs/2601.20091>`_.
 * `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
 * `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/abs/2506.18232>`_.
@@ -182,6 +183,7 @@ Open source control with the Qibo/QICK stack (Qibolab/Qibosoq)
 
 Spin defects
 ^^^^^^^^^^^^
+* `Park, J.-P. et al. An open-source FPGA control architecture for solid-state spin-photon interfaces. (2026) <https://doi.org/10.1140/epjqt/s40507-026-00555-2>`_.
 * `Marcenac, V. et al. Sub-nanosecond control for spin-defect quantum memories with a low-cost, compact FPGA platform. (2026) <https://arxiv.org/abs/2604.11743>`_.
 * `Katsumi, R. et al. Chiral microwave metasurface for controlling spins in diamond. (2026) <https://www.researchsquare.com/article/rs-9035542/v1>`_.
 * `Elmslie, T. et al. Homogeneous Microwave Delivery for Quantum Sensing with Nitrogen-Vacancy Centers at High Pressures. (2026) <https://arxiv.org/abs/2601.11725>`_.
@@ -202,8 +204,9 @@ Biological qubits
 * `Ramos-Silva, J.N. et al. A Pulsed Live-Cell Quantum Microscope for Entangled Solid State and Biological Qubits. (2026) <https://arxiv.org/abs/2607.03552>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
 
-Ultracold molecules
-^^^^^^^^^^^^^^^^^^^
+Ultracold molecules & atoms
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* `Deters, A.D. et al. Ultrafast and high resolution spatial light modulation for cold atoms. (2026) <https://arxiv.org/abs/2608.18071>`_.
 * `Ruttley, D.K. et al. Harnessing resonant dipolar interactions in a hybrid atom-molecule quantum system. (2026) <https://arxiv.org/abs/2607.15976>`_.
 * `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
 
@@ -213,6 +216,7 @@ Neutral atoms
 
 Dark matter detection
 ^^^^^^^^^^^^^^^^^^^^^
+* `Lynn, M. et al. Axion dark matter search with a photonic bandgap cavity haloscope and dielectric tuning rod over 10.25-10.45 GHz. (2026) <https://arxiv.org/abs/2608.07718>`_.
 * `Hoshino, G. et al. First Axion-Like Particle Results from a Broadband Search for Wave-Like Dark Matter in the 44 to 52 ueV Range with a Coaxial Dish Antenna. (2025) <https://arxiv.org/abs/2501.17119>`_.
 * `Zhao, F. et al. A Flux-Tunable cavity for Dark matter detection. (2025) <https://arxiv.org/abs/2501.06882>`_.
 * `Knirck, S. et al. First Results from a Broadband Search for Dark Photon Dark Matter in the 44 to 52 ueV range with a coaxial dish antenna. (2023) <https://arxiv.org/abs/2310.13891>`_.
