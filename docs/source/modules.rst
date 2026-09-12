@@ -1,5 +1,5 @@
-Software API
-============
+Python API
+==========
 
 This page is the raw, auto-generated API reference -- every public class,
 method, and function in ``qick_lib``, with its docstring. For most tasks

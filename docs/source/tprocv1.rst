@@ -1,5 +1,5 @@
 ========================================================
-tProcessor v1 (axis_tproc64x32_x8) - QICK Firmware
+tProcessor v1 (axis_tproc64x32_x8) - legacy
 ========================================================
 
 .. contents::

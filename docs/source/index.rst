@@ -60,15 +60,17 @@ The documentation is organized as a **progressive learning path** from beginner 
 
 .. toctree::
    :maxdepth: 2
-   :caption:  1. Getting Started
+   :caption:  Getting Started
 
    quick_start
+   tutorials/README
 
 .. toctree::
    :maxdepth: 2
-   :caption:  2. Tutorials
+   :caption:  Technical References
 
-   tutorials/README
+   modules
+   topics/index
 
 The **firmware overview** is the map: which boards QICK supports, which
 cores live on each one, and how the tProcessor, signal generators, and
@@ -77,9 +79,11 @@ specific core's page or the assembly-level tProcessor reference.
 
 .. toctree::
    :maxdepth: 2
-   :caption:  5. Firmware Overview
+   :caption:  For Experts
 
    firmware/index
+   tprocv2_trm
+   tprocv1
 
 The **readout system** turns ADC samples into the I/Q data your program gets
 back. QICK offers several down-converter and buffer cores with different
@@ -103,28 +107,10 @@ core -- that don't fit into either the readout or signal-generator families
 above; see :doc:`firmware/support_cores` for what each one does and how (or whether)
 it's exposed to Python.
 
-.. toctree::
-   :maxdepth: 2
-   :caption:  9. Python API Reference
-
-   modules
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  10. Technical Topics
-
-   topics/index
-
 The **tProcessor v2 reference manual** is assembly-level detail --
 instruction encodings, register bit-fields, timing model -- for when you're
 writing or debugging tProc assembly directly, not something you need to read
 top-to-bottom to use QICK day to day.
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  11. tProcessor v2 Reference
-
-   tprocv2_trm
 
 **tProc v1** is the previous-generation tProcessor, superseded by v2 on all
 current firmware. Only relevant if you're maintaining pre-v2 code or
@@ -132,13 +118,7 @@ firmware.
 
 .. toctree::
    :maxdepth: 2
-   :caption:  12. Legacy: tProc v1
-
-   tprocv1
-
-.. toctree::
-   :maxdepth: 2
-   :caption:  13. Community
+   :caption:  Community
 
    contact
    papers
