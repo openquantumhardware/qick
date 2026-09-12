@@ -1,3 +1,8 @@
 numpy>=1.14.2
 tqdm
+sphinx
 sphinx-rtd-theme
+nbsphinx
+myst-parser
+ipython
+ipykernel
