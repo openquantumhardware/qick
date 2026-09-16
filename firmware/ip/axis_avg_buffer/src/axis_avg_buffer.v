@@ -72,8 +72,8 @@ module axis_avg_buffer
 /* Parameters */
 /**************/
 // Memory depth.
-parameter N_AVG = 10;
-parameter N_BUF = 10;
+parameter N_AVG = 14;
+parameter N_BUF = 12;
 
 // Number of bits.
 parameter B = 16;

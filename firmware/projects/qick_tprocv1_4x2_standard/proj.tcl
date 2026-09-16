@@ -20,7 +20,7 @@ set proj_dir [get_property directory [current_project]]
 
 # Set project properties
 set obj [current_project]
-set_property -name "board_part_repo_paths" -value "[file normalize "$origin_dir/board_files"]" -objects $obj
+set_property -name "board_part_repo_paths" -value "[file normalize "$origin_dir/../../board_files"]" -objects $obj
 set_property -name "board_part" -value "realdigital.org:rfsoc4x2:part0:1.0" -objects $obj
 set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
 set_property -name "enable_vhdl_2008" -value "1" -objects $obj
@@ -58,7 +58,7 @@ set files [list \
 add_files -fileset $obj $files
 
 # Source Block Design.
-set file "[file normalize "$origin_dir/bd_2022-1.tcl"]"
+set file "[file normalize "$origin_dir/bd_2023-1.tcl"]"
 source $file
 
 # Update compile order.
