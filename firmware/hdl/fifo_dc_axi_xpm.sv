@@ -462,4 +462,4 @@ module fifo_dc_axi_xpm
 
    // End of xpm_fifo_async_inst instantiation
 
-endmodule;
+endmodule
