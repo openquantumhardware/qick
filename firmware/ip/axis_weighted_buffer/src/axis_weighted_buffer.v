@@ -75,8 +75,8 @@ module axis_weighted_buffer
    /**************/
    // Memory depth.
    parameter N_AVG = 14;
-   parameter N_BUF = 14;
-   parameter N_WGT = 14;
+   parameter N_BUF = 12;
+   parameter N_WGT = 12;
 
    // Number of bits.
    parameter B = 16;

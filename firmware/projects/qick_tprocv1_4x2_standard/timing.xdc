@@ -16,9 +16,9 @@ set_clock_group -name clk_axi_to_dac0 -asynchronous \
     -group [get_clocks $clk_axi] \
     -group [get_clocks $clk_dac0]
 
-set_clock_group -name clk_axi_to_dac2 -asynchronous \
-    -group [get_clocks $clk_axi] \
-    -group [get_clocks $clk_dac2]
+#set_clock_group -name clk_axi_to_dac2 -asynchronous \
+#    -group [get_clocks $clk_axi] \
+#    -group [get_clocks $clk_dac2]
 
 # AXI to tproc
 set_clock_group -name clk_axi_to_tproc -asynchronous \
@@ -30,9 +30,9 @@ set_clock_group -name clk_tproc_to_dac0 -asynchronous \
     -group [get_clocks $clk_tproc] \
     -group [get_clocks $clk_dac0]
 
-set_clock_group -name clk_tproc_to_dac2 -asynchronous \
-    -group [get_clocks $clk_tproc] \
-    -group [get_clocks $clk_dac2]
+#set_clock_group -name clk_tproc_to_dac2 -asynchronous \
+#    -group [get_clocks $clk_tproc] \
+#    -group [get_clocks $clk_dac2]
 
 set_clock_group -name clk_tproc_to_adc0_x2 -asynchronous \
     -group [get_clocks $clk_tproc] \
