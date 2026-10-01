@@ -2,14 +2,11 @@ from .qick import QickSoc
 from .ip import SocIP
 from .drivers.hardware import *
 from .qick_asm import QickConfig
-from .helpers import ADCInterruptError
 from pynq.buffer import allocate
-import xrfdc
 import numpy as np
 import time
 from contextlib import contextmanager, suppress
 from abc import ABC, abstractmethod
-from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1368,92 +1365,6 @@ class RFQickSoc216V1(RFQickSoc):
         val = self.set_adc_attenuator(adcname, att)
         self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
         return val
-
-    def clear_interrupts(self, max_attempts=5, error_on_interrupt=False, error_on_persist=True, warn=True):
-        """
-        Check all ADCs for interrupts, and attempt to clear them.
-
-        https://docs.amd.com/r/en-US/pg269-rf-data-converter/XRFdc_IntrEnable
-        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Interrupt-Handling
-        https://github.com/Xilinx/embeddedsw/blob/master/XilinxProcessorIPLib/drivers/rfdc/src/xrfdc_hw.h
-
-        Parameters
-        ----------
-        max_attempts : int
-            number of times to attempt to clear interrupts before giving up
-        error_on_interrupt : bool
-            if True, raise an error if any ADC has an interrupt raised
-        error_on_persist : bool
-            if True, raise an error if any ADC has an interrupt that persists after `max_attempts` clears
-        warn : bool
-            if True, interrupts that don't result in an error are logged as warnings
-
-        Returns
-        -------
-        bool
-            True if all interrupts were successfully cleared
-        """
-        # 0x0000F000 is only used by DAC, I think
-        # 0x03000000 is not used?
-        interrupt_masks = [
-            (0x0000000F, "XRFDC_IXR_FIFOUSRDAT_MASK"), # FIFO over/underflow, linked to XRFDC_ADC_FIFO_OVR_MASK?
-            (0x00000FF0, "XRFDC_ADC_IXR_DATAPATH_MASK"), # overflow/saturation in datapath (e.g. decimation), linked to XRFDC_ADC_DAT_OVR_MASK?
-            (0x00FF0000, "XRFDC_SUBADC_IXR_DCDR_MASK"), # analog input over/under full-scale range for individual sub-ADCs, linked to OVR_RANGE interrupt
-            (0x04000000, "XRFDC_ADC_OVR_VOLTAGE_MASK"), # analog input exceeding ADC safe range - gen3 RFSoC
-            (0x08000000, "XRFDC_ADC_OVR_RANGE_MASK"), # analog input exceeding ADC full-scale range
-            (0x10000000, "XRFDC_ADC_CMODE_OVR_MASK"), # analog input common-mode voltage above spec - gen3 RFSoC
-            (0x20000000, "XRFDC_ADC_CMODE_UNDR_MASK"), # analog input common-mode voltage below spec - gen3 RFSoC
-            (0x40000000, "XRFDC_ADC_DAT_OVR_MASK"),
-            (0x80000000, "XRFDC_ADC_FIFO_OVR_MASK"),
-        ]
-        arr = xrfdc._ffi.new("unsigned int [1]")
-
-        # all interrupts that were raised before or during clear_interrupts()
-        ints_ever = defaultdict(set)
-
-        for attempts in range(max_attempts):
-            ints_now = defaultdict(set)
-            for adcname, cfg in self['rf']['adcs'].items():
-                tile, block = cfg['index']
-
-                status = xrfdc._lib.XRFdc_GetIntrStatus(self.rf._instance, xrfdc._lib.XRFDC_ADC_TILE, tile, block, arr)
-                if status != 0: raise RuntimeError("error in reading interrupts: %d" % (status))
-
-                interrupts = arr[0]
-                if interrupts == 0: continue
-                for mask, name in interrupt_masks:
-                    if (mask & interrupts) != 0:
-                        interrupts &= 0xFFFFFFFF - mask
-                        ints_now[adcname].add(name)
-                if interrupts != 0: logger.warning("unrecognized interrupts on tile %s block %s: %s" %(*adcname, interrupts))
-                ints_ever[adcname].update(ints_now[adcname])
-                logger.info("attempt %d, interrupts on tile %s block %s: %s %s"%(attempts, *adcname, hex(arr[0]), ints_now[adcname]))
-
-                status = xrfdc._lib.XRFdc_IntrClr(self.rf._instance, xrfdc._lib.XRFDC_ADC_TILE, tile, block, 0xFFFFFFFF)
-                if status != 0: raise RuntimeError("error in clearing interrupts: %d" % (status))
-            if not ints_now: break
-        if ints_ever:
-            msg = "The following ADC interrupts were raised:"
-            for adcname, ints in ints_ever.items():
-                msg += "\nADC tile %s block %s: %s" %(*adcname, ints)
-            if ints_now:
-                msg += "\nThe following ADC interrupts persisted after %d clears:" % (max_attempts)
-                for adcname, ints in ints_now.items():
-                    msg += "\nADC tile %s block %s: %s" %(*adcname, ints)
-            else:
-                msg += "\nThe ADC interrupts were cleared after %d attempts." % (attempts)
-            msg += "\nMost ADC interrupts indicate that at some point the input signal to the ADC exceeded the ADC's voltage range."
-            msg += "\nYou should reduce the amplification going into the ADC; filtering may also help."
-            msg += "\nSee https://docs.amd.com/r/en-US/pg269-rf-data-converter/Interrupt-Handling"
-
-            if error_on_persist and ints_now:
-                raise ADCInterruptError(msg)
-            elif error_on_interrupt and ints_ever:
-                raise ADCInterruptError(msg)
-            else:
-                level = logging.WARNING if warn else logging.INFO
-                logger.log(level, msg)
-        return not ints_now
 
     def prepare_round(self):
         # if an ADC is already in interrupt state, don't run the program
