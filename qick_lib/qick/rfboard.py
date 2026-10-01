@@ -724,13 +724,12 @@ class BoardSelection:
         finally:
             self.disable()
 
-class RFQickSoc(QickSoc):
+class RFQickSocMixin(ABC):
     """
-    Overrides the __init__ method of QickSoc in order to add the drivers for the preproduction (V1) version of the RF board.
-    Otherwise supports all the QickSoc functionality.
+    Use this mixin class (or a subclass) in combination with QickSoc (or a subclass) to enable RF board support.
     """
     HAS_LO = True
-    def __init__(self, bitfile, clk_output=None, no_tproc=False, **kwargs):
+    def __init__(self, bitfile, clk_output=None, **kwargs):
         """
         A bitfile must always be provided, since the default bitstream will not work with the RF board.
 
@@ -740,9 +739,24 @@ class RFQickSoc(QickSoc):
         """
         if clk_output is None and self.HAS_LO:
             clk_output = True
-        super().__init__(bitfile=bitfile, clk_output=clk_output, no_tproc=no_tproc, **kwargs)
+        super().__init__(bitfile=bitfile, clk_output=clk_output, **kwargs)
 
-        self.rfb_config(no_tproc)
+        # ADC signal chains.
+        self.adc_chains = []
+
+        # DAC signal chains.
+        self.dac_chains = []
+
+        # Bias channels.
+        self.biases = []
+
+        self._rfb_config()
+
+    @abstractmethod
+    def _rfb_config(self):
+        """Detects and configures RF board components.
+        """
+        ...
 
     def rfb_set_gen_rf(self, gen_ch, att1, att2):
         """Enable and configure an RF-board output channel for RF output.
@@ -934,7 +948,7 @@ class RFQickSoc(QickSoc):
         """
         return self.biases[bias_ch].get_volt()
 
-class RFQickSoc111V1(RFQickSoc):
+class RFQickSoc111V1(RFQickSocMixin, QickSoc):
     def _init_switches(self, spi):
         self.switches = SwitchControl(spi)
         # ADC power
@@ -951,7 +965,7 @@ class RFQickSoc111V1(RFQickSoc):
     def _init_lo(self, spi):
         self.lo = [LoSynthADF4372(spi, le=[i]) for i in range(2)]
 
-    def rfb_config(self, no_tproc):
+    def _rfb_config(self):
         """
         Configure the SPI interfaces to the RF board.
         """
@@ -984,14 +998,13 @@ class RFQickSoc111V1(RFQickSoc):
         # LO Synthesizers.
         self._init_lo(self.lo_spi)
 
-        if not no_tproc:
-            # Link gens/readouts to the corresponding RF board channels.
-            for gen in self.gens:
-                tile, block = [int(a) for a in gen['dac']]
-                gen.rfb_ch = self.dac_chains[4*tile + block]
-            for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout['adc']]
-                avg_buf.rfb_ch = self.adc_chains[2*tile + block]
+        # Link gens/readouts to the corresponding RF board channels.
+        for gen in self.gens:
+            tile, block = [int(a) for a in gen['dac']]
+            gen.rfb_ch = self.dac_chains[4*tile + block]
+        for avg_buf in self.avg_bufs:
+            tile, block = [int(a) for a in avg_buf.readout['adc']]
+            avg_buf.rfb_ch = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f):
         """Set both of the RF-board local oscillators to the same frequency.
@@ -1074,27 +1087,10 @@ class RFQickSoc111V2(RFQickSoc111V1):
 # define the old name, for compatibility
 RFQickSocV2 = RFQickSoc111V2
 
-class RFQickSoc216V1(RFQickSoc):
+class RFQickSoc216V1Mixin(RFQickSocMixin):
     HAS_LO = False
 
-    def __init__(self, bitfile, **kwargs):
-        super().__init__(bitfile, **kwargs)
-
-        self['extra_description'].append("\nQICK box daughter cards detected:")
-        for slot, card in enumerate(self.adc_cards):
-            if card is None:
-                self['extra_description'].append(f"\tADC slot {slot}: No card detected")
-            else:
-                channels = [chain.global_ch for chain in card.chains]
-                self['extra_description'].append(f"\tADC slot {slot}: {card.NAME} card has ports {channels}")
-        for slot, card in enumerate(self.dac_cards):
-            if card is None:
-                self['extra_description'].append(f"\tDAC slot {slot}: No card detected")
-            else:
-                channels = [chain.global_ch for chain in card.chains]
-                self['extra_description'].append(f"\tDAC slot {slot}: {card.NAME} card has ports {channels}")
-
-    def rfb_config(self, no_tproc):
+    def _rfb_config(self):
         """
         Configure the GPIO/SPI interfaces to the RF board.
         """
@@ -1119,14 +1115,10 @@ class RFQickSoc216V1(RFQickSoc):
         self.bias_spi.config(lsb="msb", cpha="invert")
 
         # Bias channels.
-        self.biases = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
+        for ii in range(8):
+            self.biases.append(BiasDAC11001(self.bias_spi, ch_en=ii))
+
         self.rfb_enable_bias()
-
-        # ADC channels.
-        self.adc_chains = []
-
-        # DAC channels.
-        self.dac_chains = []
 
         # DAC daughter cards are the lower 4.
         self.dac_cards = []
@@ -1174,30 +1166,45 @@ class RFQickSoc216V1(RFQickSoc):
             self.adc_cards.append(card)
 
         # Link gens/readouts to the corresponding RF board channels.
-        if not no_tproc:
-            # Each DAC tile maps to a daughter card, in order.
-            for gen in self.gens:
-                tile, block = [int(a) for a in gen['dac']]
-                card = self.dac_cards[tile]
-                if card is not None:
-                    gen.rfb_ch = card.chains[block]
-                else:
-                    gen.rfb_ch = None
-            # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
-            for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout['adc']]
-                card = self.adc_cards[2*(tile-1) + block//2]
-                chain_num = block % 2
-                if card is not None:
-                    avg_buf.rfb_ch = card.chains[chain_num]
-                else:
-                    avg_buf.rfb_ch = None
+        # Each DAC tile maps to a daughter card, in order.
+        for gen in self.gens:
+            tile, block = [int(a) for a in gen['dac']]
+            card = self.dac_cards[tile]
+            if card is not None:
+                gen.rfb_ch = card.chains[block]
+            else:
+                gen.rfb_ch = None
+        # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
+        for avg_buf in self.avg_bufs:
+            tile, block = [int(a) for a in avg_buf.readout['adc']]
+            card = self.adc_cards[2*(tile-1) + block//2]
+            chain_num = block % 2
+            if card is not None:
+                avg_buf.rfb_ch = card.chains[chain_num]
+            else:
+                avg_buf.rfb_ch = None
 
         # DC-in ADCs need to be restarted after initial power-up
         for tile in self['rf']['tiles']['adc']:
             self.rf.restart_adc_tile(tile)
         # now, clear any ADC interrupts
         self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
+
+        # add a list of detected cards to the configuration printout
+        self['extra_description'].append("\nQICK box daughter cards detected:")
+        for slot, card in enumerate(self.adc_cards):
+            if card is None:
+                self['extra_description'].append(f"\tADC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tADC slot {slot}: {card.NAME} card has ports {channels}")
+        for slot, card in enumerate(self.dac_cards):
+            if card is None:
+                self['extra_description'].append(f"\tDAC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tDAC slot {slot}: {card.NAME} card has ports {channels}")
+
 
     def rfb_enable_bias(self):
         """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
@@ -1372,3 +1379,6 @@ class RFQickSoc216V1(RFQickSoc):
 
     def cleanup_round(self):
         self.clear_interrupts()
+
+class RFQickSoc216V1(RFQickSoc216V1Mixin, QickSoc):
+    pass
