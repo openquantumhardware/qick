@@ -15,6 +15,7 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
 
    freq_matching
    timing
+   tprocv1_timing
    playing_pulses
    gen_config
    readout_modes
