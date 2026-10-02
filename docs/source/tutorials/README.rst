@@ -21,7 +21,6 @@ Some notebooks may have additional firmware or hardware requirements:
 
 * Notebooks 00–09 are self-contained and work on any QICK setup
 * Notebooks 10–15 require additional hardware resources (multi-board, streaming, DSP48, QICKBox)
-* Notebook 13 requires a licensed Vivado installation for custom firmware compilation
 * Notebook 14 (XCOM) requires additional hardware: FMC transceiver board and external hub
 * Notebook 15 requires a QICKBox with RF (and optionally Balun) daughtercards installed
 
@@ -103,9 +102,6 @@ Advanced Tutorials
    :hidden:
 
    10_Multi_Board_Synchronization
-   11_Streaming_And_RealTime_Processing
-   12_DSP_Blocks_And_Correlators
-   13_Custom_Firmware_Integration
    14_XCOM_Network_Synchronization
    15_QICKBox_RF_Daughtercards
 
@@ -118,15 +114,6 @@ Advanced Tutorials
    * - 10
      - :doc:`10_Multi_Board_Synchronization`
      - Synchronize multiple boards using external clock and external start signals
-   * - 11
-     - :doc:`11_Streaming_And_RealTime_Processing`
-     - IQ streaming, on-FPGA averaging, real-time decimation
-   * - 12
-     - :doc:`12_DSP_Blocks_And_Correlators`
-     - FIR filters, DDS tuning, hardware correlators
-   * - 13
-     - :doc:`13_Custom_Firmware_Integration`
-     - Adding custom Verilog/VHDL, AXI-lite interface, rebuilding
    * - 14
      - :doc:`14_XCOM_Network_Synchronization`
      - Full mesh network for multi-board synchronization and low-latency communication (requires FMC transceiver board)
