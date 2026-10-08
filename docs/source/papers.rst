@@ -20,7 +20,7 @@ QICK and AMD
 
 At a glance
 -----------
-**86 papers**: 3 on the QICK system itself, and 83 across 9 platforms and applications.
+**91 papers**: 4 on the QICK system itself, and 87 across 9 platforms and applications.
 
 *System & software*
 
@@ -28,7 +28,7 @@ At a glance
    :widths: 40 8
 
    * - `QICK system`_
-     - 3
+     - 4
 
 *Qubit & computing platforms*
 
@@ -36,7 +36,7 @@ At a glance
    :widths: 40 8
 
    * - `Superconducting circuits`_
-     - 56
+     - 59
    * - `Spin defects`_
      - 8
    * - `Quantum dots`_
@@ -56,7 +56,7 @@ At a glance
    * - `Dark matter detection`_
      - 4
    * - `Single-photon detection`_
-     - 3
+     - 4
    * - `Quantum sensors and MKIDs`_
      - 2
 
@@ -75,10 +75,11 @@ These stats were computed from the next section's list of QICK papers as of Sept
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated September 11, 2026.
+This list of academic papers that used the QICK was last updated October 8, 2026.
 
 QICK system
 ^^^^^^^^^^^
+* `Arnaldi, L. et al. The QICK Box: A Modular RF Front-End System for Quantum Control and Readout. (2026) <https://arxiv.org/abs/2610.03609>`_.
 * `Martin, D. et al. XCOM: Full Mesh Network Synchronization and Low-Latency Communication for QICK (Quantum Instrumentation Control Kit). (2026) <https://arxiv.org/abs/2603.18977>`_.
 * `Ding, C. et al. Experimental advances with the QICK (Quantum Instrumentation Control Kit) for superconducting quantum hardware. (2023) <https://arxiv.org/abs/2311.17171>`_.
 * `Stefanazzi, L. et al. The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors. (2021) <https://arxiv.org/abs/2110.00557>`_.
@@ -110,6 +111,7 @@ Quantum error correction hardware
 
 Quantum simulation
 """"""""""""""""""
+* `Ashok, A. et al. Probing Quantum Anomalous Hall Transport Under Microwave Irradiation Using a Topological Circulator. (2026) <https://arxiv.org/abs/2610.06245>`_.
 * `Mucci, M. et al. A superconducting quantum circuit single artificial atom maser. (2026) <https://arxiv.org/abs/2604.05105>`_.
 * `Molinelli, M. et al. Chiral and bond-ordered phases in a triangular-ladder superconducting-qubit quantum simulator. (2026) <https://arxiv.org/abs/2603.16993>`_.
 * `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
@@ -142,12 +144,14 @@ Coherence
 
 Radiative loss
 """"""""""""""
+* `De Dominicis, F. et al. Quantitative characterization of superconducting qubits as particle detectors. (2026) <https://arxiv.org/abs/2609.35850>`_.
 * `De Dominicis, F. et al. Evaluating radiation impact on transmon qubits in above and underground facilities. (2024) <https://arxiv.org/abs/2405.18355>`_.
 * `Bratrud, G. et al. First Measurement of Correlated Charge Noise in Superconducting Qubits at an Underground Facility. (2024) <https://arxiv.org/abs/2405.04642>`_.
 * `Odeh, M. et al. Non-Markovian dynamics of a superconducting qubit in a phononic bandgap. (2023) <https://arxiv.org/abs/2312.01031>`_.
 
 Readout
 """""""
+* `Johnson, H. et al. Real-Time Adaptive Filtering and the Boxcar Limit in Superconducting Qubit Readout. (2026) <https://arxiv.org/abs/2610.00783>`_.
 * `Dixit, A. et al. Millimeter Wave Readout of a Superconducting Qubit. (2026) <https://arxiv.org/html/2603.13837v1>`_.
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/abs/2503.10750>`_.
@@ -223,6 +227,7 @@ Dark matter detection
 
 Single-photon detection
 ^^^^^^^^^^^^^^^^^^^^^^^
+* `Cameron, A.R. et al. Entanglement swapping across a five-node relay in a multiplexed quantum-classical network. (2026) <https://arxiv.org/abs/2609.18899>`_.
 * `Linne, K. et al. PhotonIDs: ML-Powered Photon Identification System for Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.26315>`_.
 * `Linne, K. et al. SQuaD: Smart Quantum Detection for Photon Recognition and Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.24383>`_.
 * `Xie, S. et al. Entangled Photon Pair Source Demonstrator using the Quantum Instrumentation Control Kit System. (2023) <https://arxiv.org/abs/2304.01190>`_.
