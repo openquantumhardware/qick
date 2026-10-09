@@ -2409,7 +2409,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
         gen_ch : int or None
-            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+            generator channel (omit or use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         if isinstance(ch, Number):
             ch = [ch]
