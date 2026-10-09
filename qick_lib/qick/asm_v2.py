@@ -1933,10 +1933,13 @@ class ReadoutManager(AbsRegisterManager):
         # if the matching generator has a mixer, that frequency needs to be added to this one
         # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
         # the relevant quantization step is still going to be the readout+generator step
-        if 'gen_ch' in par and 'mixer_freq' in self.prog.gen_chs[par['gen_ch']]:
+        gen_ch = par.get('gen_ch')
+        if gen_ch is not None and gen_ch not in self.prog.gen_chs:
+            raise RuntimeError("readout %d is frequency-matched to generator %d, but that generator is not declared in this program"%(self.ch, gen_ch))
+        if gen_ch is not None and 'mixer_freq' in self.prog.gen_chs[gen_ch]:
             # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
             # but we round here anyway - TODO: we could warn if it's not rounded
-            mixer_freq = self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
+            mixer_freq = self.prog.gen_chs[gen_ch]['mixer_freq']['rounded']
             mixer_freq = self.prog.roundfreq(mixer_freq, [self.chcfg])
         else:
             mixer_freq = 0
@@ -1944,7 +1947,7 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq'] - mixer_freq
         else:
             f_dds = par['freq']
-        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=gen_ch)
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
         if self.prog.FLIP_DOWNCONVERSION: freqreg *= -1
 
