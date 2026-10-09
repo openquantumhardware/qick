@@ -2062,7 +2062,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # * declare_gen, declare_readout
         # * add_pulse
         # * macros
-        # 
+        #
         # user commands can add macros and/or waveforms+pulses to the program
         # macros are user commands
         # preprocessing: allocate registers, convert params from physical units to ASM values, define the timeline
@@ -2408,7 +2408,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
         length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
-        gen_ch : int
+        gen_ch : int or None
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         if isinstance(ch, Number):
