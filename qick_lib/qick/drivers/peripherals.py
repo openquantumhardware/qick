@@ -678,8 +678,8 @@ class QICK_Net(SocIP):
         print( ' T17  : ' + str(cmd17_st) + ' - ' + self.cmd_list[cmd17_st])
         print( ' T18  : ' + str(cmd18_st) + ' - ' + self.cmd_list[cmd18_st])
         print( ' T19  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd19_st])
-        print( ' T20  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd20_st])
         
+        print( ' T20  : ' + str(cmd20_st) + ' - ' + self.cmd_list[cmd20_st])
     def get_sth(self):
         debug_num = self.tnet_debug
         debug_bin = '{:032b}'.format(debug_num)
