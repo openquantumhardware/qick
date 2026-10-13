@@ -703,6 +703,7 @@ class QICK_Net(SocIP):
         print( ' T3   : ' + str(cmd3_st) + ' - ' + self.cmd_list[cmd3_st])
         print( ' T4   : ' + str(cmd4_st) + ' - ' + self.cmd_list[cmd4_st])
         print( ' T5   : ' + str(cmd5_st) + ' - ' + self.cmd_list[cmd5_st])
+
 class QICK_XTalk_Compensation(SocIP):
     """
     QICK_XTalk_Compensation class
