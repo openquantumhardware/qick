@@ -695,10 +695,15 @@ def amplitude_trace(prog: Any, event: PulseEvent, length_us: Optional[float] = N
 
     * ``const``    — rectangle at ``|gain| * scale`` for the pulse length.
     * ``arb``      — stored envelope magnitude (gaussian, DRAG, arbitrary I/Q, …),
-      scaled by ``|gain| * scale``.
+      scaled by ``|gain| * scale / 2``.
     * ``flat_top`` — first half of the envelope as the rising ramp, a plateau of
       ``params['length']``, then the second half as the falling ramp (QICK's
-      three-segment flat_top convention).
+      three-segment flat_top convention). The whole pulse is scaled like
+      ``arb`` (``|gain| * scale / 2``).
+
+    Envelope-driven pulses (``arb`` / ``flat_top``) are plotted at half the
+    amplitude of a ``const`` pulse with the same DAC gain, matching the analog
+    DDS vs product relationship. So arb gain=1 lines up with const gain=1/2.
 
     ``scale`` is ``maxv`` (DAC units) when ``dac_units`` else 1.0 (normalized).
     ``length_us`` overrides the pulse length (used for periodic extension of
@@ -725,6 +730,11 @@ def amplitude_trace(prog: Any, event: PulseEvent, length_us: Optional[float] = N
     style = event.style
     if style == "const" or not event.envelope:
         return _box()
+
+    # Product-mode (arb / flat_top) analog output is half the DDS (const)
+    # amplitude at the same DAC gain. Plot envelope-driven pulses at half
+    # so arb gain=1 lines up with const gain=1/2.
+    amp_peak *= 0.5
 
     mag = _envelope_magnitude(prog, event.ch, event.envelope)
     if mag is None or mag.size == 0:
