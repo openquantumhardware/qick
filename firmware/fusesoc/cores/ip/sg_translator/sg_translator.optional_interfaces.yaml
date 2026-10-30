@@ -1,0 +1,13 @@
+# Parameter-dependent interfaces for Vivado IP packaging (read by
+# generators/ip_gen/ip_packager.py only). Mirrors the legacy IP
+# (openquantumhardware/qick firmware/ip/qick_sg_translator/component.xml): only the output
+# selected by OUT_TYPE is shown in the block design.
+optional_interfaces:
+  - enabled_when: "$OUT_TYPE == 0"
+    interfaces: [m_gen_v6_axis]
+  - enabled_when: "$OUT_TYPE == 1"
+    interfaces: [m_int4_axis]
+  - enabled_when: "$OUT_TYPE == 2"
+    interfaces: [m_mux4_axis]
+  - enabled_when: "$OUT_TYPE == 3"
+    interfaces: [m_readout_v3_axis]

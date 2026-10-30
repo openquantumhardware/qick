@@ -1,0 +1,7 @@
+# Parameter-dependent interfaces for Vivado IP packaging (read by
+# generators/ip_gen/ip_packager.py only). Mirrors the legacy IP
+# (openquantumhardware/qick firmware/ip/axis_tmux_v1/component.xml): m<i>_axis exists when
+# N > i (m0_axis always).
+optional_interfaces:
+  - indexed: {param: N, range: [1, 7]}
+    interfaces: ["m{i}_axis"]

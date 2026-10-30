@@ -1,0 +1,127 @@
+// axis_weighted_buffer_regmap.rdl
+// SystemRDL register definition for the axis_weighted_buffer IP core (QICK
+// matched-filter averager + raw buffer).
+//
+// RTL decode is the generic axil_slv core. This RDL is used ONLY for the
+// Python driver layer and documentation -- do NOT generate RTL from it (no
+// --hdl in rdl/Makefile). AxisWeightedBufferV1pt3 (qick_lib/qick/drivers/readout.py)
+// takes its REGISTERS from this file. Unlike axis_avg_buffer, two
+// fields here are combined multi-bit registers rather than one-field-per-
+// register -- confirmed by direct read of the legacy axi_slv.vhd's own
+// "Register Map" assignments (openquantumhardware/qick firmware/ip/axis_weighted_buffer/
+// src/axi_slv.vhd).
+addrmap axis_weighted_buffer {
+    name = "axis_weighted_buffer (matched-filter averager + raw buffer) Registers";
+    desc = "Averager (AVG_*), raw-capture buffer (BUF_*) and weight-envelope
+            (WGT_*) control registers. start_reg and dr_start_reg are each a
+            single hardware register split into per-block enable bits.
+            Captured data streams out over m0_axis (averaged, BRAM-backed)/
+            m1_axis (raw/filtered, BRAM-backed)/m2_axis (averaged, live
+            feed), not through this register map. Weight coefficients load
+            over s1_axis, not this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "START_REG";
+        desc = "Averager/buffer enable. LEVEL, not self-clearing: software
+                holds bits high through an entire capture and drops them to
+                release the FSM.";
+        field { sw = rw; hw = r; } AVG_START[0:0] = 0;
+        field { sw = rw; hw = r; } BUF_START[1:1] = 0;
+    } START_REG @0x00;
+
+    reg {
+        name = "AVG_ADDR_REG";
+        desc = "Averager write start address.";
+        field { sw = rw; hw = r; } AVG_ADDR[31:0] = 0;
+    } AVG_ADDR_REG @0x04;
+
+    reg {
+        name = "AVG_LEN_REG";
+        desc = "Averager: number of samples to accumulate per result. Also
+                the matched filter's active envelope window length.";
+        field { sw = rw; hw = r; } AVG_LEN[31:0] = 0;
+    } AVG_LEN_REG @0x08;
+
+    reg {
+        name = "DR_START_REG";
+        desc = "Data-reader enable. LEVEL, not self-clearing.";
+        field { sw = rw; hw = r; } AVG_DR_START[0:0] = 0;
+        field { sw = rw; hw = r; } BUF_DR_START[1:1] = 0;
+        field { sw = rw; hw = r; } WGT_DW_START[2:2] = 0;
+    } DR_START_REG @0x0C;
+
+    reg {
+        name = "AVG_DR_ADDR_REG";
+        desc = "Averager data-reader start address.";
+        field { sw = rw; hw = r; } AVG_DR_ADDR[31:0] = 0;
+    } AVG_DR_ADDR_REG @0x10;
+
+    reg {
+        name = "AVG_DR_LEN_REG";
+        desc = "Averager data-reader: number of samples to read.";
+        field { sw = rw; hw = r; } AVG_DR_LEN[31:0] = 0;
+    } AVG_DR_LEN_REG @0x14;
+
+    reg {
+        name = "BUF_ADDR_REG";
+        desc = "Buffer write start address.";
+        field { sw = rw; hw = r; } BUF_ADDR[31:0] = 0;
+    } BUF_ADDR_REG @0x18;
+
+    reg {
+        name = "BUF_LEN_REG";
+        desc = "Buffer: number of raw (filtered) samples to capture.";
+        field { sw = rw; hw = r; } BUF_LEN[31:0] = 0;
+    } BUF_LEN_REG @0x1C;
+
+    reg {
+        name = "BUF_DR_ADDR_REG";
+        desc = "Buffer data-reader start address.";
+        field { sw = rw; hw = r; } BUF_DR_ADDR[31:0] = 0;
+    } BUF_DR_ADDR_REG @0x20;
+
+    reg {
+        name = "BUF_DR_LEN_REG";
+        desc = "Buffer data-reader: number of samples to read.";
+        field { sw = rw; hw = r; } BUF_DR_LEN[31:0] = 0;
+    } BUF_DR_LEN_REG @0x24;
+
+    reg {
+        name = "AVG_PHOTON_MODE_REG";
+        desc = "Averager mode select, bit 0. 0=accumulation, 1=photon/
+                edge-counter mode.";
+        field { sw = rw; hw = r; } AVG_PHOTON_MODE[0:0] = 0;
+    } AVG_PHOTON_MODE_REG @0x28;
+
+    reg {
+        name = "AVG_H_THRSH_REG";
+        desc = "Photon-mode high threshold (signed, bits[B-1:0]).";
+        field { sw = rw; hw = r; } AVG_H_THRSH[31:0] = 0;
+    } AVG_H_THRSH_REG @0x2C;
+
+    reg {
+        name = "AVG_L_THRSH_REG";
+        desc = "Photon-mode low threshold (signed, bits[B-1:0]).";
+        field { sw = rw; hw = r; } AVG_L_THRSH[31:0] = 0;
+    } AVG_L_THRSH_REG @0x30;
+
+    reg {
+        name = "WGT_DW_ADDR_REG";
+        desc = "Weight-envelope DMA write start address.";
+        field { sw = rw; hw = r; } WGT_DW_ADDR[31:0] = 0;
+    } WGT_DW_ADDR_REG @0x34;
+
+    reg {
+        name = "WGT_TRUNC_REG";
+        desc = "matched_filter output-quantizer right-shift amount.
+               Resets to B (bit-exact
+                with the legacy fixed truncation at bits[2B-1:B]) -- only
+                needs to be touched to trade gain for headroom against a
+                differently scaled weight envelope. Reset value shown here
+                (16) matches this IP's usual B=16 instantiation.";
+        field { sw = rw; hw = r; } WGT_TRUNC[7:0] = 16;
+    } WGT_TRUNC_REG @0x38;
+};

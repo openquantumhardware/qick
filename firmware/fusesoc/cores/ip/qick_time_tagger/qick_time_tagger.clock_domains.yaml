@@ -1,0 +1,26 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# After the qick_time_tagger port-naming pass (ps_clk/adc_clk ->
+# s_axi_aclk/s0_axis_aclk, adc<N>_s_axis_..._i/_o -> s0_axis_adc<N>_t...,
+# dma_m_axis_..._i/_o -> m0_axis_dma_t...), package_ip.tcl.j2's automatic
+# naming-convention heuristics correctly pick up s_axi and all four
+# s0_axis_adc0-3 interfaces on their own. The one case they don't cover:
+# m0_axis_dma genuinely shares s_axi's own clock port (s_axi_aclk) rather
+# than a separate literal "m0_axis_aclk" port -- there's no real scenario
+# where the DMA readback and the register interface run on different
+# clocks, so this reflects real hardware rather than adding a redundant
+# clock port pair just to satisfy the naming heuristic.
+
+clock_domains:
+  - name: s_axi_aclk
+    interfaces:
+      - s_axi
+      - m0_axis_dma
+    reset: s_axi_aresetn
+  # tProc-side command interface (qick_time_tagger.bus_interfaces.yaml), on
+  # the core clock as in the legacy IP.
+  - name: c_clk
+    interfaces:
+      - qick_peripheral
+    reset: c_aresetn

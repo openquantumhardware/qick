@@ -1,0 +1,38 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# package_ip.tcl.j2's automatic naming-convention heuristics correctly pick
+# up s0_axis*/m0_axis*-style interfaces on their own, and separately
+# hardcode s_axi_aclk -> {s_axi} whenever an s_axi interface exists. Neither
+# rule covers s1_axis: its name doesn't match the s0_axis*/m0_axis*
+# convention, so it falls into the "other_axis_ifs" bucket, which the
+# fallback rule associates with a literal "aclk" port -- one this IP
+# doesn't have (its clocks are s_axi_aclk/s_axis_aclk/m_axis_aclk, no plain
+# aclk). s1_axis was left with no clock association at all.
+#
+# s1_axis genuinely shares s_axi_aclk with s_axi -- per this IP's own
+# header docstring ("s_axi_aclk: AXI4-Lite configuration AND
+# weight-programming DMA write domain") -- so this overrides the hardcoded
+# s_axi-only default with the correct pair. Found via a real Vivado
+# [BD 41-237] FREQ_HZ mismatch during the bring-up of a debug bench
+# (2026-09-22): s1_axis stayed on its packaged-default FREQ_HZ
+# (100000000) instead of the real propagated clock frequency, because its
+# ASSOCIATED_BUSIF was never set to anything at packaging time. Two BD-tcl
+# workarounds (forcing FREQ_HZ directly on either endpoint) both failed --
+# this is the actual root cause and the right layer to fix it, same
+# pattern as qick_time_tagger's m0_axis_dma override.
+
+clock_domains:
+  - name: s_axi_aclk
+    interfaces:
+      - s_axi
+      - s1_axis
+    reset: s_axi_aresetn
+  # Readout side, same gap as axis_avg_buffer (see its .clock_domains.yaml):
+  # m0/m1/m2_axis on m_axis_aclk were packaged with no clock.
+  - name: m_axis_aclk
+    interfaces:
+      - m0_axis
+      - m1_axis
+      - m2_axis
+    reset: m_axis_aresetn

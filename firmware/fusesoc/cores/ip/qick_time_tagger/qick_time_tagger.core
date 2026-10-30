@@ -1,0 +1,82 @@
+CAPI=2:
+name: qick:ip:qick_time_tagger:1.0.0
+description: "QICK time tagger (qick_time_tagger) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/qick_time_tagger.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:qick_time_tagger_regmap
+      - qick:axi:axil_slv
+      - qick:cdc:cdc_reg_sync
+      - qick:dsp:qtt_core
+      - qick:processors:qtt_cmd
+      - qick:processors:qtt_cmd_hold
+
+  constraints:
+    files:
+      - constraints/qick_time_tagger.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/qick_time_tagger_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/qick_time_tagger_tc00.sv
+      - tests/qick_time_tagger_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:axi4_stream_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axi_qick_time_tagger
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axi_qick_time_tagger
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/qick_time_tagger_tc00.sv

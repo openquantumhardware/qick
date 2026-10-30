@@ -1,0 +1,90 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun 11 17:20:25 2026
+[*]
+[timestart] 1266500
+[size] 1920 1165
+[pos] -1 -1
+*-14.759792 1375000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_constant_iq_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.aclk
+testrunner.__ts.axis_constant_iq_ut.s_axi.aresetn
+@800200
+-aw_ch
+@22
+testrunner.__ts.axis_constant_iq_ut.s_axi.awaddr[5:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.awprot[2:0]
+testrunner.__ts.axis_constant_iq_ut.s_axi.awready
+testrunner.__ts.axis_constant_iq_ut.s_axi.awvalid
+@1000200
+-aw_ch
+@800200
+-w_ch
+@22
+testrunner.__ts.axis_constant_iq_ut.s_axi.wdata[31:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.wready
+@22
+testrunner.__ts.axis_constant_iq_ut.s_axi.wstrb[3:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.wvalid
+@1000200
+-w_ch
+@800200
+-b_ch
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.bready
+testrunner.__ts.axis_constant_iq_ut.s_axi.bresp[1:0]
+testrunner.__ts.axis_constant_iq_ut.s_axi.bvalid
+@1000200
+-b_ch
+@800200
+-ar_ch
+@22
+testrunner.__ts.axis_constant_iq_ut.s_axi.araddr[5:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.s_axi.arprot[2:0]
+testrunner.__ts.axis_constant_iq_ut.s_axi.arready
+testrunner.__ts.axis_constant_iq_ut.s_axi.arvalid
+@1000200
+-ar_ch
+@800200
+-r_ch
+@23
+testrunner.__ts.axis_constant_iq_ut.s_axi.rdata[31:0]
+@29
+testrunner.__ts.axis_constant_iq_ut.s_axi.rready
+testrunner.__ts.axis_constant_iq_ut.s_axi.rresp[1:0]
+testrunner.__ts.axis_constant_iq_ut.s_axi.rvalid
+@1000200
+-r_ch
+@800200
+-m_axis
+@28
+testrunner.__ts.axis_constant_iq_ut.axis_if.aclk
+testrunner.__ts.axis_constant_iq_ut.axis_if.aresetn
+@22
+testrunner.__ts.axis_constant_iq_ut.axis_if.tdata[127:0]
+testrunner.__ts.axis_constant_iq_ut.axis_if.tdest[15:0]
+testrunner.__ts.axis_constant_iq_ut.axis_if.tid[15:0]
+testrunner.__ts.axis_constant_iq_ut.axis_if.tkeep[15:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.axis_if.tlast
+testrunner.__ts.axis_constant_iq_ut.axis_if.tready
+@22
+testrunner.__ts.axis_constant_iq_ut.axis_if.tstrb[15:0]
+testrunner.__ts.axis_constant_iq_ut.axis_if.tuser[15:0]
+@28
+testrunner.__ts.axis_constant_iq_ut.axis_if.tvalid
+@1000200
+-m_axis
+[pattern_trace] 1
+[pattern_trace] 0

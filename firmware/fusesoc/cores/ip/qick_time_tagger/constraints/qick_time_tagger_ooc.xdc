@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/qick_time_tagger_ooc.xdc

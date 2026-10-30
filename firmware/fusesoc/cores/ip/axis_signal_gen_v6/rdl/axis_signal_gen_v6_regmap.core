@@ -1,0 +1,8 @@
+CAPI=2:
+name: qick:ip:axis_signal_gen_v6_regmap:0.1.0
+description: SystemRDL register map (docs/headers) for axis_signal_gen_v6. RTL decode is axi_slv.
+
+filesets:
+  rdl:
+    files:
+        - axis_signal_gen_v6_regmap.rdl : {file_type: user }

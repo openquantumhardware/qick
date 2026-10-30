@@ -1,0 +1,15 @@
+CAPI=2:
+name: qick:ip:qick_processor_regmap:0.1.0
+description: SystemRDL register map (docs/driver) for qick_processor. RTL decode is qproc_axi_reg (axil_slv).
+
+filesets:
+  rdl:
+    files:
+      - qick_processor_regmap.rdl: {file_type: user}
+
+        ## Optional: if there are generated SV docs/headers with PeakRDL and check them in.
+        ## These are generated artifacts, not hand-written. Keep only if you commit them.
+        #generated:
+        #  files:
+        #    - qick_processor_regmap.sv:     {file_type: systemVerilogSource, is_include_file: true}
+        #    - qick_processor_regmap_pkg.sv: {file_type: systemVerilogSource, is_include_file: true}

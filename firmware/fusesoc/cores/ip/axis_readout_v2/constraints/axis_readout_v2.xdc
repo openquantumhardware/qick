@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_readout_v2.xdc

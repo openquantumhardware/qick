@@ -1,0 +1,117 @@
+// axis_avg_buffer_regmap.rdl
+// SystemRDL register definition for the axis_avg_buffer IP core (QICK
+// averager + raw buffer).
+//
+// RTL decode is the generic axil_slv core. This RDL is used ONLY for the
+// Python driver layer and documentation -- do NOT generate RTL from it (no
+// --hdl in rdl/Makefile). AxisAvgBufferV1pt2 (qick_lib/qick/drivers/readout.py)
+// takes its REGISTERS from this file; the indexes are those of the legacy
+// axi_slv_avg_buf.vhd.
+addrmap axis_avg_buffer {
+    name = "axis_avg_buffer (averager + raw buffer) Registers";
+    desc = "Averager (AVG_*) and raw-capture buffer (BUF_*) control
+            registers. Each *_START_REG is a LEVEL, not self-clearing:
+            software holds it high through an entire capture and drops it
+            to release the FSM. Captured data streams out over
+            m0_axis (averaged, BRAM-backed)/m1_axis (raw, BRAM-backed)/
+            m2_axis (averaged, live feed), not through this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "AVG_START_REG";
+        desc = "Averager enable, bit 0. 0=disabled, 1=enabled (armed,
+                started by the external trigger).";
+        field { sw = rw; hw = r; } AVG_START[0:0] = 0;
+    } AVG_START_REG @0x00;
+
+    reg {
+        name = "AVG_ADDR_REG";
+        desc = "Averager write start address.";
+        field { sw = rw; hw = r; } AVG_ADDR[31:0] = 0;
+    } AVG_ADDR_REG @0x04;
+
+    reg {
+        name = "AVG_LEN_REG";
+        desc = "Averager: number of samples to accumulate per result.";
+        field { sw = rw; hw = r; } AVG_LEN[31:0] = 0;
+    } AVG_LEN_REG @0x08;
+
+    reg {
+        name = "AVG_DR_START_REG";
+        desc = "Averager data-reader enable, bit 0. 0=idle, 1=drain the
+                averaged BRAM window out m0_axis.";
+        field { sw = rw; hw = r; } AVG_DR_START[0:0] = 0;
+    } AVG_DR_START_REG @0x0C;
+
+    reg {
+        name = "AVG_DR_ADDR_REG";
+        desc = "Averager data-reader start address.";
+        field { sw = rw; hw = r; } AVG_DR_ADDR[31:0] = 0;
+    } AVG_DR_ADDR_REG @0x10;
+
+    reg {
+        name = "AVG_DR_LEN_REG";
+        desc = "Averager data-reader: number of samples to read.";
+        field { sw = rw; hw = r; } AVG_DR_LEN[31:0] = 0;
+    } AVG_DR_LEN_REG @0x14;
+
+    reg {
+        name = "BUF_START_REG";
+        desc = "Buffer enable, bit 0. 0=disabled, 1=enabled (armed,
+                started by the external trigger).";
+        field { sw = rw; hw = r; } BUF_START[0:0] = 0;
+    } BUF_START_REG @0x18;
+
+    reg {
+        name = "BUF_ADDR_REG";
+        desc = "Buffer write start address.";
+        field { sw = rw; hw = r; } BUF_ADDR[31:0] = 0;
+    } BUF_ADDR_REG @0x1C;
+
+    reg {
+        name = "BUF_LEN_REG";
+        desc = "Buffer: number of raw samples to capture.";
+        field { sw = rw; hw = r; } BUF_LEN[31:0] = 0;
+    } BUF_LEN_REG @0x20;
+
+    reg {
+        name = "BUF_DR_START_REG";
+        desc = "Buffer data-reader enable, bit 0. 0=idle, 1=drain the
+                captured BRAM window out m1_axis.";
+        field { sw = rw; hw = r; } BUF_DR_START[0:0] = 0;
+    } BUF_DR_START_REG @0x24;
+
+    reg {
+        name = "BUF_DR_ADDR_REG";
+        desc = "Buffer data-reader start address.";
+        field { sw = rw; hw = r; } BUF_DR_ADDR[31:0] = 0;
+    } BUF_DR_ADDR_REG @0x28;
+
+    reg {
+        name = "BUF_DR_LEN_REG";
+        desc = "Buffer data-reader: number of samples to read.";
+        field { sw = rw; hw = r; } BUF_DR_LEN[31:0] = 0;
+    } BUF_DR_LEN_REG @0x2C;
+
+    reg {
+        name = "AVG_PHOTON_MODE_REG";
+        desc = "Averager mode select, bit 0. 0=accumulation (sum I/Q over
+                AVG_LEN samples), 1=photon/edge-counter mode (count rising
+                edges past AVG_H_THRSH, gated by AVG_L_THRSH hysteresis).";
+        field { sw = rw; hw = r; } AVG_PHOTON_MODE[0:0] = 0;
+    } AVG_PHOTON_MODE_REG @0x30;
+
+    reg {
+        name = "AVG_H_THRSH_REG";
+        desc = "Photon-mode high threshold (signed, bits[B-1:0]).";
+        field { sw = rw; hw = r; } AVG_H_THRSH[31:0] = 0;
+    } AVG_H_THRSH_REG @0x34;
+
+    reg {
+        name = "AVG_L_THRSH_REG";
+        desc = "Photon-mode low threshold (signed, bits[B-1:0]).";
+        field { sw = rw; hw = r; } AVG_L_THRSH[31:0] = 0;
+    } AVG_L_THRSH_REG @0x38;
+};

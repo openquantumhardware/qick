@@ -1,0 +1,128 @@
+// qick_processor_regmap.rdl
+// SystemRDL register definition for the qick_processor IP core
+// (QICK tProcessor v2).
+//
+// RTL decode is a hand-written custom AXI-Lite slave (qproc_axi_reg, built
+// on the shared axil_slv core) because TPROC_CTRL needs a whole-register
+// self-clearing (one-shot pulse) write, which `peakrdl regblock` cannot
+// express cleanly. This RDL is used ONLY for the Python driver layer and
+// documentation -- do NOT generate RTL from it (no --hdl in rdl/Makefile).
+addrmap qick_processor {
+    name = "qick_processor (tProcessor v2) Registers";
+    desc = "Control/status registers for the QICK tProcessor v2. Bulk
+            PMEM/DMEM/WMEM access goes over a separate AXI-Stream DMA path
+            (s_dma_axis_*/m_dma_axis_*), not through this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "TPROC_CTRL";
+        desc = "Start/stop/reset control pulses (core + time base). Any
+                nonzero write self-clears to 0 one cycle later -- treat
+                each write as a one-shot command, not a held level.
+                Bit 0: T_RST (time reset, run). Bit 1: TIME_UPDT.
+                Bit 2: START (core+time reset, run). Bit 3: STOP.
+                Bit 4: C_START (core reset, run). Bit 5: C_STOP.
+                Bit 6: P_RST. Bit 7: RUN. Bit 8: P_PAUSE. Bit 9: P_FREEZE.
+                Bit 10: STEP (core+time). Bit 11: C_STEP. Bit 12: T_STEP.
+                Bit 13: AXI_FLAG_SET. Bit 14: AXI_FLAG_CLR.";
+        field { desc = "Control pulse bits."; sw = rw; hw = r; swmod; } CTRL[15:0] = 0;
+    } TPROC_CTRL_REG @0x00;
+
+    reg {
+        name = "TPROC_CFG";
+        desc = "Configuration register.
+                Bits[6:0]: MEM_CTRL passthrough (see qproc_mem_ctrl header).
+                Bits[11:9]: net-source select/enable (qproc_ctrl PS_TPROC_CFG).
+                Bit 13/14: AXI/internal flag set/clear select (see qick_processor.sv).";
+        field { desc = "Configuration bits."; sw = rw; hw = r; } CFG[15:0] = 0;
+    } TPROC_CFG_REG @0x04;
+
+    reg {
+        name = "MEM_ADDR";
+        desc = "Bulk memory access: start address (qproc_mem_ctrl).";
+        field { sw = rw; hw = r; } ADDR[15:0] = 0;
+    } MEM_ADDR_REG @0x08;
+
+    reg {
+        name = "MEM_LEN";
+        desc = "Bulk memory access: AXIS transfer length in samples (qproc_mem_ctrl).";
+        field { sw = rw; hw = r; } LEN[15:0] = 0;
+    } MEM_LEN_REG @0x0C;
+
+    reg {
+        name = "MEM_DT_I";
+        desc = "Single-word memory write data (qproc_mem_ctrl register-mode access).";
+        field { sw = rw; hw = r; } DT[31:0] = 0;
+    } MEM_DT_I_REG @0x10;
+
+    reg {
+        name = "TPROC_W_DT1";
+        desc = "General-purpose write data word 1 (time-update offset source,
+                CORE_R_DT source 0, TPROC_R_DT readback source 0).";
+        field { sw = rw; hw = r; } DT[31:0] = 0;
+    } TPROC_W_DT1_REG @0x14;
+
+    reg {
+        name = "TPROC_W_DT2";
+        desc = "General-purpose write data word 2.";
+        field { sw = rw; hw = r; } DT[31:0] = 0;
+    } TPROC_W_DT2_REG @0x18;
+
+    reg {
+        name = "CORE_CFG";
+        desc = "Per-core LFSR config: bits[1:0] core0, bits[3:2] core1 (DUAL_CORE).";
+        field { sw = rw; hw = r; } CFG[7:0] = 0;
+    } CORE_CFG_REG @0x1C;
+
+    reg {
+        name = "READ_SEL";
+        desc = "TPROC_R_DT source select (bits[3:0], see qick_processor.sv's
+                'AXI_REG TPROC_R_DT source selection').";
+        field { sw = rw; hw = r; } SEL[7:0] = 0;
+    } READ_SEL_REG @0x20;
+
+    reg {
+        name = "CORE_ID";
+        desc = "Fixed core/version id (read-only, always 9).";
+        field { sw = r; hw = w; } ID[31:0] = 9;
+    } CORE_ID_REG @0x24;
+
+    reg {
+        name = "MEM_DT_O";
+        desc = "Single-word memory read data (qproc_mem_ctrl register-mode access).";
+        field { sw = r; hw = w; } DT[31:0] = 0;
+    } MEM_DT_O_REG @0x28;
+
+    reg {
+        name = "TPROC_R_DT1";
+        desc = "Read-back data word 1, source selected by READ_SEL.";
+        field { sw = r; hw = w; } DT[31:0] = 0;
+    } TPROC_R_DT1_REG @0x2C;
+
+    reg {
+        name = "TPROC_R_DT2";
+        desc = "Read-back data word 2, source selected by READ_SEL.";
+        field { sw = r; hw = w; } DT[31:0] = 0;
+    } TPROC_R_DT2_REG @0x30;
+
+    reg {
+        name = "TIME_USR";
+        desc = "Current user time (c_time_usr, absolute time minus reference).";
+        field { sw = r; hw = w; } USR[31:0] = 0;
+    } TIME_USR_REG @0x34;
+
+    reg {
+        name = "TPROC_STATUS";
+        desc = "Status snapshot (only live when the IP is built with DEBUG>=1).";
+        field { sw = r; hw = w; } STATUS[31:0] = 0;
+    } TPROC_STATUS_REG @0x38;
+
+    reg {
+        name = "TPROC_DEBUG";
+        desc = "Debug bus, source selected by READ_SEL[1:0] (only live when
+                the IP is built with DEBUG>=1).";
+        field { sw = r; hw = w; } DEBUG[31:0] = 0;
+    } TPROC_DEBUG_REG @0x3C;
+};

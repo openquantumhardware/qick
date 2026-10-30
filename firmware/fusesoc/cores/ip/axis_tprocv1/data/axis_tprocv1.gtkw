@@ -1,0 +1,86 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 30 15:26:02 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-21.199211 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_tprocv1_ut.
+[treeopen] testrunner.__ts.axis_tprocv1_ut.dut.
+[sst_width] 206
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.start_reg
+testrunner.__ts.axis_tprocv1_ut.dut.start_src_reg
+[color] 3
+testrunner.__ts.axis_tprocv1_ut.dut.aclk
+[color] 3
+testrunner.__ts.axis_tprocv1_ut.dut.aresetn
+[color] 3
+testrunner.__ts.axis_tprocv1_ut.dut.start
+@22
+[color] 6
+testrunner.__ts.axis_tprocv1_ut.dut.pmem_addr[7:0]
+[color] 3
+testrunner.__ts.axis_tprocv1_ut.dut.pmem_do[63:0]
+testrunner.__ts.axis_tprocv1_ut.dut.addr_int[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.busy_int
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_addra[7:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_addrb[7:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_dia[31:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_dib[31:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_doa[31:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_dob[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_wea
+testrunner.__ts.axis_tprocv1_ut.dut.dmem_web
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.dread_int[31:0]
+testrunner.__ts.axis_tprocv1_ut.dut.dwrite_int[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.exec_ack_int
+testrunner.__ts.axis_tprocv1_ut.dut.exec_int
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.mem_addr_reg[31:0]
+testrunner.__ts.axis_tprocv1_ut.dut.mem_len_reg[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.mem_mode_reg
+testrunner.__ts.axis_tprocv1_ut.dut.mem_start_reg
+testrunner.__ts.axis_tprocv1_ut.dut.oper_int
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.pmem_addr_int[7:0]
+@800200
+-s0_if
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.aclk
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.aresetn
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.tdata[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.tlast
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.tready
+testrunner.__ts.axis_tprocv1_ut.dut.s0_if.tvalid
+@1000200
+-s0_if
+@800200
+-m0_if
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.aclk
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.aresetn
+@22
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.tdata[31:0]
+@28
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.tlast
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.tready
+testrunner.__ts.axis_tprocv1_ut.dut.m0_if.tvalid
+@1000200
+-m0_if
+[pattern_trace] 1
+[pattern_trace] 0

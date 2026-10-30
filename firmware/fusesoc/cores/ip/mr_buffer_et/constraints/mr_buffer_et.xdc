@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/mr_buffer_et.xdc

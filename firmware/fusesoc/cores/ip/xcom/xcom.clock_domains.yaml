@@ -1,0 +1,16 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# Legacy xcom associations (git show 076ab29a4:firmware/ip/xcom/component.xml)
+# for the custom buses in xcom.bus_interfaces.yaml.
+
+clock_domains:
+  - name: i_ps_clk
+    interfaces: [s_axi, o_proc]
+    reset: i_ps_rstn
+  - name: i_core_clk
+    interfaces: [o_core, q_peripheral]
+    reset: i_core_rstn
+  - name: i_time_clk
+    interfaces: [o_time]
+    reset: i_time_rstn

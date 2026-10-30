@@ -1,0 +1,86 @@
+CAPI=2:
+name: qick:ip:axis_buffer_ddr:1.1.4
+description: "QICK DDR4 buffer: AXI4-Stream to DDR4 on a trigger, and a block read back out on AXI4-Stream (axis_buffer_ddr) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_buffer_ddr.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:axis_buffer_ddr_regmap
+      - qick:axi:axil_slv
+      - qick:axi:axi_mst_read
+      - qick:axi:axi_mst_write
+      - qick:cdc:cdc_bit_sync
+
+  tb_ref:
+    files:
+      - tests/ref/bram_simple_dp_legacy.vhd
+      - tests/ref/fifo_legacy.vhd
+      - tests/ref/rd2axi_legacy.vhd
+      - tests/ref/fifo_axi_legacy.vhd
+      - tests/ref/synchronizer_n_legacy.vhd
+    file_type: vhdlSource
+
+  tb_ref_sv:
+    files:
+      - tests/ref/axi_slv_legacy.v
+      - tests/ref/axi_mst_read_legacy.sv
+      - tests/ref/axi_mst_write_legacy.sv
+      - tests/ref/axis_buffer_ddr_legacy.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/axis_buffer_ddr_tc00.sv
+      - tests/axis_buffer_ddr_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_buffer_ddr
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_buffer_ddr
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb_ref, tb_ref_sv, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/axis_buffer_ddr_tc00.sv

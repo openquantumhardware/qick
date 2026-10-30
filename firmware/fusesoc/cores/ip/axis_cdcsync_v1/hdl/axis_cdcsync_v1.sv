@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_cdcsync_v1.sv
