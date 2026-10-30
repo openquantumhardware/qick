@@ -1343,6 +1343,8 @@ class AbsQickProgram(ABC):
         if 'n_tones' in gencfg:
             if mux_freqs is None:
                 raise RuntimeError("generator %d is multiplexed, but no mux_freqs were defined" % (ch))
+            if len(mux_freqs) > gencfg['n_tones']:
+                raise RuntimeError("generator %d supports %d tones, but %d mux_freqs were defined" % (ch, gencfg['n_tones'], len(mux_freqs)))
             if mux_gains is not None and not gencfg['has_gain']:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
