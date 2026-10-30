@@ -975,6 +975,8 @@ class QickSoc(Overlay, QickConfig):
         # We don't program the FPGA yet - we therefore cannot access any of the IP blocks, at this point we can only look at the HWH metadata.
         Overlay.__init__(self, bitfile, ignore_version=True, download=False, **kwargs)
 
+        self._warn_unbound_ips()
+
         if not no_rf:
             # get a sneak peek at the DAC power settings and reference clocks
             rf_cfg = RFDC._parse_hwh(self.ip_dict['usp_rf_data_converter_0']['parameters'])
@@ -1195,6 +1197,18 @@ class QickSoc(Overlay, QickConfig):
                 merged["ro_"+k] = rocfg[k]
             return merged
         self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
+
+    def _warn_unbound_ips(self):
+        """Warn about firmware IPs packaged by this repo (VLNV qick:ip:*) that PYNQ bound to the generic DefaultIP.
+
+        That means no imported driver lists the IP's VLNV in its bindto: the driver module is missing from qick/drivers/ (see `make driver`), failed to import, or bindto does not match the VLNV.
+        """
+        for name, desc in self.ip_dict.items():
+            driver = desc.get('driver')
+            if driver is not None and driver.__name__ == 'DefaultIP' and desc.get('type', '').startswith('qick:ip:'):
+                logger.warning("IP %s (%s) has no QICK driver bound, it will only offer raw mmio access. "
+                               "Check that qick/drivers/ has its driver and that the driver's bindto includes this VLNV.",
+                               name, desc['type'])
 
     def config_clocks(self, force_init_clks, clk_output, external_clk):
         """

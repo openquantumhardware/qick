@@ -1788,8 +1788,10 @@ class StandardGenManager(AbsGenManager):
 
         # gains should be rounded towards zero to avoid overflow
         if par['style']=='flat_top':
-            # the flat segment is played at half gain, to match the ramps
-            flat_scale = Fraction("1/2")
+            # the flat segment is played at half gain, to match the ramps --
+            # except on generators whose envelope product is full scale
+            # (fusesoc sgv4/sgv6, see AxisSignalGen: env_full_scale)
+            flat_scale = Fraction(1) if self.chcfg.get('env_full_scale') else Fraction("1/2")
             # for int4 gen, the envelope amplitude will have been limited to maxv_scale
             # we need to reduce the flat segment amplitude by a corresponding amount
             flat_scale *= Fraction(self.chcfg['maxv_scale']).limit_denominator(20)
@@ -2038,7 +2040,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     FLIP_DOWNCONVERSION = True
 
     # supported revisions of the tProc v2 core
-    ASM_REVISIONS = [21, 22, 23, 24, 25, 26, 27]
+    # 28 is not here: upstream's 28 renamed FIFO_DEPTH to TPORT/DPORT/WPORT_DEPTH and this library has no code for it. 29 adds the QP2 flag.
+    ASM_REVISIONS = [21, 22, 23, 24, 25, 26, 27, 29]
 
     def __init__(self, soccfg):
         super().__init__(soccfg)

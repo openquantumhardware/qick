@@ -48,7 +48,8 @@ class AxisTProc64x32_x8(SocIP):
     :type axi_dma: int
     """
     bindto = ['user.org:user:axis_tproc64x32_x8:1.0',
-              'QICK:QICK:axis_tproc64x32_x8:1.0']
+              'QICK:QICK:axis_tproc64x32_x8:1.0',
+              'qick:ip:axis_tprocv1:1.0']
 
     # Number of 32-bit words in the lower address map (reserved for register access)
     NREG = 64
@@ -62,6 +63,10 @@ class AxisTProc64x32_x8(SocIP):
         self.binprog = None
 
     def _init_config(self, description):
+        # The fusesoc port (qick:ip:axis_tprocv1) keeps the legacy register map
+        # and memory interface; report the legacy type so asm_v1/qick_asm,
+        # which dispatch on it, treat both the same.
+        self.cfg['type'] = 'axis_tproc64x32_x8'
         # Generics.
         # data memory address size (log2 of the number of 32-bit words)
         self.DMEM_N = int(description['parameters']['DMEM_N'])
@@ -353,7 +358,8 @@ class Axis_QICK_Proc(SocIP):
     :type axi_dma: int
     """
     bindto = ['Fermi:user:qick_processor:2.0',
-              'QICK:QICK:qick_processor:2.0']
+              'QICK:QICK:qick_processor:2.0',
+              'qick:ip:qick_processor:1.0']
     
     def __init__(self, description):
         """

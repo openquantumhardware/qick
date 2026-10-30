@@ -232,13 +232,13 @@ class AbsPulsedSignalGen(AbsSignalGen):
         super().configure_connections(soc)
 
         # what tProc output port drives this generator?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], self.TPROC_PORT, ["axis_tproc64x32_x8", "qick_processor", "axis_tmux_v1"])
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], self.TPROC_PORT, ["axis_tproc64x32_x8", "axis_tprocv1", "qick_processor", "axis_tmux_v1"])
 
         if blocktype == "axis_tmux_v1":
             # which tmux port drives this generator?
             # port names are of the form 'm2_axis'
             self.cfg['tmux_ch'] = int(port.split('_')[0][1:])
-            block, port, _ = soc.metadata.trace_back(block, "s_axis", ["axis_tproc64x32_x8", "qick_processor"])
+            block, port, _ = soc.metadata.trace_back(block, "s_axis", ["axis_tproc64x32_x8", "axis_tprocv1", "qick_processor"])
 
         # ask the tproc to translate this port name to a channel number
         self.cfg['tproc_ch'],_ = soc._get_block(block).port2ch(port)
@@ -260,7 +260,8 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
               'user.org:user:axis_signal_gen_v6:1.0',
               'QICK:QICK:axis_signal_gen_v4:1.0',
               'QICK:QICK:axis_signal_gen_v5:1.0',
-              'QICK:QICK:axis_signal_gen_v6:1.0']
+              'QICK:QICK:axis_signal_gen_v6:1.0',
+              'qick:ip:axis_signal_gen_v6:1.0']
     HAS_MIXER = False
     HAS_DDS = True
     HAS_GAIN = True
@@ -268,6 +269,8 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     B_DDS = 32
     B_PHASE = 32
     SAMPS_PER_CLK = 16
+    # the env_full_scale compatibility warning is logged once per session
+    _env_scale_warned = False
 
     def _init_config(self, description):
         # these are configurable in recent versions of v6
@@ -285,6 +288,19 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
         self.cfg['maxlen'] = 2**env_n * n_dds
 
         self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
+
+        # The fusesoc sgv4/sgv6 (qick:ip:) quantize the envelope x DDS product
+        # at full Q15 scale ([30:15]; the legacy IPs take [31:16], a factor of
+        # 1/2) and saturate the gain stage: envelope pulses (arb, flat_top
+        # ramps, outsel='input') come out at 2x the legacy amplitude for the
+        # same gain. Programs read this flag to keep flat_top's plateau
+        # matched to its ramps (full gain instead of the legacy gain/2).
+        self.cfg['env_full_scale'] = description['type'].startswith('qick:ip:axis_signal_gen_v')
+        if self.cfg['env_full_scale'] and not AxisSignalGen._env_scale_warned:
+            AxisSignalGen._env_scale_warned = True
+            self.logger.warning("%s: fusesoc signal generator with full-scale envelope product -- "
+                                "arb and flat_top pulses are 2x the legacy (QICK:QICK) amplitude at the same gain; "
+                                "amplitude calibrations from legacy firmware do not carry over.", description['type'])
 
         super()._init_config(description)
 
@@ -357,7 +373,8 @@ class AxisSgInt4V2(AbsIntSignalGen):
     Interpolated generator with 32-bit frequency and phase.
     """
     bindto = ['user.org:user:axis_sg_int4_v2:1.0',
-              'QICK:QICK:axis_sg_int4_v2:1.0']
+              'QICK:QICK:axis_sg_int4_v2:1.0',
+              'qick:ip:axis_sg_int4_v2:1.0']
     B_DDS = 32
     B_PHASE = 32
 
@@ -516,7 +533,8 @@ class AxisSgMux8V1(AbsMuxSignalGen):
     AXIS Signal Generator with 8 muxed outputs, fullspeed (no DAC mixer).
     """
     bindto = ['user.org:user:axis_sg_mux8_v1:1.0',
-              'QICK:QICK:axis_sg_mux8_v1:1.0']
+              'QICK:QICK:axis_sg_mux8_v1:1.0',
+              'qick:ip:axis_sg_mux8_v1:1.0']
     HAS_MIXER = False
     HAS_GAIN = True
     HAS_PHASE = True
@@ -531,7 +549,8 @@ class AxisSgMixMux8V1(AbsMuxSignalGen):
     AXIS Signal Generator with 8 muxed outputs, using DAC mixer.
     """
     bindto = ['user.org:user:axis_sg_mixmux8_v1:1.0',
-              'QICK:QICK:axis_sg_mixmux8_v1:1.0']
+              'QICK:QICK:axis_sg_mixmux8_v1:1.0',
+              'qick:ip:axis_sg_mixmux8_v1:1.0']
     HAS_MIXER = True
     HAS_GAIN = True
     HAS_PHASE = True
@@ -547,7 +566,8 @@ class AxisConstantIQ(AbsSignalGen):
     # IMAG_REG : 16-bit.
     # WE_REG   : 1-bit. Update registers.
     bindto = ['user.org:user:axis_constant_iq:1.0',
-              'QICK:QICK:axis_constant_iq:1.0']
+              'QICK:QICK:axis_constant_iq:1.0',
+              'qick:ip:axis_constant_iq:1.0']
     HAS_MIXER = True
     HAS_DDS = False
     HAS_GAIN = True

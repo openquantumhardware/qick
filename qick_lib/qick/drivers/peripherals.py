@@ -11,7 +11,8 @@ class QICK_Time_Tagger(SocIP):
     QICK_Time_Tagger class
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0',
-              'QICK:QICK:qick_time_tagger:1.0']
+              'QICK:QICK:qick_time_tagger:1.0',
+              'qick:ip:qick_time_tagger:1.0']
 
     def __init__(self, description):
         """
@@ -49,6 +50,10 @@ class QICK_Time_Tagger(SocIP):
             'qtt_debug'    :15,
         }
         
+        # The legacy IP (Fermi:user / QICK:QICK) and the fusesoc-ported one (qick:ip:...) name their ports differently.
+        # The base class keeps only the block name, so remember the vendor here.
+        self._fusesoc_ports = description['type'].startswith('qick:ip:')
+
         # state names
         self.DMA_STATES = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
 
@@ -77,10 +82,17 @@ class QICK_Time_Tagger(SocIP):
 
     # Configure this driver with links to its memory and DMA.
     def configure_connections(self, soc):
-        self.cfg['f_fabric'] = soc.metadata.get_fclk(self['fullpath'], 'adc_clk')
+        if self._fusesoc_ports:
+            clk_port, dma_port = 's0_axis_aclk', 'm0_axis_dma'
+            adc_port = lambda i: "s0_axis_adc%d" % i
+        else:
+            clk_port, dma_port = 'adc_clk', 'm_axis_dma'
+            adc_port = lambda i: "s%d_axis_adc%d" % (i, i)
+
+        self.cfg['f_fabric'] = soc.metadata.get_fclk(self['fullpath'], clk_port)
 
         # which switch_avg port does this buffer drive?
-        dma_path, switch_path, self.switch_ch = soc.metadata.trace_dma('forward', self['fullpath'], 'm_axis_dma')
+        dma_path, switch_path, self.switch_ch = soc.metadata.trace_dma('forward', self['fullpath'], dma_port)
         self.dma = soc._get_block(dma_path)
         if switch_path is not None:
             self.switch = soc._get_block(switch_path)
@@ -92,7 +104,7 @@ class QICK_Time_Tagger(SocIP):
 
         for iADC in range(self['adc_qty']):
             try:
-                block, port, _ = soc.metadata.trace_back(self['fullpath'], "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
+                block, port, _ = soc.metadata.trace_back(self['fullpath'], adc_port(iADC), ["usp_rf_data_converter"])
                 # port names are of the form 'm02_axis' where the block number is always even
                 adc = port[1:3]
                 self.cfg['adcs'].append(adc)

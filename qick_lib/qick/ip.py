@@ -269,6 +269,9 @@ class QickMetadata:
                 next_port = 's'+port[1:]
             elif next_type == "sg_translator":
                 next_port = 's_tproc_axis'
+            elif next_type == "axis_register_slice_nb":
+                # QICK's non-blocking slice (lowercase ports; trace_forward already knows it)
+                next_port = 's_axis'
             elif next_type == "axis_resampler_2x1_v1":
                 next_port = 's_axis'
             elif next_type == "axis_reorder_iq_v1":
