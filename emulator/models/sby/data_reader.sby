@@ -1,0 +1,39 @@
+[options]
+mode prove
+depth 100
+
+[engines]
+smtbmc boolector
+
+[files]
+bram_simple_dp.vhd
+fifo.vhd
+rd2axi.vhd
+fifo_axi.vhd
+data_reader.vhd
+
+bram_simple_dp_sv.sv
+fifo_sv.sv
+rd2axi_sv.sv
+fifo_axi_sv.sv
+data_reader_sv.sv
+data_reader_sva.sv
+
+[script]
+plugin -i ghdl
+plugin -i slang
+
+ghdl --std=08 -fsynopsys -frelaxed bram_simple_dp.vhd fifo.vhd rd2axi.vhd fifo_axi.vhd data_reader.vhd -e data_reader
+
+read_verilog -sv -formal \
+    bram_simple_dp_sv.sv \
+    fifo_sv.sv \
+    rd2axi_sv.sv \
+    fifo_axi_sv.sv \
+    data_reader_sv.sv \
+    data_reader_sva.sv
+
+hierarchy -check
+proc
+memory_map
+prep -top data_reader_equiv

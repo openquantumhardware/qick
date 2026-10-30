@@ -1,0 +1,5 @@
+`verilator_config
+
+// The design is the fusesoc cores (see Makefile): warnings of their style are not the emulator's to fix here.
+lint_off -rule UNUSEDSIGNAL
+lint_off -rule UNUSEDPARAM

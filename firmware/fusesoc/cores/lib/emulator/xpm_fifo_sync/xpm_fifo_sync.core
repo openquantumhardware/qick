@@ -1,0 +1,31 @@
+CAPI=2:
+name: qick:emulator:xpm_fifo_sync:1.0.1
+description: >
+  Behavioural model of the Xilinx XPM macro xpm_fifo_sync (first-word fall-through; same module
+  name, parameters and ports) for the Verilator emulator, which cannot read the XPM sources. Used
+  by qick:mem:fifo_sync unchanged. Not for xsim or synthesis (those use the real macro, -L xpm).
+  Checked clock by clock against the macro: tests/vendor/run_vendor_check.sh.
+
+filesets:
+  hdl:
+    files:
+      - hdl/xpm_fifo_sync.sv
+    file_type: systemVerilogSource
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: xpm_fifo_sync
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

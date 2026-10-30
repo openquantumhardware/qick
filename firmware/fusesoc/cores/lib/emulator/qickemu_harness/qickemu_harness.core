@@ -1,0 +1,30 @@
+CAPI=2:
+name: qick:emulator:qickemu_harness:1.0.1
+description: >
+  Verilator testbench of the QICK emulator (module QICKEmu_harness): clocks, qick_dut, the DAC/ADC models in
+  loopback, the replay of the AXI transactions and memories that qick_emu.py records, and the CSV output.
+  Target "verilate" gives the file list and the options for emulator/testbench/Makefile.
+
+filesets:
+  hdl:
+    files:
+      - hdl/qickemu_harness.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:emulator:qick_dut
+      - qick:emulator:model_dac_adc
+
+targets:
+  default:
+    filesets: [hdl]
+    toplevel: QICKEmu_harness
+
+  verilate:
+    description: File list for the Verilator build of the emulator (see emulator/testbench/Makefile)
+    filesets: [hdl]
+    toplevel: QICKEmu_harness
+    default_tool: verilator
+    tools:
+      verilator:
+        mode: cc
+        verilator_options: [--binary, --timing, -DQICK_VERILATOR_TB]
