@@ -1,0 +1,99 @@
+CAPI=2:
+name: qick:axi:axis_to_bram_sg_nt:1.0.0
+description: Data writter from AXI-Stream to BRAM memory using a trigger
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_to_bram_sg_nt.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+      - qick:interfaces:bram_if
+      - qick:cdc:cdc_gray_sync
+
+  tb:
+    files:
+      - tests/axis_to_bram_sg_nt_tc00.sv
+      - tests/axis_to_bram_sg_nt_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axis_to_bram_sg_nt_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_to_bram_sg_nt
+    parameters:
+      - NT
+      - N
+      - B
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: axis_to_bram_sg_nt
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+        synth_options:
+          - -include_dirs $XILINX_VIVADO/data/ip/xpm
+
+    parameters:
+      - NT=16
+      - N=16
+      - B=16
+
+parameters:
+  NT:
+    datatype    : int
+    description : number of memory banks (must be power of 2)
+    paramtype   : vlogparam
+  N:
+    datatype    : int
+    description : address width per bank
+    paramtype   : vlogparam
+  B:
+    datatype    : int
+    description : data width in bits
+    paramtype   : vlogparam

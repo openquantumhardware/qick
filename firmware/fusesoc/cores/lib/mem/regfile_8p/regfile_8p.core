@@ -1,0 +1,56 @@
+CAPI=2:
+name: qick:mem:regfile_8p:1.0.0
+description: Simple single-port, one clock, read-first block RAM
+
+filesets:
+  hdl:
+    files:
+      - hdl/regfile_8p.sv
+      - hdl/regfile.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files: &tb_files
+      - tests/regfile_8p_tc00.sv
+      - tests/regfile_8p_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/regfile_8p_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [regfile_8p]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

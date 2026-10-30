@@ -1,0 +1,15 @@
+CAPI=2:
+name: qick:interfaces:axi4_lite_if:0.3.0
+description: AXI4 Lite interface definition (includes master & slave modports; testbench master tasks for xsim and, since 0.3.0, for Verilator)
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi4_lite_if.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+

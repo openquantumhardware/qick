@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jul  7 20:16:41 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-16.765400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.iir_iq_ut.
+[sst_width] 206
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_clk
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_rstn
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_valid
+@22
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_data[31:0]
+@29
+[color] 6
+testrunner.__ts.iir_iq_ut.dut.o_valid
+@23
+[color] 6
+testrunner.__ts.iir_iq_ut.dut.o_data[31:0]
+@22
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_c0[15:0]
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_c1[15:0]
+[color] 3
+testrunner.__ts.iir_iq_ut.dut.i_g[15:0]
+testrunner.__ts.iir_iq_ut.dut.din_imag[15:0]
+testrunner.__ts.iir_iq_ut.dut.din_real[15:0]
+testrunner.__ts.iir_iq_ut.dut.dout_imag[15:0]
+testrunner.__ts.iir_iq_ut.dut.dout_real[15:0]
+@28
+testrunner.__ts.iir_iq_ut.dut.valid_imag
+testrunner.__ts.iir_iq_ut.dut.valid_real
+[pattern_trace] 1
+[pattern_trace] 0

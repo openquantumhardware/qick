@@ -1,0 +1,60 @@
+CAPI=2:
+name: qick:dsp:sg_int4_top:1.0.0
+description: sg_int4_top (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/sg_int4_top.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo_sync
+      - qick:interfaces:axi4_stream_if
+      - qick:interfaces:bram_if
+      - qick:axi:axis_to_bram_sg
+      - qick:mem:bram_tdp
+      - qick:dsp:sg_int4
+  tb:
+    files:
+      - tests/sg_int4_top_tc00.sv
+      - tests/sg_int4_top_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+      - qick:interfaces:axi4_stream_if
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/sg_int4_top_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: sg_int4_top
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: sg_int4_top
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

@@ -1,0 +1,64 @@
+CAPI=2:
+name: qick:processors:tprocv2:1.0.2
+description: tprocv2 (tProcessor v2 core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/tprocv2.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:pkg:tpv2_pkg
+      - qick:interfaces:axi4_lite_if
+      - qick:cdc:cdc_reg_sync
+      - qick:utils:qproc_ctrl
+      - qick:processors:qproc_core
+      - qick:utils:qproc_dispatcher
+      - qick:utils:qproc_inport_reg
+      - qick:mem:qproc_mem_ctrl
+      - qick:axi:qproc_axi_reg
+      - qick:math:tpv2_arith
+      - qick:math:restoring_divider
+  tb:
+    files:
+      - tests/tprocv2_tc00.sv
+      - tests/tprocv2_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/tprocv2_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: tprocv2
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: tprocv2
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

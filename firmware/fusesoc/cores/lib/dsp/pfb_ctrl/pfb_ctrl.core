@@ -1,0 +1,65 @@
+CAPI=2:
+name: qick:dsp:pfb_ctrl:1.0.0
+description: >
+  PFB readouts' FIR control: the one-shot coefficient-set configuration and
+  the tlast framing that follows the FIRs' missing-tlast events. Port of the
+  legacy pfb_ctrl + pfb_cfg + pfb_framing VHDL (axis_pfb_readout_v3/v4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb_ctrl.sv
+    file_type: systemVerilogSource
+
+  tb_ref:
+    files:
+      - tests/ref/pfb_ctrl_pkg_legacy.vhd
+      - tests/ref/pfb_cfg_legacy.vhd
+      - tests/ref/pfb_framing_legacy.vhd
+      - tests/ref/pfb_ctrl_legacy.vhd
+    file_type: vhdlSource
+    logical_name: xil_defaultlib
+
+  tb:
+    files:
+      - tests/pfb_ctrl_tc00.sv
+      - tests/pfb_ctrl_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb_ctrl
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb_ctrl
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy VHDL as the golden model)
+    filesets: [hdl, tb_ref, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_ctrl_tc00.sv

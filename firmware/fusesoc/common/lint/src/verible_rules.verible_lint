@@ -1,0 +1,35 @@
+# QICK lint policy for verible-verilog-lint (--rules_config), used by every core
+# through qick:common:lint. Every core runs Verible's default rule set; this
+# file lists only where QICK differs from it (rules turned on that are off by
+# default, and parameters).
+
+# naming
++banned-declared-name-patterns
++parameter-name-style=localparam_style:CamelCase|ALL_CAPS
++parameter-type-name-style
++signal-name-style
++module-filename=allow-dash-for-underscore:false
++package-filename=allow-dash-for-underscore:false
++one-module-per-file
+
+# declarations
++explicit-function-task-parameter-type
++explicit-parameter-storage-type=exempt_type:string
++proper-parameter-declaration
++legacy-genvar-declaration
++typedef-structs-unions=allow_anonymous_nested:false
+
+# statements and blocks
++always-ff-non-blocking=waive_for_locals:false
++disable-statement
++endif-comment
++mismatched-labels
+
+# literals, strings, macros
++macro-string-concatenation
++numeric-format-string-style
++undersized-binary-literal=autofix:true
++uvm-macro-semicolon
+
+# layout
++line-length=length:120

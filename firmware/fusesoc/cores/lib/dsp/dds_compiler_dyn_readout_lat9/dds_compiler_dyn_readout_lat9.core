@@ -1,0 +1,70 @@
+CAPI=2:
+name: qick:dsp:dds_compiler_dyn_readout_lat9:1.0.0
+description: >
+  DDS Compiler, "dyn_readout" variant with Latency 9 (Xilinx IP): the
+  dds_compiler_dyn_readout .xci with Latency 9, so the phase accumulator DSP
+  registers its C input. Used by: down_conversion_dynro.
+  Behavioural model for sim/lint via dds_compiler_model; real .xci for
+  synth/packaging.
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/dds_compiler_dyn_readout_lat9.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:dds_compiler_model
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/dds_compiler_dyn_readout_lat9.xci: {file_type: xci}
+
+  tb:
+    files:
+      - tests/dds_compiler_dyn_readout_lat9_tc00.sv
+      - tests/dds_compiler_dyn_readout_lat9_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:dsp:dds_compiler_dyn_readout
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/dds_compiler_dyn_readout_lat9_tc00.sv
+
+targets:
+  default: &default
+    filesets: [sim_model]
+    toplevel: dds_compiler_dyn_readout_lat9
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dds_compiler_dyn_readout_lat9
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  synth:
+    filesets: [synth_xci]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner

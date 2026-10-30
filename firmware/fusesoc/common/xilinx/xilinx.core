@@ -1,0 +1,14 @@
+CAPI=2:
+name: qick:common:xilinx:1.0.0
+description: glbl sources from Xilinx needed to simulate XPM modules
+
+filesets:
+  hdl:
+    files:
+      - hdl/glbl.v
+    file_type: verilogSource
+
+targets:
+  default: &default
+    filesets:
+      - hdl

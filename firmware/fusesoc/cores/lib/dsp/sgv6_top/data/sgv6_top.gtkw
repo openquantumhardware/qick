@@ -1,0 +1,56 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul  1 19:30:11 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-19.105066 3400000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.sgv6_top_ut.
+[treeopen] testrunner.__ts.sgv6_top_ut.dut.
+[sst_width] 391
+[signals_width] 206
+[sst_expanded] 1
+[sst_vpaned_height] 690
+@28
+testrunner.__ts.sgv6_top_ut.dut.aclk
+testrunner.__ts.sgv6_top_ut.dut.aresetn
+@22
+testrunner.__ts.sgv6_top_ut.dut.fifo_din[159:0]
+testrunner.__ts.sgv6_top_ut.dut.fifo_dout[159:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.fifo_empty
+testrunner.__ts.sgv6_top_ut.dut.fifo_full
+testrunner.__ts.sgv6_top_ut.dut.fifo_rd_en
+testrunner.__ts.sgv6_top_ut.dut.fifo_wr_en
+@22
+testrunner.__ts.sgv6_top_ut.dut.m_axis_tdata_o[255:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.m_axis_tready_i
+testrunner.__ts.sgv6_top_ut.dut.m_axis_tvalid_o
+@22
+testrunner.__ts.sgv6_top_ut.dut.mem_addrb[7:0]
+testrunner.__ts.sgv6_top_ut.dut.mem_dob_imag[255:0]
+testrunner.__ts.sgv6_top_ut.dut.mem_dob_real[255:0]
+testrunner.__ts.sgv6_top_ut.dut.mem_en[15:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.s0_axis_aclk
+testrunner.__ts.sgv6_top_ut.dut.s0_axis_aresetn
+@22
+testrunner.__ts.sgv6_top_ut.dut.s0_axis_tdata_i[31:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.s0_axis_tready_o
+testrunner.__ts.sgv6_top_ut.dut.s0_axis_tvalid_i
+@22
+testrunner.__ts.sgv6_top_ut.dut.s1_axis_tdata_i[159:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.s1_axis_tready_o
+testrunner.__ts.sgv6_top_ut.dut.s1_axis_tvalid_i
+@22
+testrunner.__ts.sgv6_top_ut.dut.start_addr_reg[31:0]
+@28
+testrunner.__ts.sgv6_top_ut.dut.we_reg
+[pattern_trace] 1
+[pattern_trace] 0

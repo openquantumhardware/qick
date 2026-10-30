@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 23 22:14:07 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-7.512074 400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.alu_ut.
+[sst_width] 206
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.alu_ut.u_dut.clk
+[color] 3
+testrunner.__ts.alu_ut.u_dut.rstn
+@22
+[color] 3
+testrunner.__ts.alu_ut.u_dut.din_a[15:0]
+[color] 3
+testrunner.__ts.alu_ut.u_dut.din_b[15:0]
+[color] 3
+testrunner.__ts.alu_ut.u_dut.op[3:0]
+@28
+[color] 6
+testrunner.__ts.alu_ut.u_dut.zero_a
+[color] 6
+testrunner.__ts.alu_ut.u_dut.zero_b
+@22
+[color] 6
+testrunner.__ts.alu_ut.u_dut.dout[15:0]
+testrunner.__ts.alu_ut.u_dut.bitw_dout[15:0]
+@23
+testrunner.__ts.alu_ut.u_dut.math_dout[15:0]
+@22
+testrunner.__ts.alu_ut.u_dut.op_r[3:0]
+testrunner.__ts.alu_ut.u_dut.op_rr[3:0]
+testrunner.__ts.alu_ut.u_dut.op_rrr[3:0]
+testrunner.__ts.alu_ut.u_dut.oper_i[3:0]
+@28
+testrunner.__ts.alu_ut.u_dut.sel
+[pattern_trace] 1
+[pattern_trace] 0

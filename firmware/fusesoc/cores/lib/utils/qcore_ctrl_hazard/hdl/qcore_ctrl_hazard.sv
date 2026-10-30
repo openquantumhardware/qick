@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/utils/qcore_ctrl_hazard.sv

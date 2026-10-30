@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/dsp/dds_phasegen_sincos_ow16_lat8.sv

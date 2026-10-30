@@ -1,0 +1,57 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul 29 21:07:06 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-18.325478 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.phase_shifter_ut.
+[treeopen] testrunner.__ts.phase_shifter_ut.dut.
+[sst_width] 206
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.phase_shifter_ut.dut.aclk
+[color] 3
+testrunner.__ts.phase_shifter_ut.dut.aresetn
+@22
+[color] 3
+testrunner.__ts.phase_shifter_ut.dut.i_in[15:0]
+[color] 3
+testrunner.__ts.phase_shifter_ut.dut.q_in[15:0]
+[color] 3
+testrunner.__ts.phase_shifter_ut.dut.phase[15:0]
+testrunner.__ts.phase_shifter_ut.dut.cos_val[15:0]
+testrunner.__ts.phase_shifter_ut.dut.i_align1[15:0]
+testrunner.__ts.phase_shifter_ut.dut.i_align2[15:0]
+testrunner.__ts.phase_shifter_ut.dut.i_cos[31:0]
+testrunner.__ts.phase_shifter_ut.dut.i_in_r[15:0]
+testrunner.__ts.phase_shifter_ut.dut.i_out_r[15:0]
+testrunner.__ts.phase_shifter_ut.dut.i_result[31:0]
+testrunner.__ts.phase_shifter_ut.dut.i_sin[31:0]
+testrunner.__ts.phase_shifter_ut.dut.i_stage1[15:0]
+testrunner.__ts.phase_shifter_ut.dut.lut_addr[10:0]
+testrunner.__ts.phase_shifter_ut.dut.phase_buf1[15:0]
+testrunner.__ts.phase_shifter_ut.dut.phase_buf2[15:0]
+testrunner.__ts.phase_shifter_ut.dut.phase_r[15:0]
+testrunner.__ts.phase_shifter_ut.dut.q_align1[15:0]
+testrunner.__ts.phase_shifter_ut.dut.q_align2[15:0]
+testrunner.__ts.phase_shifter_ut.dut.q_cos[31:0]
+testrunner.__ts.phase_shifter_ut.dut.q_in_r[15:0]
+testrunner.__ts.phase_shifter_ut.dut.q_out_r[15:0]
+testrunner.__ts.phase_shifter_ut.dut.q_result[31:0]
+testrunner.__ts.phase_shifter_ut.dut.q_sin[31:0]
+testrunner.__ts.phase_shifter_ut.dut.q_stage1[15:0]
+testrunner.__ts.phase_shifter_ut.dut.sin_val[15:0]
+@23
+[color] 6
+testrunner.__ts.phase_shifter_ut.dut.i_out[15:0]
+[color] 6
+testrunner.__ts.phase_shifter_ut.dut.q_out[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

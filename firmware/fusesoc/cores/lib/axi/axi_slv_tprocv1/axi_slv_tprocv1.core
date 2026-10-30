@@ -1,0 +1,29 @@
+CAPI=2:
+name: qick:axi:axi_slv_tprocv1:1.0.0
+description: >
+  AXI4-Lite slave of axis_tprocv1: eight control registers and single-word
+  access to the data memory over one port.
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi_slv_tprocv1.sv
+    file_type: systemVerilogSource
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axi_slv_tprocv1
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axi_slv_tprocv1
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

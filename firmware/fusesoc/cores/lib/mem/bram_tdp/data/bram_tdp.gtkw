@@ -1,0 +1,58 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun 11 21:20:13 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-16.506687 781922 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.bram_tdp_ut.
+[sst_width] 206
+[signals_width] 110
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@800200
+-porta
+@28
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.i_clk
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.i_rst
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.en
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.we
+@25
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.addr[9:0]
+@22
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_a_if.din[31:0]
+[color] 6
+testrunner.__ts.bram_tdp_ut.port_a_if.dout[31:0]
+@1000200
+-porta
+@800200
+-portb
+@28
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.i_clk
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.i_rst
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.en
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.we
+@22
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.addr[9:0]
+[color] 3
+testrunner.__ts.bram_tdp_ut.port_b_if.din[31:0]
+[color] 6
+testrunner.__ts.bram_tdp_ut.port_b_if.dout[31:0]
+@1000200
+-portb
+[pattern_trace] 1
+[pattern_trace] 0

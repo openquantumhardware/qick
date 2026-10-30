@@ -1,0 +1,61 @@
+CAPI=2:
+name: qick:dsp:fir_pfb_ro_model:1.0.0
+description: >
+  Simulation model of the PFB readouts' polyphase FIRs (FIR Compiler 7.2 in
+  the fir_pfb_ro_<i> configuration), bit- and cycle-exact against the real
+  core; shared by the qick:dsp:fir_pfb_ro_<i> wrappers, each of which fixes
+  its coefficients. tests/vendor/run_vendor_check.sh checks each wrapper
+  against the real core generated from its .xci (needs Vivado).
+
+filesets:
+  sim_model:
+    files:
+      - hdl/fir_pfb_ro_model.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/fir_pfb_ro_model_tc00.sv
+      - tests/fir_pfb_ro_model_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fir_pfb_ro_model
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  test:
+    description: Pin down the modelled behaviour
+    filesets: [sim_model, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/fir_pfb_ro_model_tc00.sv

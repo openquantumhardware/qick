@@ -1,0 +1,31 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Aug 19 17:40:59 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-11.711153 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.diff_in_nb_ut.
+[treeopen] testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.
+[treeopen] testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.g_ibufds_gen[0].
+[sst_width] 206
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@c00023
+testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_n[3:0]
+@28
+(0)testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_n[3:0]
+(1)testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_n[3:0]
+(2)testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_n[3:0]
+(3)testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_n[3:0]
+@1401201
+-group_end
+@22
+testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.i_diff_p[3:0]
+testrunner.__ts.diff_in_nb_ut.u_diff_in_nb.o_se[3:0]
+[pattern_trace] 1
+[pattern_trace] 0

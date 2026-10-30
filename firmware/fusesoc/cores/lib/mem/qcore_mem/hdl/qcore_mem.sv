@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/mem/qcore_mem.sv

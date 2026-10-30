@@ -1,0 +1,477 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul 16 22:15:37 2026
+[*]
+[timestart] 12097500
+[size] 1920 1045
+[pos] -1 -1
+*-16.986748 12572076 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.mr_buffer_ut.
+[treeopen] testrunner.__ts.mr_buffer_ut.dut.
+[treeopen] testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].
+[treeopen] testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_axis_to_bram_trig.fifo_i.xpm_fifo_sync_inst.xpm_fifo_base_inst.gen_sdpram.xpm_memory_base_inst.
+[treeopen] testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.
+[sst_width] 206
+[signals_width] 207
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 2
+testrunner.__ts.mr_buffer_ut.dut.dw_capture_reg
+[color] 2
+testrunner.__ts.mr_buffer_ut.dut.dr_start_reg
+@22
+[color] 2
+testrunner.__ts.mr_buffer_ut.dut.debug_reg[31:0]
+@28
+[color] 3
+testrunner.__ts.mr_buffer_ut.dut.trigger
+@24
+testrunner.__ts.mr_buffer_ut.dut.addrb[7:0]
+@22
+testrunner.__ts.mr_buffer_ut.dut.dib[15:0]
+testrunner.__ts.mr_buffer_ut.dut.dob_c[127:0]
+@28
+testrunner.__ts.mr_buffer_ut.dut.dr_start_reg_resync
+testrunner.__ts.mr_buffer_ut.dut.dw_capture_reg_resync
+testrunner.__ts.mr_buffer_ut.dut.enb
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.o_capture_done
+@23
+testrunner.__ts.mr_buffer_ut.dut.cap_done_ch[7:0]
+@800200
+-s_axis
+@28
+testrunner.__ts.mr_buffer_ut.dut.s_axis_aclk
+testrunner.__ts.mr_buffer_ut.dut.s_axis_aresetn
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tready
+[color] 3
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tvalid
+[color] 3
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tlast
+@800022
+[color] 3
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@c00022
+#{d7} (0)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (1)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (2)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (3)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (4)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (5)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (6)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (7)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (8)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (9)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (10)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (11)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (12)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (13)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (14)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (15)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(0)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(1)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(2)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(3)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(4)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(5)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(6)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(7)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(8)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(9)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(10)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(11)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(12)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(13)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(14)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(15)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d6} (16)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (17)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (18)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (19)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (20)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (21)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (22)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (23)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (24)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (25)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (26)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (27)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (28)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (29)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (30)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (31)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(16)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(17)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(18)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(19)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(20)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(21)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(22)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(23)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(24)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(25)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(26)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(27)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(28)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(29)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(30)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(31)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d5} (32)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (33)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (34)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (35)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (36)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (37)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (38)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (39)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (40)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (41)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (42)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (43)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (44)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (45)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (46)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (47)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(32)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(33)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(34)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(35)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(36)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(37)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(38)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(39)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(40)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(41)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(42)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(43)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(44)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(45)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(46)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(47)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d4} (48)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (49)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (50)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (51)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (52)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (53)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (54)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (55)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (56)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (57)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (58)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (59)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (60)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (61)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (62)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (63)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(48)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(49)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(50)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(51)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(52)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(53)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(54)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(55)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(56)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(57)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(58)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(59)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(60)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(61)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(62)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(63)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d3} (64)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (65)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (66)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (67)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (68)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (69)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (70)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (71)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (72)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (73)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (74)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (75)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (76)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (77)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (78)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (79)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(64)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(65)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(66)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(67)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(68)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(69)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(70)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(71)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(72)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(73)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(74)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(75)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(76)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(77)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(78)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(79)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d2} (80)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (81)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (82)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (83)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (84)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (85)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (86)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (87)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (88)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (89)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (90)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (91)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (92)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (93)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (94)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (95)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(80)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(81)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(82)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(83)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(84)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(85)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(86)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(87)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(88)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(89)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(90)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(91)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(92)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(93)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(94)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(95)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d1} (96)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (97)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (98)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (99)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (100)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (101)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (102)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (103)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (104)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (105)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (106)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (107)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (108)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (109)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (110)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (111)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(96)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(97)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(98)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(99)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(100)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(101)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(102)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(103)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(104)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(105)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(106)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(107)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(108)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(109)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(110)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(111)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@c00022
+#{d0} (112)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (113)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (114)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (115)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (116)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (117)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (118)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (119)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (120)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (121)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (122)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (123)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (124)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (125)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (126)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0] (127)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@28
+[color] 3
+(112)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(113)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(114)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(115)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(116)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(117)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(118)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(119)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(120)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(121)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(122)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(123)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(124)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(125)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(126)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+[color] 3
+(127)testrunner.__ts.mr_buffer_ut.dut.s_axis_tdata[127:0]
+@1401200
+-group_end
+@1001200
+-group_end
+@28
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tready_force
+@22
+testrunner.__ts.mr_buffer_ut.dut.s_axis_tstrb[15:0]
+@1000200
+-s_axis
+@800200
+-m_axis
+@28
+testrunner.__ts.mr_buffer_ut.dut.m_axis_aclk
+testrunner.__ts.mr_buffer_ut.dut.m_axis_aresetn
+[color] 3
+testrunner.__ts.mr_buffer_ut.dut.m_axis_tready
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.m_axis_tvalid
+@22
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.m_axis_tdata[15:0]
+@28
+[color] 6
+testrunner.__ts.mr_buffer_ut.dut.m_axis_tlast
+testrunner.__ts.mr_buffer_ut.dut.m_axis_tstrb[1:0]
+@1000200
+-m_axis
+@c00022
+testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+@28
+(0)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(1)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(2)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(3)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(4)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(5)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(6)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(7)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(8)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(9)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(10)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(11)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(12)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(13)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(14)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(15)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(16)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(17)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(18)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(19)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(20)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(21)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(22)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(23)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(24)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(25)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(26)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(27)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(28)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(29)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(30)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+(31)testrunner.__ts.mr_buffer_ut.dut.m_dbg_probe[31:0]
+@1401200
+-group_end
+@c00022
+testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+@28
+(0)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(1)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(2)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(3)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(4)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(5)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(6)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(7)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(8)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(9)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(10)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(11)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(12)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(13)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(14)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(15)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(16)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(17)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(18)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(19)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(20)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(21)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(22)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(23)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(24)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(25)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(26)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(27)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(28)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(29)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(30)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+(31)testrunner.__ts.mr_buffer_ut.dut.s_dbg_probe[31:0]
+@1401200
+-group_end
+@28
+testrunner.__ts.mr_buffer_ut.dut.trigger_or_dbg
+testrunner.__ts.mr_buffer_ut.dut.trigger_resync
+testrunner.__ts.mr_buffer_ut.dut.web
+@22
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.addra[7:0]
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.addrb[7:0]
+@28
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.clka
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.clkb
+@22
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.dia[15:0]
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.dib[15:0]
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.doa[127:112]
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.dob[127:112]
+@28
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.ena
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.enb
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.rsta
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.rstb
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.wea
+testrunner.__ts.mr_buffer_ut.dut.gen_channel[0].u_bram.web
+[pattern_trace] 1
+[pattern_trace] 0

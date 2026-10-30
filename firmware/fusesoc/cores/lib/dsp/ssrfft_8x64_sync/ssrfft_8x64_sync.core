@@ -1,0 +1,66 @@
+CAPI=2:
+name: qick:dsp:ssrfft_8x64_sync:1.0.0
+description: >
+  PFB readouts' FFT stage: tlast framing, the 64-point 8-lane SysGen FFT
+  (qick:dsp:ssr_fft_8x64) and the 16-bit output slice. Port of the legacy
+  ssrfft_8x64_sync + framing + tlast_gen VHDL (axis_pfb_readout_v3/v4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/ssrfft_8x64_sync.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:ssr_fft_8x64
+
+  tb_ref:
+    files:
+      - tests/ref/framing_legacy.vhd
+      - tests/ref/tlast_gen_legacy.vhd
+      - tests/ref/ssrfft_8x64_sync_legacy.vhd
+    file_type: vhdlSource
+    logical_name: xil_defaultlib
+
+  tb:
+    files:
+      - tests/ssrfft_8x64_sync_tc00.sv
+      - tests/ssrfft_8x64_sync_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: ssrfft_8x64_sync
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: ssrfft_8x64_sync
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy VHDL as the golden model)
+    filesets: [hdl, tb_ref, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/ssrfft_8x64_sync_tc00.sv

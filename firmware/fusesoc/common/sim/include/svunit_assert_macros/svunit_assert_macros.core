@@ -1,0 +1,15 @@
+CAPI=2:
+name: qick:common:svunit_assert_macros:0.2.0
+description: ASSERT_IMMEDIATE / ASSERT_CONCURRENT (and _LOG) macros that fail the running SVUnit test
+
+filesets:
+  include:
+    files:
+      - svunit_assert_macros.svh: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - svunit
+
+targets:
+  default:
+    filesets: [include]

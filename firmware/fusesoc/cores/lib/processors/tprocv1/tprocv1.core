@@ -1,0 +1,73 @@
+CAPI=2:
+name: qick:processors:tprocv1:1.0.0
+description: Timed instruction dispatcher control for the QICK tProcv1 porcessor.
+
+filesets:
+  hdl:
+    files:
+      - hdl/tprocv1.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:pkg:tproc_pkg
+      - qick:interfaces:axi4_stream_if
+      - qick:cdc:cdc_gray_sync
+      - qick:utils:tpv1_ctrl
+      - qick:utils:tpv1_timed_dispatch
+      - qick:mem:tpv1_stack
+      - qick:math:signed_comparator
+      - qick:math:alu
+      - qick:ip:axis_set_reg
+      - qick:mem:regfile_8p
+      - qick:mem:fifo_sync
+
+
+  tb:
+    files:
+      - tests/tprocv1_tc00.sv
+      - tests/tprocv1_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:pkg:alu_pkg
+      - qick:common:sim_base
+
+  test_data:
+    files:
+      - tests/data/pmem.hex : {file_type: user, copyto: pmem.hex}
+      - tests/data/dmem.hex : {file_type: user, copyto: dmem.hex}
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/tprocv1_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: tprocv1
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: tprocv1
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb, test_data]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

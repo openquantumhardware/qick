@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 22 15:54:07 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-20.489075 80000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.tpv1_stack_ut.
+[treeopen] testrunner.__ts.tpv1_stack_ut.u_stack.
+[sst_width] 206
+[signals_width] 182
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+testrunner.__ts.tpv1_stack_ut.u_stack.clk
+testrunner.__ts.tpv1_stack_ut.u_stack.rstn
+testrunner.__ts.tpv1_stack_ut.u_stack.en
+testrunner.__ts.tpv1_stack_ut.u_stack.op
+@22
+testrunner.__ts.tpv1_stack_ut.u_stack.din[15:0]
+testrunner.__ts.tpv1_stack_ut.u_stack.dout[15:0]
+@28
+testrunner.__ts.tpv1_stack_ut.u_stack.empty
+testrunner.__ts.tpv1_stack_ut.u_stack.full
+@24
+testrunner.__ts.tpv1_stack_ut.u_stack.mem_addr[7:0]
+testrunner.__ts.tpv1_stack_ut.u_stack.sp[7:0]
+testrunner.__ts.tpv1_stack_ut.u_stack.sp_1[7:0]
+@800200
+-bram_if
+@28
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.i_clk
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.i_ena
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.i_wea
+@24
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.i_addra[7:0]
+@22
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.i_dia[15:0]
+@23
+testrunner.__ts.tpv1_stack_ut.u_stack.bram_i.o_doa[15:0]
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0

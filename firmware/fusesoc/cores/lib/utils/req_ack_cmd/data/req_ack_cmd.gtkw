@@ -1,0 +1,98 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sun Nov 30 03:30:47 2025
+[*]
+[timestart] 3212800
+[size] 1920 1140
+[pos] -1 -1
+*-15.720426 3418000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.req_ack_cmd_ut.
+[sst_width] 206
+[signals_width] 169
+[sst_expanded] 1
+[sst_vpaned_height] 767
+@28
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_clk
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_rstn
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_valid
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_ack
+@22
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_addr[3:0]
+[color] 3
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_data[31:0]
+@2028
+[color] 2
+^1 firmware/fusesoc/cores/xcom_cmd/data/opcodes.txt
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_op[4:0]
+@22
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_cnt_r[3:0]
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_dt_r[31:0]
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_op_r[7:0]
+@2028
+^2 firmware/fusesoc/cores/req_ack_cmd/data/states.txt
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.state_r[1:0]
+@802028
+[color] 6
+^1 firmware/fusesoc/cores/xcom_cmd/data/opcodes.txt
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+@c02028
+[color] 2
+^3 firmware/fusesoc/cores/req_ack_cmd/data/opcodes.txt
+#{OP} (0)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (1)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (2)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (3)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+@28
+[color] 6
+(0)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(1)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(2)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(3)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+@1401200
+-group_end
+@c00022
+#{ADDR} (4)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (5)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (6)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0] (7)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+@28
+[color] 6
+(4)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(5)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(6)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+[color] 6
+(7)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_op[7:0]
+@1401200
+-group_end
+@1001200
+-group_end
+@28
+[color] 6
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_req_net
+[color] 6
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_req_loc
+@22
+[color] 6
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_data[31:0]
+@c00023
+[color] 6
+testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
+@29
+[color] 6
+(0)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
+[color] 6
+(1)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
+[color] 6
+(2)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
+[color] 6
+(3)testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.o_cmd_cntr[3:0]
+@1401201
+-group_end
+[pattern_trace] 1
+[pattern_trace] 0

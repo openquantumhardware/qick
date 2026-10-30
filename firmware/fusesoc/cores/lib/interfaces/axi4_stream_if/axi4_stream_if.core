@@ -1,0 +1,39 @@
+CAPI=2:
+name: qick:interfaces:axi4_stream_if:1.2.0
+description: AXI4-Stream interface with RTL modports, testbench clocking blocks and tasks, and protocol checkers (-d SVUNIT)
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi4_stream_if.sv
+    file_type: systemVerilogSource
+    depend:
+      - "tool_xsim ? (qick:common:svunit_assert_macros)"
+
+  verible_waivers:
+    files:
+      - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
+    depend:
+      - qick:common:lint
+
+  verilator_waivers:
+    files:
+      - lint/verilator_waiver.vlt: {file_type: vlt}
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - tool_veriblelint ? (verible_waivers)
+      - tool_verilator ? (verilator_waivers)
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: axi4_stream_if
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

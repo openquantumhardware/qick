@@ -1,0 +1,63 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jul 31 14:06:15 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-9.132152 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.iq_gain_ut.
+[sst_width] 206
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@29
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.aclk
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.aresetn
+@23
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.i_in[15:0]
+@c00023
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+@29
+(0)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(1)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(2)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(3)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(4)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(5)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(6)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(7)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(8)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(9)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(10)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(11)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(12)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(13)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(14)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+(15)testrunner.__ts.iq_gain_ut.dut.q_in[15:0]
+@1401201
+-group_end
+@23
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.gain_i[15:0]
+[color] 3
+testrunner.__ts.iq_gain_ut.dut.gain_q[15:0]
+@22
+testrunner.__ts.iq_gain_ut.dut.gain_i_r[15:0]
+testrunner.__ts.iq_gain_ut.dut.gain_q_r[15:0]
+testrunner.__ts.iq_gain_ut.dut.i_prod[31:0]
+testrunner.__ts.iq_gain_ut.dut.i_r[15:0]
+testrunner.__ts.iq_gain_ut.dut.q_prod[31:0]
+testrunner.__ts.iq_gain_ut.dut.q_r[15:0]
+[color] 6
+testrunner.__ts.iq_gain_ut.dut.i_out[15:0]
+[color] 6
+testrunner.__ts.iq_gain_ut.dut.q_out[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

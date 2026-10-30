@@ -1,0 +1,13 @@
+CAPI=2:
+name: qick:common:lint:0.2.0
+description: QICK lint configuration (verible-verilog-lint rule set)
+
+filesets:
+  verible_rules:
+    files:
+      - src/verible_rules.verible_lint: {file_type: veribleLintRules}
+
+targets:
+  default:
+    filesets:
+      - tool_veriblelint ? (verible_rules)

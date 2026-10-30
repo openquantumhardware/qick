@@ -1,0 +1,67 @@
+CAPI=2:
+name: qick:dsp:pimod_pfb:1.0.0
+description: >
+  PFB readouts' pi modulation after the FFT (odd lanes negated on every
+  other frame). Port of the legacy pimod_pfb + fifo_axi + rd2axi VHDL
+  (axis_pfb_readout_v3/v4), on qick:mem:fifo.
+
+filesets:
+  hdl:
+    files:
+      - hdl/pimod_pfb.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo
+
+  tb_ref:
+    files:
+      - tests/ref/bram_simple_dp_legacy.vhd
+      - tests/ref/fifo_legacy.vhd
+      - tests/ref/rd2axi_legacy.vhd
+      - tests/ref/fifo_axi_legacy.vhd
+      - tests/ref/pimod_pfb_legacy.vhd
+    file_type: vhdlSource
+
+  tb:
+    files:
+      - tests/pimod_pfb_tc00.sv
+      - tests/pimod_pfb_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pimod_pfb
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pimod_pfb
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy VHDL as the golden model)
+    filesets: [hdl, tb_ref, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pimod_pfb_tc00.sv

@@ -1,0 +1,82 @@
+CAPI=2:
+name: qick:cdc:cdc_bit_sync:1.0.0
+description: 2 FF, NB-bit data synchronizer.
+
+filesets:
+  hdl:
+    files:
+      - hdl/cdc_bit_sync.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/cdc_bit_sync_tc00.sv
+      - tests/cdc_bit_sync_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/cdc_bit_sync_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: cdc_bit_sync
+    parameters:
+      - NB
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: cdc_bit_sync
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

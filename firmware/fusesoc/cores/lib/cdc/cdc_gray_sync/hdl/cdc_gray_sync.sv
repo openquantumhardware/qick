@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/cdc/cdc_gray_sync.sv

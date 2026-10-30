@@ -1,0 +1,56 @@
+CAPI=2:
+name: qick:mem:smp_fifo_dc:1.0.0
+description: smp_fifo_dc (mem library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/smp_fifo_dc.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo_async
+      - qick:mem:bram_simple_dp
+      - qick:cdc:cdc_bit_sync
+  tb:
+    files:
+      - tests/smp_fifo_dc_tc00.sv
+      - tests/smp_fifo_dc_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/smp_fifo_dc_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: smp_fifo_dc
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: smp_fifo_dc
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
