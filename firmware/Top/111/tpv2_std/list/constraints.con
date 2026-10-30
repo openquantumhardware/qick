@@ -1,0 +1,13 @@
+# Constraint files (.xdc) for qick_zcu216
+# Paths relative to the repository root
+#
+# Example:
+# firmware/constraints/qick_zcu216.xdc
+# firmware/constraints/timing.xdc
+# timing.xdc: clock groups of clocks created inside the block design's IPs (RFDC, PS, clk_wiz).
+# They do not exist yet in the top-level synthesis (the IPs are synthesized out of context), so the
+# file is nosynth: there it only produced 'No valid object(s)' critical warnings; it applies in
+# implementation, where it matters.
+Top/111/tpv2_std/timing.xdc nosynth
+Top/111/tpv2_std/timing_paths.xdc
+Top/111/tpv2_std/ios.xdc

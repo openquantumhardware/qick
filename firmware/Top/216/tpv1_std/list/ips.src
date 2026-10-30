@@ -1,0 +1,13 @@
+# IP files (.xci) for qick_zcu216 
+# Paths relative to the repository root
+#
+# IMPORTANT RULES: 
+#   - Each .xci file must be located in a folder with the SAME name as the IP
+#     Example: firmware/ip/clk_wiz/clk_wiz.xci   ← correct
+#              firmware/ip/clk_wiz.xci             ← incorrect
+#   - Only commit the .xci file, not the generated files (see .gitignore)
+#
+# Example:
+# firmware/ip/zynq_ps/zynq_ps.xci
+# firmware/ip/clk_wiz_0/clk_wiz_0.xci
+# firmware/ip/axis_dwidth_converter_0/axis_dwidth_converter_0.xci
