@@ -38,7 +38,7 @@ Both channels run on `aclk`; the registers are on `s_axi_aclk`. The write channe
   FSM waits for `WSTART = 0`, `trigger = 0` and the FIFO empty. Clearing `WSTART` while the write waits for the trigger
   disarms it.
 - **Check `WSTATUS_REG` after a write.** `BRESP_ERR` says that the memory answered a burst with an error response; the write
-  goes on, the record is incomplete. The driver's `get_mem` raises when it is set (qick:ip block only).
+  goes on, the record is incomplete. The driver does not read it.
 - **The write waits for the `trigger` level**, not an edge, after `WSTART`. Words offered before it are not stored
   (`s_axis_tready` stays high, the FIFO write is gated by the FSM): start the stream with the trigger.
 - **`WNBURST` is the number of bursts; 0 writes one.**
@@ -124,7 +124,7 @@ There is no constraints file (as in the legacy IP).
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisBufferDdrV1pt1` reads `axis_buffer_ddr_regmap_pkg` (installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_buffer_ddr`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`rstart_reg`, `raddr_reg`, `rlength_reg`, `wstart_reg`, `waddr_reg`, `wnburst_reg`); `regs` is the register model. The indexes are those of the legacy `axi_slv.v`; a test pins them.
+The driver class `AxisBufferDdrV1pt1` keeps a hand-written dictionary of this map, with the attribute names the software uses (`rstart_reg`, `raddr_reg`, `rlength_reg`, `wstart_reg`, `waddr_reg`, `wnburst_reg`). The indexes are those of the legacy `axi_slv.v`; `WSTATUS_REG` is not in the dictionary.
 
 64 x 32-bit read/write registers (axil_slv; byte strobes honoured), reset 0. Used:
 
@@ -206,7 +206,7 @@ cores/ip/axis_buffer_ddr/
   axis_buffer_ddr.core
   axis_buffer_ddr.clock_domains.yaml
   driver/axis_buffer_ddr.py -> qick_lib/qick/drivers/readout.py
-  driver/tests/                            # register-layer pytest (make driver) + behaviour tests
+  driver/tests/                            # register-layer pytest (make driver)
   hdl/axis_buffer_ddr.sv -> ../../../../../rtl_lib/ip/axis_buffer_ddr.sv
   rdl/                                     # regmap (docs, driver tests)
   tests/axis_buffer_ddr_tc00.sv, axis_buffer_ddr_tests.sv

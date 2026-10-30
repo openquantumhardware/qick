@@ -9,8 +9,7 @@ a firmware can be tested against a resonator with known, controllable parameters
 - Driver: `AxisKidsimV3` in `cores/ip/axis_kidsim_v3/driver/axis_kidsim_v3.py`.
   - A standalone `SocIP`, since kidsim is not a QICK channel type (`firmware/docs/user/IP_INTEGRATION.md`).
   - `bindto = ['qick:ip:axis_kidsim_v3:1.0']`.
-  - Installed in `qick_lib/qick/drivers/`, with its register model in `qick_lib/qick/rdl_pkgs/`, so `QickSoc` binds it
-    by itself.
+  - Not installed in `qick_lib/qick/drivers/` yet: `make driver IP=axis_kidsim_v3` does it locally.
   - Methods: `config_lane()` / `config_all()`, `q15()` / `from_q15()`; `.regs` for the registers.
 - Hardware bring-up: RFSoC4x2, a debug bench; the first board run found
   the latency bug of U2, the re-run on the fixed bitstream passes every check (2026-09-22, U8)

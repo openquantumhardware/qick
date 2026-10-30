@@ -173,7 +173,7 @@ With a tProc, `soc.arm_mr()` plus a program's `trigger(mr=True)` does the arming
 
 ## Registers
 
-For `qick:ip:mr_buffer_et` the driver takes the word index of each register from this map: `MrBufferEt` reads `mr_buffer_et_regmap_pkg` (installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=mr_buffer_et`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses; `regs` is the register model. `STATUS_REG` and `DEBUG_REG` exist only in this core: the legacy 1.0 and 1.1 keep a two-register dictionary (`DW_CAPTURE` 0, `DR_START` 1, as in their axi slave) and have no `regs`.
+The driver class `MrBufferEt` keeps a hand-written dictionary of this map, with the attribute names the software uses. `STATUS_REG` and `DEBUG_REG` exist only in this core: the legacy 1.0 and 1.1 keep a two-register dictionary (`DW_CAPTURE` 0, `DR_START` 1, as in their axi slave) and have no `regs`.
 
 | Addr | Register | Field | Access | Description |
 |---|---|---|---|---|

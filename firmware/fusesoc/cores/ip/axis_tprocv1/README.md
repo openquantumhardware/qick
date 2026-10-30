@@ -142,7 +142,7 @@ data = tp.read_dmem(addr=0, length=100)                      # DMA read
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisTProc64x32_x8` reads `axis_tprocv1_regmap_pkg` (generated from `rdl/axis_tprocv1_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_tprocv1`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`tp.start_reg`, `tp.mem_len_reg`, ...). `tp.regs` is the register model for field access. `RESERVED0/1` (words 6, 7) have no attribute. The data memory above `NREG` is a window of the AXI slave, not a register: it stays `array[addr + NREG]`. The indexes are the ones the driver has always used on the legacy firmware (`QICK:QICK:axis_tproc64x32_x8:1.0`); a test pins the old dictionary.
+The driver class `AxisTProc64x32_x8` keeps a hand-written dictionary of this map, with the attribute names the software uses (`tp.start_reg`, `tp.mem_len_reg`, ...).. `tp.regs` is the register model for field access. `RESERVED0/1` (words 6, 7) have no attribute. The data memory above `NREG` is a window of the AXI slave, not a register: it stays `array[addr + NREG]`. The indexes are the ones the driver has always used on the legacy firmware (`QICK:QICK:axis_tproc64x32_x8:1.0`).
 
 | Addr | Register | Field | Description |
 |---|---|---|---|
@@ -180,5 +180,5 @@ cores/ip/axis_tprocv1/
 
 - The IP name / VLNV / `bindto` question of U6 (a decision, and the same for the software's type-name checks).
 - Driver: follow the `qick_time_tagger` flow (per-IP driver, `qick:ip:` VLNV, board validation), keeping the assembler-facing
-  methods of `AxisTProc64x32_x8`. The register map already comes from the RDL package, off board (16 driver tests); RFSoC4x2 2026-10-27, board clone at `214b519c`: `qick_demos/00_Send_receive_pulse.ipynb` runs OK with the stock tProc v1 firmware (`QickSoc()` default bitfile, md5 not recorded); the register-level check of the driver (map equal to the old one, `tp.regs` and the attributes reaching the same word, `single_write` / `single_read` through the data-memory window) passes on the same board and clone.
+  methods of `AxisTProc64x32_x8`.
 - A test that runs a small program through the core.

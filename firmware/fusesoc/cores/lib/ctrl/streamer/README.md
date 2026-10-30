@@ -586,8 +586,8 @@ their stimulus off `N_FIFO`, so they stay meaningful at any depth.
 
 ## 5. PYNQ usage
 
-The QICK driver is `AxisStreamer` (`cores/ip/axis_streamer/driver/axis_streamer.py`). `make driver IP=axis_streamer`
-installs it in `qick_lib/qick/drivers/` (with its register model in `qick_lib/qick/rdl_pkgs/`), and `QickSoc` binds
+The QICK driver is `AxisStreamer` (`cores/ip/axis_streamer/driver/axis_streamer.py`). It is not in `qick_lib` yet:
+`make driver IP=axis_streamer` installs it locally (with its register model), and `QickSoc` binds
 it to `qick:ip:axis_streamer:2.0`. Under `QickSoc` it finds its AXI DMA itself (`st.dma`, traced from `m_axis`),
 and warns if the bitstream carries 2.0.0 (COREREVISION 0, the one-shot hang of §2.3).
 

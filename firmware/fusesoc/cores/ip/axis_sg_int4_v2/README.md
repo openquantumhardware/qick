@@ -116,7 +116,7 @@ gen.load(np.stack([i_samples, q_samples], axis=1).astype(np.int16), addr=0)
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisSgInt4V2` reads `axis_sg_int4_v2_regmap_pkg` (generated from `rdl/axis_sg_int4_v2_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_sg_int4_v2`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`start_addr_reg`, `we_reg`); `regs` is the register model for field access. The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (`START_ADDR_REG` = word 0, `WE_REG` = word 1); a test pins the old dictionary. `AxisSgInt4V1` shares the base class but exists only as legacy firmware: it has no RDL, no `regs`, and keeps the same two registers.
+The driver class `AxisSgInt4V2` keeps a hand-written dictionary of this map, with the attribute names the software uses (`start_addr_reg`, `we_reg`). The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (`START_ADDR_REG` = word 0, `WE_REG` = word 1). `AxisSgInt4V1` shares the base class but exists only as legacy firmware: it has no RDL, no `regs`, and keeps the same two registers.
 
 | Addr | Register | Field | Access | Description |
 |---|---|---|---|---|

@@ -48,4 +48,4 @@ Both ways and the checks after a build are in [firmware/README.md](../../../READ
 
 ## Status
 
-Created on 2026-10-16 from the public repository's project of the same name. Its block design was validated with Vivado 2023.1 (`validate_bd_design`). Build 95FE9F3 (114 90775500, Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`) meets timing: setup WNS +0.000 ns (limiting clock `RFDAC2_CLK`), WHS +0.006 ns, TPWS +0.028 ns, 0 failing endpoints of 523 099. Not tried on a board.
+Created on 2026-10-16 from the public repository's project of the same name. Its block design was validated with Vivado 2023.1 (`validate_bd_design`). Build 9D75BD7 (Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`) meets timing: setup WNS +0.008 ns (ADC x2 clock), WHS +0.010 ns, TPWS +0.028 ns, 0 failing endpoints of 524 881. Not tried on a board.

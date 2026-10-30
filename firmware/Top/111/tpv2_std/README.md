@@ -48,9 +48,9 @@ Both ways and the checks after a build are in [firmware/README.md](../../../READ
 
 ## Timing
 
-The ADC x2 domain (512 MHz, `clk_adc0_x2`) has almost no margin. Build 95FE9F3 (114 95fe9f3b6, Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`, no manual step) meets timing: setup WNS +0.005 ns, hold +0.010 ns, pulse width 0, 0 failing endpoints of 843 035. It has `axis_avg_buffer` 1.2.1 (registered inputs and memory write) and the `hog.conf` directives `ExtraTimingOpt` (placement) and `AggressiveExplore` (routing). The same sources with `ExtraNetDelay_high` / `NoTimingRelaxation` and `axis_avg_buffer` 1.2.0 were -0.081 ns (94777AB); which of the two changes closes it was not separated (1.2.1 with the old directives was not built).
+The ADC x2 domain (512 MHz, `clk_adc0_x2`) has little margin. Build 9D75BD7 (Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`, no manual step) meets timing: setup WNS +0.027 ns (`clk_adc0_x2`), hold +0.010 ns, pulse width 0, 0 failing endpoints of 843 009. It has `axis_avg_buffer` 1.2.1 (registered inputs and memory write) and the `hog.conf` directives `ExtraTimingOpt` (placement) and `AggressiveExplore` (routing); with `axis_avg_buffer` 1.2.0 and `ExtraNetDelay_high` / `NoTimingRelaxation` this domain failed by 0.081 ns (which of the two changes closes it was not separated). Not run on a board with this build.
 
-A margin of 5 ps is what the router leaves when it stops: any later change of RTL in the ADC x2 domain can open it again. If `timing_summary.md` of a new build says not met, read the failing paths by block, fix the RTL there, and only then repeat `impl_1` with other directives (`ExtraPostPlacementOpt` or `ExtraTimingOpt` / `MoreGlobalIterations` also closed on an earlier synthesis) and put the pair that closes with the most margin in `hog.conf`.
+The margin is small: any later change of RTL in the ADC x2 domain can open it again. If `timing_summary.md` of a new build says not met, read the failing paths by block, fix the RTL there, and only then repeat `impl_1` with other directives (`ExtraPostPlacementOpt` or `ExtraTimingOpt` / `MoreGlobalIterations` also closed on an earlier synthesis) and put the pair that closes with the most margin in `hog.conf`.
 
 ## Status
 

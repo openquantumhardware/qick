@@ -124,7 +124,7 @@ ro = soc.avg_bufs[0]            # the readout behind it is found by QickSoc
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisPFBReadoutV3` reads `axis_pfb_readout_v3_regmap_pkg` (installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_pfb_readout_v3`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`id<i>_reg`, `freq<i>_reg`, `phase<i>_reg`); `regs` is the register model. The indexes are those of the legacy `axi_slv.vhd` (ID 0 to 3, then frequency and phase in pairs from word 4); a test pins them. The legacy block (`QICK:QICK:axis_pfb_readout_v3:1.0`) has the same map.
+The driver class `AxisPFBReadoutV3` keeps a hand-written dictionary of this map, with the attribute names the software uses (`id<i>_reg`, `freq<i>_reg`, `phase<i>_reg`). The indexes are those of the legacy `axi_slv.vhd` (ID 0 to 3, then frequency and phase in pairs from word 4). The legacy block (`QICK:QICK:axis_pfb_readout_v3:1.0`) has the same map.
 
 16 x 32-bit read/write registers (axil_slv; byte strobes honoured), reset 0. Used:
 

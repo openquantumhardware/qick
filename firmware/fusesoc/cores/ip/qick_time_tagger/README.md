@@ -573,13 +573,10 @@ Run: `make lint IP=qick:ip:qick_time_tagger` · `make sim IP=qick:ip:qick_time_t
 | `tc_axi_arm_trigger_dma_readback` | full path: set threshold → arm → genuine ADC crossing → AXI-driven DMA readback | PASS |
 
 ### 3.5 Driver (`qick_lib/qick/drivers/peripherals.py::QICK_Time_Tagger`)
-Hand-written `SocIP` subclass. Since #137 the word index of each register comes from the RDL package
-(`qick_time_tagger_regmap_pkg`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=qick_time_tagger`; `make driver-check`
-fails if the committed copy no longer matches the RDL) through `qick/rdl_regs.py`; the attribute names the software uses
-(`qtt_ctrl`, `tag0_qty`, ...) and their indexes are unchanged (a test pins the old dictionary, which is the read decode of the legacy
-`axi_slv_qtt.vhd`), and `tp.regs` is the register model for field access. `RESERVED_REG` (word 4) has no attribute. `bindto` includes
+Hand-written `SocIP` subclass, with the attribute names the software uses (`qtt_ctrl`, `tag0_qty`, ...); the indexes are the read
+decode of the legacy `axi_slv_qtt.vhd`. `RESERVED_REG` (word 4) has no attribute. `bindto` includes
 the legacy Vivado VLNVs (`Fermi:user:qick_time_tagger:1.0`, `QICK:QICK:qick_time_tagger:1.0`) plus this port's
-`qick:ip:qick_time_tagger:1.0`. Off board: 9 driver tests. RFSoC4x2 2026-10-27, board clone at `fdd4625d`: the register-level check of the driver passes (map equal to the old one, `tp.regs` and the attributes reaching the same word, `print_axi_regs()` without error); `qick_time_tagger_hw_validation.ipynb` on the same session: every check passes (1.0000 tags per tone period on both channels, dead time 21 and 5 clocks; interpolation sweep sigma 202.0, 66.1, 43.4, 25.4 and 12.6 ps for `interp` 0 to 4 with no outliers; residual 0.022 samples (9 ps), flat over the 16 fractions; ARM words equal to the TAG0 count in windows of 1, 2 and 4 ms; `reset()` idle and armed; 0 of 300 raw command pairs lost), the same figures as the table of U8 (2026-09-21) within its noise. The sample-store step was skipped (this bitstream has `smp_store = 0`). Bitstream md5 not recorded.
+`qick:ip:qick_time_tagger:1.0`.
 
 Key methods: `arm()`/`disarm()`/`pop_dt()`, `set_threshold(value)`,
 `set_dead_time(value)`, `set_config(filt, slope, interp, wr_smp, invert)`/

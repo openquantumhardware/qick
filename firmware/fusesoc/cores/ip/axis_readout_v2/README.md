@@ -138,7 +138,7 @@ configure everything correctly, seen with a downconversion frequency of 0).
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisReadoutV2` reads `axis_readout_v2_regmap_pkg` (generated from `rdl/axis_readout_v2_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_readout_v2`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`freq_reg`, `phase_reg`, `nsamp_reg`, `outsel_reg`, `mode_reg`, `we_reg`); `regs` is the register model for field access. The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (FREQ 0, PHASE 1, NSAMP 2, OUTSEL 3, MODE 4, WE 5); a test pins the old dictionary. A write to the registers only takes effect on a rising edge of `WE_REG` (`update()`).
+The driver class `AxisReadoutV2` keeps a hand-written dictionary of this map, with the attribute names the software uses (`freq_reg`, `phase_reg`, `nsamp_reg`, `outsel_reg`, `mode_reg`, `we_reg`). The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (FREQ 0, PHASE 1, NSAMP 2, OUTSEL 3, MODE 4, WE 5). A write to the registers only takes effect on a rising edge of `WE_REG` (`update()`).
 
 | Addr | Register | Field | Access | Description |
 |---|---|---|---|---|

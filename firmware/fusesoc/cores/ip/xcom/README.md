@@ -6,8 +6,7 @@ board, set or clear its flags, write its memory, and **synchronise the time base
 other boards. Commands come from the tProcessor (through the peripheral interface) or from Python (through AXI4-Lite).
 
 - Project: QICK, `qick:ip:xcom:1.0.2` (module `xcom`; parameters `NCH = 2`, `SYNC = 1`, `LOOPBACK = 0`, `DEBUG = 1`)
-- Driver: class `QICK_Xcom` in `qick_lib/qick/drivers/xcom.py` (a monolithic module; `driver/xcom.py` is a link to it). Its register
-  indexes come from `rdl/xcom_regmap.rdl`; it binds `qick:ip:xcom:1.0` and the legacy VLNVs.
+- Driver: `QICK_Xcom` in `qick_lib/qick/drivers/xcom.py` does not bind `qick:ip:xcom:1.0` yet; no project of `firmware/Top` uses this core.
 - 1.0.2 (2026-11-02): the RX data input (`xcom_clk_virt` -> `xcom_rx_clk_*`) is not timed: the link calibrates the IDELAY tap and
   the capture edge at run time, and the +-0.1 ns window of the input delays was never measured. RTL unchanged.
 - 1.0.1 (2026-11-02): the constraints that use `i_time_clk`, `i_core_clk` or `i_ps_clk` are in `xcom_late.xdc` (processed LATE):

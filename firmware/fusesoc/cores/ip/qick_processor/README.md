@@ -289,6 +289,6 @@ cores/ip/qick_processor/
 
 - The VLNV / `bindto` version mismatch of U6 (a decision, same kind of issue as `axis_tprocv1`'s name mismatch).
 - Driver: follow the `qick_time_tagger` flow (per-IP driver, `qick:ip:` VLNV, board validation), keeping the assembler-facing
-  methods of `Axis_QICK_Proc`. The register map already comes from the RDL package; RFSoC4x2 2026-10-27 (bitstream `qick_processor_dbg_rev29`, `.bit` md5 `cc66639d1b40679afaa64740e8d82f39`, `.hwh` md5 `41e6c22f893b3b9fcaa7c0c6fa8f2edb`, the revision 29 build of 2026-10-13): `qick_processor_periph_hw_validation.ipynb` ALL PASS (steps 0 to 8, 5b included, board clone at `7450f1ba`), same counts as the run with the hand-written map; `qick_processor_hw_validation.ipynb` ALL PASS (steps 0 to 7 and 9 to 13, board clone after pulling `b92a416ed`). After the register code became a mixin shared with `axis_tprocv1` (`214b519c1`), the driver-check cell and the peripheral notebook (ALL PASS, steps 0 to 8) were run again on the same bitstream file, board clone at `214b519c`; the regression notebook was re-run later on the shared module (`qick/rdl_regs.py`, board clone at `fdd4625d`): ALL PASS, with step 5 (phase sweep: slope 0.9999 deg/deg, |IQ| spread 0.33 %) run separately because it was not in the printed summary. Not run with this change: the ZCU216.
+  methods of `Axis_QICK_Proc`.
 - Coverage of dual-core mode, `qnet`/`qcom` and the rest of the instruction set by program-running tests (the bench of `tests/` can now do it); the QP
   ports on hardware (`issues/04`).

@@ -10,7 +10,7 @@ This page documents the **fusesoc-ported** `axis_kidsim_v3` (register model
 and driver under `firmware/fusesoc/cores/ip/axis_kidsim_v3/`), which was
 still in progress and not yet merged at the time this page was written. A
 legacy Vivado-packaged version of the same algorithm exists at
-`firmware/ip/axis_kidsim_v3/`; the RTL (`kidsim`/`kidsim_top`) is the same
+`firmware/fusesoc/cores/ip/axis_kidsim_v3/`; the RTL (`kidsim`/`kidsim_top`) is the same
 design, but that legacy IP has no `qick_lib` driver.
 ```
 

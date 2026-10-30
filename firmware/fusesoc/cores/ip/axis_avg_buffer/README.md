@@ -123,13 +123,12 @@ In practice the acquisition methods of the QICK programs call these.
   `avg` tests 20 of 20: three new ones, two fix the window (a valid sample in the trigger cycle and one right after the window are
   not accumulated) and the strobe (one clock; none when `start_reg` drops in `WRITE_MEM_ST`), the third a held trigger; each register undone in the RTL
   fails a test (5 mutations; leaving `WAIT_TRIGGER_ST` on `trigger_i` or on its delayed copy is the same behaviour).
-- **1.2.1 on the board (2026-11-09)**: RFSoC4x2 (pynq4x2-2), the notebook `demo/axis_avg_buffer_hw_validation.ipynb` on the bench
-  `4x2/axis_avg_buffer_dbg`, a 100 MHz tone DAC0 -> ADC0, one load of each bitstream: the new one built from 117 e8e1a7bfc (Vivado
-  2025.2, WNS +0.273 ns, `.bit` md5 6c77ede9) and the one of 2026-09-22 (averager 1.0.0, md5 41c64375). Both: mean averaged
-  magnitude / mean raw magnitude = 100.0 (190825 / 1908.6 new, 190447 / 1904.6 old: the new one reads 0.2 % higher on both
-  buffers; the I/Q phase differs between loads), and step 6, 24 fixed and 200 random exact-length transfers (102 odd), 0 failed
-  in both (95 % upper bound on the failure rate 1.5 %). This bench cannot see a one-sample shift of the window (a constant tone
-  sums the same) and does not use photon mode: both are covered in simulation only.
+- **1.2.1 on the board (2026-11-09)**: RFSoC4x2, the same debug bench and a 100 MHz tone DAC0 -> ADC0, one load of each
+  bitstream: a new build `E8E1A7B` (Vivado 2025.2, WNS +0.273 ns) and the one of 2026-09-22 (averager 1.0.0). Both: mean averaged
+  magnitude / mean raw magnitude = 100.0 (the new one reads 0.2 % higher on both buffers; the I/Q phase differs between loads),
+  and 24 fixed and 200 random exact-length transfers (102 odd), 0 failed in both (95 % upper bound on the failure rate 1.5 %).
+  This bench cannot see a one-sample shift of the window (a constant tone sums the same) and does not use photon mode: both are
+  covered in simulation only.
 - Not verified: accumulation over many shots at the full trigger rate, photon mode against a real signal, the DMA readout of the
   full memories.
 
@@ -151,7 +150,7 @@ In practice the acquisition methods of the QICK programs call these.
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisAvgBufferV1pt2` (the class that binds `qick:ip:axis_avg_buffer:1.2`) reads `axis_avg_buffer_regmap_pkg` (generated from `rdl/axis_avg_buffer_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_avg_buffer`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses; `regs` is the register model for field access. Two names differ from the RDL: `avg_h_threshold_reg` / `avg_l_threshold_reg` are `AVG_H_THRSH_REG` / `AVG_L_THRSH_REG`. The indexes are the ones the driver has always used and the legacy `axi_slv_avg_buf.vhd` wires (AVG_START 0 ... BUF_DR_LEN 11, AVG_PHOTON_MODE 12, AVG_H_THRSH 13, AVG_L_THRSH 14); a test pins the old dictionary. The versions 1.0 (twelve registers) and 1.1 share the base class but exist only as legacy firmware: no RDL, no `regs`, same map as before.
+The driver class `AxisAvgBufferV1pt2` keeps a hand-written dictionary of this map, with the attribute names the software uses. Two names differ from the RDL: `avg_h_threshold_reg` / `avg_l_threshold_reg` are `AVG_H_THRSH_REG` / `AVG_L_THRSH_REG`. The indexes are the ones the driver has always used and the legacy `axi_slv_avg_buf.vhd` wires (AVG_START 0 ... BUF_DR_LEN 11, AVG_PHOTON_MODE 12, AVG_H_THRSH 13, AVG_L_THRSH 14). The versions 1.0 (twelve registers) and 1.1 share the base class but exist only as legacy firmware: no RDL, no `regs`, same map as before.
 
 | Addr | Register | Description |
 |---|---|---|

@@ -50,4 +50,4 @@ Both ways and the checks after a build are in [firmware/README.md](../../../READ
 
 ## Status
 
-The block design was migrated to the `qick:ip` cores (2026-09-25) and passed `validate_bd_design`. Build 95FE9F3 (114 90775500, Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`) meets timing: setup WNS +0.001 ns (ADC x2 clock), WHS +0.010 ns, TPWS +0.028 ns, 0 failing endpoints of 542 681. Not run on a board with this build.
+The block design was migrated to the `qick:ip` cores (2026-09-25) and passed `validate_bd_design`. Build 9D75BD7 (Vivado 2023.1, plain `./Hog/Do CREATEWORKFLOW`) meets timing: setup WNS +0.030 ns (ADC x2 clock), WHS +0.010 ns, TPWS +0.028 ns, 0 failing endpoints of 541 337. Not run on a board with this build.

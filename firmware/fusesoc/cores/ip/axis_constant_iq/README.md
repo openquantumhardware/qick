@@ -155,7 +155,7 @@ Simulation: SVUnit for the RTL; driver pytest: 4 register-layer tests plus 6 beh
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisConstantIQ` reads `axis_constant_iq_regmap_pkg` (generated from `rdl/axis_constant_iq_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_constant_iq`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`real_reg`, `imag_reg`, `we_reg`); `regs` is the register model for field access. The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (`REAL_REG` = word 0, `IMAG_REG` = word 1, `WE_REG` = word 2); a test pins the old dictionary.
+The driver class `AxisConstantIQ` keeps a hand-written dictionary of this map, with the attribute names the software uses (`real_reg`, `imag_reg`, `we_reg`). The indexes are the ones the driver has always used and the legacy `axi_slv.vhd` wires (`REAL_REG` = word 0, `IMAG_REG` = word 1, `WE_REG` = word 2).
 
 | Addr | Register | Field | Access | Description |
 |---|---|---|---|---|

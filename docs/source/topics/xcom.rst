@@ -482,4 +482,4 @@ See Also
 
 * `XCOM paper (arXiv:2603.18977v1) <https://arxiv.org/abs/2603.18977v1>`_
 
-* `QICK GitHub repository <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/xcom>`_
+* `QICK GitHub repository <https://github.com/openquantumhardware/qick/tree/main/firmware/fusesoc/cores/ip/xcom>`_

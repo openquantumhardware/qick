@@ -104,7 +104,7 @@ Positive and negative frequencies are allowed (the output is complex). Playing a
 
 ## Registers
 
-The driver takes the word index of each register from this map: `AxisSgMixMux8V1` reads `axis_sg_mixmux8_v1_regmap_pkg` (generated from `rdl/axis_sg_mixmux8_v1_regmap.rdl`, installed in `qick_lib/qick/rdl_pkgs/` by `make driver IP=axis_sg_mixmux8_v1`; `make driver-check` fails if the committed copy no longer matches the RDL) and keeps the attribute names the software uses (`pinc0_reg` ... `pinc7_reg`, `poff0_reg` ... , `gain0_reg` ... , `we_reg`; `pincN_reg` is `regs.pinc_regfile[N]`); `regs` is the register model for field access. The indexes are the ones the driver has always used and the legacy `axi_slv.v` wires, identical to `axis_sg_mux8_v1` (PINC 0 to 7, POFF 8 to 15, GAIN 16 to 23, WE 24); a test pins the old dictionary.
+The driver class `AxisSgMixMux8V1` keeps a hand-written dictionary of this map, with the attribute names the software uses (`pinc0_reg` ... `pinc7_reg`, `poff0_reg` ... , `gain0_reg` ... , `we_reg`; `pincN_reg` is `regs.pinc_regfile[N]`). The indexes are the ones the driver has always used and the legacy `axi_slv.v` wires, identical to `axis_sg_mux8_v1` (PINC 0 to 7, POFF 8 to 15, GAIN 16 to 23, WE 24).
 
 Identical to `axis_sg_mux8_v1`: `PINC0..7_REG` (0x00-0x1C), `POFF0..7_REG` (0x20-0x3C), `GAIN0..7_REG` (0x40-0x5C),
 `WE_REG` (0x60). Source: `rdl/axis_sg_mixmux8_v1_regmap.rdl`.
