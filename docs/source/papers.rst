@@ -20,7 +20,7 @@ QICK and AMD
 
 At a glance
 -----------
-**91 papers**: 4 on the QICK system itself, and 87 across 9 platforms and applications.
+**97 papers**: There are 4 papers on the QICK system itself, and 93 other papers across 10 quantum platforms and applications.
 
 *System & software*
 
@@ -36,13 +36,15 @@ At a glance
    :widths: 40 8
 
    * - `Superconducting circuits`_
-     - 59
+     - 62
    * - `Spin defects`_
      - 8
    * - `Quantum dots`_
-     - 4
-   * - `Biological qubits`_ (new)
+     - 5
+   * - `Biological qubits`_
      - 2
+   * - `Donor spins`_ (new)
+     - 1
    * - `Ultracold molecules & atoms`_
      - 3
    * - `Neutral atoms`_
@@ -56,7 +58,7 @@ At a glance
    * - `Dark matter detection`_
      - 4
    * - `Single-photon detection`_
-     - 4
+     - 5
    * - `Quantum sensors and MKIDs`_
      - 2
 
@@ -75,7 +77,7 @@ These stats were computed from the next section's list of QICK papers as of Sept
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated October 8, 2026.
+This list of academic papers that used the QICK was last updated October 30, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -118,6 +120,7 @@ Quantum simulation
 
 Gates/couplers
 """"""""""""""
+* `Barta, J. et al. Optimal Control of a Fluxonium Circuit with the Q-PRONTO Numerical Method. (2026) <https://arxiv.org/abs/2610.31885>`_.
 * `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
 * `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
@@ -128,6 +131,7 @@ Gates/couplers
 
 Coherence
 """""""""
+* `Christiansen-Salameh, J. et al. TLS loss in superconducting resonators on epitaxial hBN thin films. (2026) <https://arxiv.org/abs/2610.12556>`_.
 * `DeRose, K. et al. Dissipation Enables Strongly Detuning-Dependent Interference in Pulsed Dynamical Decoupling. (2026) <https://arxiv.org/abs/2607.25176>`_.
 * `Olszewski, M. et al. Krypton-sputtered tantalum films for scalable high-performance quantum devices. (2026) <https://arxiv.org/abs/2601.20091>`_.
 * `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
@@ -151,6 +155,7 @@ Radiative loss
 
 Readout
 """""""
+* `Ding, C. et al. Active isolation of transmon readout with a tunable inductive bridge. (2026) <https://arxiv.org/abs/2610.27137>`_.
 * `Johnson, H. et al. Real-Time Adaptive Filtering and the Boxcar Limit in Superconducting Qubit Readout. (2026) <https://arxiv.org/abs/2610.00783>`_.
 * `Dixit, A. et al. Millimeter Wave Readout of a Superconducting Qubit. (2026) <https://arxiv.org/html/2603.13837v1>`_.
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
@@ -198,6 +203,7 @@ Spin defects
 
 Quantum dots
 ^^^^^^^^^^^^
+* `Wessels, A.L. et al. Demonstrating RFSoC-based Control of a Fully Connected Exchange-Only Qubit. (2026) <https://arxiv.org/abs/2610.31998>`_.
 * `El Hajj, D. et al. Preliminary Demonstration of Spin Qubit Control Using the Quantum Instrumentation Control Kit (QICK). (2026) <https://link.springer.com/chapter/10.1007/978-3-032-13852-1_2>`_.
 * `Shinozaki, M. et al. Perfect impedance matching unlocks sensitive radio-frequency reflectometry in 2D material quantum dots. (2025) <https://arxiv.org/abs/2512.02225>`_.
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
@@ -207,6 +213,10 @@ Biological qubits
 ^^^^^^^^^^^^^^^^^
 * `Ramos-Silva, J.N. et al. A Pulsed Live-Cell Quantum Microscope for Entangled Solid State and Biological Qubits. (2026) <https://arxiv.org/abs/2607.03552>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
+
+Donor spins
+^^^^^^^^^^^
+* `Lorriaux, T. et al. Cavity-assisted dynamic nuclear polarisation. (2026) <https://arxiv.org/abs/2610.19180>`_.
 
 Ultracold molecules & atoms
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -228,6 +238,7 @@ Dark matter detection
 Single-photon detection
 ^^^^^^^^^^^^^^^^^^^^^^^
 * `Cameron, A.R. et al. Entanglement swapping across a five-node relay in a multiplexed quantum-classical network. (2026) <https://arxiv.org/abs/2609.18899>`_.
+* `Thomas, J.M. et al. Optimal filtering and generation of entangled photons for quantum applications in the presence of noise. (2025) <https://arxiv.org/abs/2510.06536>`_.
 * `Linne, K. et al. PhotonIDs: ML-Powered Photon Identification System for Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.26315>`_.
 * `Linne, K. et al. SQuaD: Smart Quantum Detection for Photon Recognition and Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.24383>`_.
 * `Xie, S. et al. Entangled Photon Pair Source Demonstrator using the Quantum Instrumentation Control Kit System. (2023) <https://arxiv.org/abs/2304.01190>`_.
