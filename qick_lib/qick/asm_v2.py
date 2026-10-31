@@ -881,6 +881,8 @@ class Delay(TimedMacro):
             # if this was a delay_auto and we have no relevant channels, it should compile to nothing
             return []
         elif isinstance(t_reg, int):
+            if not check_bytes(t_reg, 4):
+                raise RuntimeError("DELAY argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
         else:
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':prog._get_reg(t_reg)}, addr_inc=1)]
