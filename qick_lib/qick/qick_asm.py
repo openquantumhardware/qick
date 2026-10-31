@@ -1343,6 +1343,8 @@ class AbsQickProgram(ABC):
         if 'n_tones' in gencfg:
             if mux_freqs is None:
                 raise RuntimeError("generator %d is multiplexed, but no mux_freqs were defined" % (ch))
+            if len(mux_freqs) > gencfg['n_tones']:
+                raise RuntimeError("generator %d supports %d tones, but %d mux_freqs were defined" % (ch, gencfg['n_tones'], len(mux_freqs)))
             if mux_gains is not None and not gencfg['has_gain']:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
@@ -1411,6 +1413,8 @@ class AbsQickProgram(ABC):
 
         if (length % gencfg['samps_per_clk']) != 0:
             raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(gencfg['samps_per_clk']))
+        if 'maxlen' in gencfg and self.envelopes[ch]['next_addr'] + length > gencfg['maxlen']:
+            raise RuntimeError("generator %d envelope memory holds %d samples, but the envelopes on it would need %d" % (ch, gencfg['maxlen'], self.envelopes[ch]['next_addr'] + length))
         # currently, all gens with envelopes use int16 for I and Q
         data = np.zeros((length, 2), dtype=np.int16)
 
