@@ -809,7 +809,7 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_ro_regs(self, rocfg, phase, sel):
+    def calc_ro_regs(self, rocfg, phase, sel, ch=None):
         """Calculate the settings to configure a readout.
 
         Returns
@@ -819,16 +819,17 @@ class QickConfig():
         """
 
         ro_regs = {}
+        ro_name = "readout" if ch is None else "readout %d" % (ch)
         if rocfg['has_outsel']:
             ro_regs['sel'] = sel
         elif sel != 'product':
-            raise RuntimeError("sel parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            raise RuntimeError("sel parameter was specified for %s, which doesn't support this parameter" % (ro_name))
         # calculate phase register
         if 'b_phase' in rocfg:
             ro_regs['phase_int'] = self.deg2int(phase, rocfg)
             ro_regs['phase_rounded'] = self.int2deg(ro_regs['phase_int'], rocfg)
         elif phase != 0:
-            raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            raise RuntimeError("phase parameter was specified for %s, which doesn't support this parameter" % (ro_name))
         return ro_regs
 
     def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq, flip_freq=False):
@@ -1213,7 +1214,7 @@ class AbsQickProgram(ABC):
                 raise RuntimeError("readout %d is static (PYNQ-configured) - frequency must be set in declaration"%(ch))
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
-            cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
+            cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel, ch=ch)
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
                 raise RuntimeError("readout %d is dynamic (tProc-configured) - freq/phase/sel parameters are set using tProc instructions, not in declaration"%(ch))
