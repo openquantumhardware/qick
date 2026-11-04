@@ -10,6 +10,115 @@ try:
 except:
     QickSoc = None
 
+import threading, time, functools, inspect
+
+class ClientLock:
+    """Gives one Pyro client (connection) at a time exclusive use of the QICK.
+
+    A client becomes the owner on its first call, and stays the owner while it has a call in progress
+    and for hold_time seconds after its last call (so a multi-round acquire() or a sweep loop is not interrupted).
+    Calls from other clients block (queue) until the owner is idle or disconnects.
+    Calls that don't come from a Pyro client (e.g. the streamer thread, or the QickSoc constructor) are never blocked.
+    """
+    def __init__(self, hold_time=5.0):
+        self.hold_time = hold_time
+        # Condition uses an RLock, so nested calls within the same thread are fine
+        self._cond = threading.Condition()
+        self._owner = None
+        self._owner_addr = None
+        self._active = 0
+        self._last = 0.0
+        self._waiting = 0
+
+    def _owner_busy(self):
+        if self._owner is None:
+            return False
+        if self._active > 0:
+            return True
+        return time.time() - self._last < self.hold_time
+
+    def enter(self, client, addr):
+        with self._cond:
+            if self._owner is not client:
+                self._waiting += 1
+                try:
+                    if self._owner_busy():
+                        print("QICK lock: client %s is waiting for client %s" % (addr, self._owner_addr))
+                    while self._owner_busy():
+                        # hold-time expiry doesn't notify, so wake up periodically
+                        self._cond.wait(timeout=0.2)
+                finally:
+                    self._waiting -= 1
+                if self._owner_addr != addr:
+                    print("QICK lock: client %s now owns the QICK" % (addr,))
+                self._owner = client
+                self._owner_addr = addr
+                self._active = 0
+            self._active += 1
+            self._last = time.time()
+
+    def exit(self, client):
+        with self._cond:
+            if self._owner is client:
+                self._active -= 1
+                self._last = time.time()
+            self._cond.notify_all()
+
+    def release(self, client):
+        """Called when a client disconnects."""
+        with self._cond:
+            if self._owner is client:
+                print("QICK lock: owner %s disconnected, releasing" % (self._owner_addr,))
+                self._owner = None
+                self._active = 0
+                self._cond.notify_all()
+
+    def status(self):
+        with self._cond:
+            busy = self._owner_busy()
+            return {'owner': self._owner_addr if busy else None,
+                    'waiting': self._waiting,
+                    'idle_time': time.time() - self._last if self._owner is not None else None}
+
+def _locked_method(func, lock):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        client = getattr(Pyro4.current_context, 'client', None)
+        if client is None:
+            # not a Pyro request (internal call from a server-side thread)
+            return func(*args, **kwargs)
+        lock.enter(client, getattr(Pyro4.current_context, 'client_sock_addr', None))
+        try:
+            return func(*args, **kwargs)
+        finally:
+            lock.exit(client)
+    return wrapper
+
+# methods that clients may call without waiting for the lock
+LOCK_EXEMPT = {'get_cfg', 'dump_cfg', 'get_lock_status'}
+
+def _make_locked_class(cls, lock):
+    """Make a subclass of cls where every public method goes through the ClientLock."""
+    attrs = {}
+    for name in dir(cls):
+        if name.startswith('_') or name in LOCK_EXEMPT:
+            continue
+        raw = inspect.getattr_static(cls, name)
+        if inspect.isfunction(raw):
+            attrs[name] = _locked_method(raw, lock)
+    attrs['get_lock_status'] = lambda self: lock.status()
+    return type(cls.__name__, (cls,), attrs)
+
+class _LockingDaemon(Pyro4.Daemon):
+    """Pyro daemon that releases the QICK lock when the owning client disconnects."""
+    def __init__(self, lock, **kwargs):
+        super().__init__(**kwargs)
+        self._qick_lock = lock
+
+    def clientDisconnect(self, conn):
+        self._qick_lock.release(conn)
+        super().clientDisconnect(conn)
+
 def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     """Starts a Pyro4 nameserver.
 
@@ -27,7 +136,7 @@ def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     Pyro4.config.PICKLE_PROTOCOL_VERSION=4
     Pyro4.naming.startNSloop(host=ns_host, port=ns_port)
 
-def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, iface='eth0', **kwargs):
+def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, iface='eth0', client_lock=True, lock_hold_time=5.0, **kwargs):
     """Initializes the QickSoc and starts a Pyro4 proxy server.
 
     Parameters
@@ -44,6 +153,12 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
         class to proxy, if you want to use a class other than QickSoc (e.g. if you need to use RFQickSoc)
     iface : str
         network interface whose address will be advertised - this should be the interface you expect to make Pyro connections on
+    client_lock : bool
+        if True, only one client at a time can use the QICK; calls from other clients wait until it is free
+        (the owner is free once it has been idle for lock_hold_time seconds, or disconnects)
+    lock_hold_time : float
+        how long (in seconds) a client keeps ownership after its last call;
+        must be longer than the client-side gaps between calls within a measurement (e.g. between rounds or sweep points)
     kwargs : optional named arguments
         any other options will be passed to the QickSoc constructor;
         see QickSoc documentation for details
@@ -74,11 +189,22 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
                     host = addrs_v4[0]
                 if name==iface:
                     break
-    daemon = Pyro4.Daemon(host=host)
+    if client_lock:
+        lock = ClientLock(hold_time=lock_hold_time)
+        daemon = _LockingDaemon(lock, host=host)
+        soc_class = _make_locked_class(soc_class, lock)
+    else:
+        daemon = Pyro4.Daemon(host=host)
 
     # if you want to use a different firmware image or set some initialization options, you would do that here
     soc = soc_class(**kwargs)
     print("initialized QICK")
+
+    if client_lock:
+        # the autoproxied members (tProc, streamer) can be called directly by clients, so lock them too
+        for obj in soc.autoproxy:
+            obj.__class__ = _make_locked_class(type(obj), lock)
+        print("client lock enabled (hold time %.1f s)" % (lock_hold_time,))
 
     # register the QickSoc in the daemon (so the daemon exposes the QickSoc over Pyro4)
     # and in the nameserver (so the client can find the QickSoc)
