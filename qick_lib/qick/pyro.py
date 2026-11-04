@@ -13,7 +13,12 @@ except:
 import threading, time, functools, inspect
 
 class ClientLock:
-    """Gives one Pyro client (connection) at a time exclusive use of the QICK.
+    """Gives one Pyro client at a time exclusive use of the QICK.
+
+    A client is identified by its IP address, not by its connection: a proxy can open new connections
+    (Pyro4 drops and reopens the connection after a KeyboardInterrupt during a call),
+    and autoproxied members (soc.streamer, soc.tproc) each use their own connection.
+    So all connections from one PC share ownership, and different PCs queue for each other.
 
     A client becomes the owner on its first call, and stays the owner while it has a call in progress
     and for hold_time seconds after its last call (so a multi-round acquire() or a sweep loop is not interrupted).
@@ -37,6 +42,14 @@ class ClientLock:
         self._queue = []     # waiting clients, oldest first
         self._seen = {}      # client -> last time it was seen waiting
         self._progress = None  # (client, info dict, time) reported by the owner
+        self._conns = {}     # open Pyro connection -> client id
+
+    def register(self, conn, addr):
+        """Map a Pyro connection to its client id (the peer IP address), remembering the connection."""
+        client = addr[0] if isinstance(addr, (tuple, list)) and addr else conn
+        with self._cond:
+            self._conns[conn] = client
+        return client
 
     def _owner_busy(self):
         if self._owner is None:
@@ -56,12 +69,12 @@ class ClientLock:
         if client in self._queue:
             self._queue.remove(client)
         self._seen.pop(client, None)
-        if client is not self._owner:
+        if client != self._owner:
             self._addrs.pop(client, None)
 
     def _try_take(self, client, addr):
         """Wait in the queue for one step. Return True if the client now owns the lock."""
-        if self._owner is client:
+        if self._owner == client:
             return True
         if client not in self._queue:
             self._queue.append(client)
@@ -70,7 +83,7 @@ class ClientLock:
                 print("QICK lock: client %s is waiting for client %s" % (addr, self._addrs.get(self._owner)))
         self._seen[client] = time.time()
         self._expire_queue()
-        if self._owner_busy() or self._queue[0] is not client:
+        if self._owner_busy() or self._queue[0] != client:
             return False
         self._queue.remove(client)
         self._seen.pop(client, None)
@@ -95,7 +108,7 @@ class ClientLock:
 
     def exit(self, client):
         with self._cond:
-            if self._owner is client:
+            if self._owner == client:
                 self._active -= 1
                 self._last = time.time()
             self._cond.notify_all()
@@ -117,13 +130,16 @@ class ClientLock:
     def report_progress(self, client, info):
         """The owner can report its progress, so waiting clients can see it."""
         with self._cond:
-            if self._owner is client:
+            if self._owner == client:
                 self._progress = (client, dict(info), time.time())
 
-    def release(self, client):
-        """Called when a client disconnects."""
+    def release(self, conn):
+        """Called when a connection closes. The client is released once it has no open connections left."""
         with self._cond:
-            if self._owner is client:
+            client = self._conns.pop(conn, None)
+            if client is None or client in self._conns.values():
+                return
+            if self._owner == client:
                 print("QICK lock: owner %s disconnected, releasing" % (self._addrs.get(client),))
                 self._owner = None
                 self._active = 0
@@ -136,7 +152,7 @@ class ClientLock:
         busy = self._owner_busy()
         owner = self._owner if busy else None
         progress = None
-        if owner is not None and self._progress is not None and self._progress[0] is owner:
+        if owner is not None and self._progress is not None and self._progress[0] == owner:
             progress = dict(self._progress[1], age=time.time() - self._progress[2])
         readout = None
         if owner is not None and self.readout_progress is not None:
@@ -145,7 +161,7 @@ class ClientLock:
             except Exception:
                 readout = None
         position = self._queue.index(client) + 1 if client in self._queue else None
-        return {'granted': owner is client or (owner is None and position is None),
+        return {'granted': owner == client or (owner is None and position is None),
                 'you': addr,
                 'owner': self._addrs.get(owner) if owner is not None else None,
                 'owner_progress': progress,
@@ -159,14 +175,21 @@ class ClientLock:
         with self._cond:
             return self._status(client, addr)
 
-def _pyro_caller():
+def _pyro_conn():
     ctx = Pyro4.current_context
     return getattr(ctx, 'client', None), getattr(ctx, 'client_sock_addr', None)
+
+def _caller(lock):
+    """(client id, address) of the Pyro caller, or (None, None) for internal calls."""
+    conn, addr = _pyro_conn()
+    if conn is None:
+        return None, None
+    return lock.register(conn, addr), addr
 
 def _locked_method(func, lock):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        client, addr = _pyro_caller()
+        client, addr = _caller(lock)
         if client is None:
             # not a Pyro request (internal call from a server-side thread)
             return func(*args, **kwargs)
@@ -192,20 +215,20 @@ def _make_locked_class(cls, lock):
 
     def get_lock_status(self):
         """Who owns the QICK, the queue, and the owner's progress. Never blocks."""
-        return lock.status(*_pyro_caller())
+        return lock.status(*_caller(lock))
 
     def wait_for_lock(self, timeout=1.0):
         """Wait up to timeout seconds to become the QICK owner, holding a place in the queue.
         Returns the get_lock_status() dict; 'granted' is True once this client owns the QICK.
         Call this repeatedly (at least every few seconds) to keep your place in the queue."""
-        client, addr = _pyro_caller()
+        client, addr = _caller(lock)
         if client is None:
             return {'granted': True}
         return lock.wait(client, addr, timeout)
 
     def report_lock_progress(self, info):
         """Owner-only: publish a progress dict (e.g. completed/total) for waiting clients to see."""
-        client, _ = _pyro_caller()
+        client, _ = _caller(lock)
         if client is not None:
             lock.report_progress(client, info)
 
