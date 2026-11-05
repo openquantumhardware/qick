@@ -819,17 +819,17 @@ class QickConfig():
         """
 
         ro_regs = {}
-        ro_name = "readout" if ch is None else "readout %d" % (ch)
+        ro_name = "a readout" if ch is None else "readout %d" % (ch)
         if rocfg['has_outsel']:
             ro_regs['sel'] = sel
         elif sel != 'product':
-            raise RuntimeError("sel parameter was specified for %s, which doesn't support this parameter" % (ro_name))
+            raise RuntimeError("sel parameter was specified for %s which doesn't support this parameter" % (ro_name))
         # calculate phase register
         if 'b_phase' in rocfg:
             ro_regs['phase_int'] = self.deg2int(phase, rocfg)
             ro_regs['phase_rounded'] = self.int2deg(ro_regs['phase_int'], rocfg)
         elif phase != 0:
-            raise RuntimeError("phase parameter was specified for %s, which doesn't support this parameter" % (ro_name))
+            raise RuntimeError("phase parameter was specified for %s which doesn't support this parameter" % (ro_name))
         return ro_regs
 
     def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq, flip_freq=False):
