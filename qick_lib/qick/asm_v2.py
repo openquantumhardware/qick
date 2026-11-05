@@ -1786,7 +1786,8 @@ class StandardGenManager(AbsGenManager):
 
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
 
-        # gain is a fraction of full scale, and a value past +/-1 does not fit in the gain register
+        # gain is a fraction of full scale, a value past +/-1 does not fit in the gain register and would be truncated by Waveform.compile()
+        # raise an error instead
         if par['gain'].maxval() > 1 or par['gain'].minval() < -1:
             raise RuntimeError("gen %d has a pulse with gain in the range [%f, %f], but gain must be in [-1, 1] (a fraction of full scale, not DAC units)" % (self.ch, par['gain'].minval(), par['gain'].maxval()))
 
@@ -1806,6 +1807,7 @@ class StandardGenManager(AbsGenManager):
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv']*self.chcfg['maxv_scale'], parname='gain', trunc=True)
         else:
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', trunc=True)
+        # warn if a nonzero requested gain is being rounded to zero
         if not par['gain'].spans and par['gain'].start != 0 and w['gainreg'].start == 0:
             logger.warning("gen %d has a pulse with gain %g, which rounds to 0 (the gain step is 1/%d of full scale)" % (self.ch, par['gain'].start, self.chcfg['maxv']))
 
