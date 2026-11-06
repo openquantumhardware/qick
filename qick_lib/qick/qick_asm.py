@@ -1619,12 +1619,14 @@ class AbsQickProgram(ABC):
             Qick object
         """
         # for pyro compatibility, convert numpy arrays to Python lists
+        # a local QickSoc takes the arrays as they are, because the list conversion is slow on the board CPU
+        to_send = (lambda x: x.tolist()) if hasattr(soc, '_pyroUri') else (lambda x: x)
         for iCh, pulses in enumerate(self.envelopes):
             for name, pulse in pulses['envs'].items():
                 data = pulse['data']
                 assert data.dtype==np.int16
                 soc.load_envelope(iCh,
-                        data=data.tolist(),
+                        data=to_send(data),
                         addr=pulse['addr'])
 
         for ch, cfg in self.ro_chs.items():
@@ -1636,7 +1638,7 @@ class AbsQickProgram(ABC):
                 else:
                     weights = cfg['weights']
                 assert weights.dtype==np.int16
-                soc.load_weights(ch, weights.tolist())
+                soc.load_weights(ch, to_send(weights))
 
     def print_sg_mem(self, sg_idx=0, gen_file=False):
         """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
