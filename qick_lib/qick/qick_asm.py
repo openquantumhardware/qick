@@ -800,7 +800,11 @@ class QickConfig():
             tone['freq_int'] = self.freq2reg(f_rounded, gen_ch=gen_ch)
             if gencfg['has_gain']:
                 gain = 1.0 if gains is None else gains[i]
+                if abs(gain) > 1:
+                    raise RuntimeError("generator %d tone %d has gain %f, but gain must be in [-1, 1] (a fraction of full scale)" % (gen_ch, i, gain))
                 tone['gain_int'] = int(np.round(gain * gencfg['maxv']))
+                if gain != 0 and tone['gain_int'] == 0:
+                    logger.warning("generator %d tone %d has gain %g, which rounds to 0 (the gain step is 1/%d of full scale)" % (gen_ch, i, gain, gencfg['maxv']))
                 tone['gain_rounded'] = tone['gain_int']/gencfg['maxv']
             if gencfg['has_phase']:
                 phase = 0.0 if phases is None else phases[i]
