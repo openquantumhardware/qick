@@ -194,6 +194,12 @@ STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE=NoTimingRelaxation
 For other strategies, create the project and let Hog list the differences
 (`./Hog/Do CHECKLIST <project>`).
 
+A directive that differs from the strategy goes in `proj.tcl`, after the `strategy` line,
+and the same value in `hog.conf`. Hog applies `hog.conf` when it creates the project and
+then sources `proj.tcl`, whose strategy resets the steps of the run: a directive only in
+`hog.conf` never reaches the build, and Hog then sets version 0 (2x4/tpv1_std and
+216/tpv1_std have an example).
+
 ### 3.4 Create proj.tcl
 
 `proj.tcl` is sourced by HOG via `others.src` after the project exists.

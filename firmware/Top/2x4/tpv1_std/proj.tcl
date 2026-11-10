@@ -131,6 +131,13 @@ if {$wrapper eq ""} {
 # Synthesis and implementation strategies
 set_property strategy "Flow_PerfOptimized_high"   [get_runs synth_1]
 set_property strategy "Performance_NetDelay_high" [get_runs impl_1]
+# Directives the strategy does not give, from an impl_1 sweep on the synthesis of build 9D75BD7 (2026-11-10): the strategy's
+# ExtraNetDelay_high / NoTimingRelaxation gave WNS -0.064 ns in the DAC clock, these +0.010 ns. Set here, not only in hog.conf:
+# Hog applies hog.conf before it sources this file, and the strategy above resets them. hog.conf declares the same values.
+set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE              ExtraPostPlacementOpt [get_runs impl_1]
+set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE              AggressiveExplore     [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED    true                  [get_runs impl_1]
+set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore     [get_runs impl_1]
 
 # What Hog does in post-creation.tcl, for the standalone project
 if {$qick_standalone} {
