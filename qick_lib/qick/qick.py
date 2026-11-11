@@ -154,7 +154,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                 # some firmwares (older versions of Vivado?) do not have link coupling params for the DAC
                 if ('C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)) in ip_params:
                     tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
-                tilecfg['f_ref'] = float(ip_params['C_DAC%d_Refclk_Freq' % (iTile)])
+                tilecfg['f_ref'] = float(ip_params['C_%s%d_Refclk_Freq' % (tiletype.upper(), iTile)])
                 f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
                 f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
                 fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
