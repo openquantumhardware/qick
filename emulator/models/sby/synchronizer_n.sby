@@ -1,0 +1,18 @@
+[options]
+mode prove
+depth 20
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/axis_signal_gen_v6/src/synchronizer_n.vhd
+../../../firmware/ip/axis_signal_gen_v6/src/verilog/synchronizer_n_sv.sv
+synchronizer_n_sva.sv
+
+[script]
+plugin -i ghdl
+ghdl --std=08 synchronizer_n.vhd -e synchronizer_n
+read_verilog -sv -formal synchronizer_n_sv.sv
+read_verilog -sv -formal synchronizer_n_sva.sv
+prep -top synchronizer_n_sv

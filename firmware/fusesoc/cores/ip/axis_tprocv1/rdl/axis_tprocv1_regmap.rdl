@@ -1,0 +1,155 @@
+// axis_tprocv1_regmap.rdl
+// SystemRDL 2.0 register definition for the axis_tprocv1 IP core.
+//
+// NOTE: The real RTL register decode/handshake is implemented by
+//       axi_slv_tprocv1.sv. This RDL is the source of the register map of the
+//       Python driver (AxisTProc64x32_x8), documentation, address-map
+//       generation and software headers (PeakRDL-html / PeakRDL-ipxact /
+//       PeakRDL-c). It does NOT generate the RTL register block. Field access modes are documented to match axi_slv_tprocv1.
+//
+// Address map implemented by axi_slv_tprocv1:
+//   - Lower 256 bytes (64 x 32-bit words) reserved for the register file.
+//     reg0..reg5 are functional; reg6/reg7 exist in HW but are unused.
+//   - Byte offset >= 0x100 is the Data Memory (DMEM) single-access window,
+//     used by the driver as array[addr + NREG] (NREG = 64 words = 0x100).
+
+addrmap axis_tprocv1 {
+    name = "axis_tprocv1 Registers";
+    desc = "Register map for the QICK tProcessor V1 (axis_tprocv1) IP core.
+            Control registers occupy the lower 256 bytes; the upper window
+            (>= 0x100) is the data-memory single-access region. The RTL decode
+            is implemented in axi_slv_tprocv1 (this RDL is for docs/headers).";
+
+    default regwidth    = 32;
+    default accesswidth = 32;
+
+    //--------------------------------------------------------------------------
+    // reg0 @ 0x00 : START_SRC_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "START_SRC_REG";
+        desc = "Start source selection. 0 = internal start (via START_REG.START),
+                1 = external start (via the 'start' input pin). The start logic
+                triggers on a rising edge: a low level arms; a high level fires.";
+        field {
+            desc = "Start source select (0=internal, 1=external).";
+            sw = rw; hw = r;
+        } START_SRC[0:0] = 0;
+    } START_SRC_REG @ 0x00;
+
+    //--------------------------------------------------------------------------
+    // reg1 @ 0x04 : START_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "START_REG";
+        desc = "Internal start control (when START_SRC_REG.START_SRC = 0).
+                0 = init (arms trigger), 1 = start (fires trigger). Software
+                pulses 0 -> 1 to start the program.";
+        field {
+            desc = "Internal start (0=init, 1=start).";
+            sw = rw; hw = r;
+        } START[0:0] = 0;
+    } START_REG @ 0x04;
+
+    //--------------------------------------------------------------------------
+    // reg2 @ 0x08 : MEM_MODE_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "MEM_MODE_REG";
+        desc = "Data-memory AXIS transfer mode. 0 = AXIS Read (memory -> m0_axis),
+                1 = AXIS Write (s0_axis -> memory).";
+        field {
+            desc = "AXIS transfer direction (0=read, 1=write).";
+            sw = rw; hw = r;
+        } MEM_MODE[0:0] = 0;
+    } MEM_MODE_REG @ 0x08;
+
+    //--------------------------------------------------------------------------
+    // reg3 @ 0x0C : MEM_START_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "MEM_START_REG";
+        desc = "Data-memory AXIS transfer start. 0 = stop/idle (single-access
+                available), 1 = execute the AXIS read/write. While set, the memory
+                arbiter is busy and single accesses return AXI SLVERR.";
+        field {
+            desc = "Start AXIS transfer (0=stop, 1=execute).";
+            sw = rw; hw = r;
+        } MEM_START[0:0] = 0;
+    } MEM_START_REG @ 0x0C;
+
+    //--------------------------------------------------------------------------
+    // reg4 @ 0x10 : MEM_ADDR_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "MEM_ADDR_REG";
+        desc = "Starting data-memory (sample) address for AXIS read/write mode.
+                Only the lower DMEM_N bits are significant in hardware.";
+        field {
+            desc = "AXIS start address (sample/word based).";
+            sw = rw; hw = r;
+        } MEM_ADDR[31:0] = 0;
+    } MEM_ADDR_REG @ 0x10;
+
+    //--------------------------------------------------------------------------
+    // reg5 @ 0x14 : MEM_LEN_REG
+    //--------------------------------------------------------------------------
+    reg {
+        name = "MEM_LEN_REG";
+        desc = "Number of samples (32-bit words) to transfer in AXIS read/write
+                mode.";
+        field {
+            desc = "AXIS transfer length in samples.";
+            sw = rw; hw = r;
+        } MEM_LEN[31:0] = 0;
+    } MEM_LEN_REG @ 0x14;
+
+    //--------------------------------------------------------------------------
+    // reg6 @ 0x18 : RESERVED0  (present in HW register file, unused by driver)
+    //--------------------------------------------------------------------------
+    reg {
+        name = "RESERVED0";
+        desc = "Reserved. Present in the hardware register file (reg6) but not
+                used by the current firmware/driver.";
+        field {
+            desc = "Reserved.";
+            sw = rw; hw = r;
+        } RSVD[31:0] = 0;
+    } RESERVED0 @ 0x18;
+
+    //--------------------------------------------------------------------------
+    // reg7 @ 0x1C : RESERVED1  (present in HW register file, unused by driver)
+    //--------------------------------------------------------------------------
+    reg {
+        name = "RESERVED1";
+        desc = "Reserved. Present in the hardware register file (reg7) but not
+                used by the current firmware/driver.";
+        field {
+            desc = "Reserved.";
+            sw = rw; hw = r;
+        } RSVD[31:0] = 0;
+    } RESERVED1 @ 0x1C;
+
+    //--------------------------------------------------------------------------
+    // Data Memory single-access window @ 0x100
+    //
+    // Reserved by axi_slv_tprocv1 (NREG = 64 words = 256 bytes). Any AXI access
+    // at byte offset >= 0x100 is decoded as a single read/write to the external
+    // data memory (DMEM) through the exec/exec_ack handshake.
+    //
+    // Driver access: self.mmio.array[addr + NREG]  (byte = 0x100 + addr*4).
+    // Returns AXI SLVERR while an AXIS transfer is in progress (busy).
+    //
+    // Modeled as an external memory region for documentation/address-map only;
+    // the actual decode lives in axi_slv_tprocv1. mementries = 2**DMEM_N.
+    //--------------------------------------------------------------------------
+    //external mem {
+    //    name = "DMEM";
+    //    desc = "Data-memory single-access window. Byte offset 0x100 onward maps
+    //            to DMEM word 'addr' (driver array[addr + 64]). Single read/write
+    //            only; handled by axi_slv_tprocv1, not by a generated reg block.";
+    //    mementries = 1024;   // 2**DMEM_N (DMEM_N = 10 default; regenerate if changed)
+    //    memwidth   = 32;
+    //    sw = rw;
+    //} DMEM @ 0x100;
+};

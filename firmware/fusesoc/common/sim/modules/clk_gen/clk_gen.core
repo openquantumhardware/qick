@@ -1,0 +1,22 @@
+CAPI=2:
+name: qick:common:clk_gen:0.2.0
+description: Simulation clock with FREQ (Hz), PHASE (deg) and DUTY_CYCLE (%) parameters
+
+filesets:
+  hdl:
+    files:
+      - hdl/clk_gen.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets: [hdl]
+
+  lint:
+    <<: *default
+    default_tool: verilator
+    toplevel: clk_gen
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall, --timing]

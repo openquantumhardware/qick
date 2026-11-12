@@ -1,0 +1,63 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jun 24 17:04:47 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-7.562918 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.tpv1_timed_dispatch_ut.
+[sst_width] 206
+[signals_width] 182
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.clk
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.rstn
+@22
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.t_cnt[47:0]
+@28
+[color] 6
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.fifo_rd_en
+@22
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.fifo_dout[215:0]
+@28
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.fifo_empty
+[color] 6
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.waitt
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.waitt_i
+[color] 3
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.m_axis_tready
+[color] 6
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.m_axis_tvalid
+@22
+[color] 6
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.m_axis_tdata[159:0]
+@23
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.t_inst[47:0]
+@22
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.opcode_i[7:0]
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.p0_i[31:0]
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.p1_i[31:0]
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.p2_i[31:0]
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.p3_i[31:0]
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.p4_i[31:0]
+@28
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.rd_en_i
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.src_i
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.state[2:0]
+@22
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.t_inst[47:0]
+@28
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.tvalid_i
+testrunner.__ts.tpv1_timed_dispatch_ut.u_dut.waitt_ack
+[pattern_trace] 1
+[pattern_trace] 0

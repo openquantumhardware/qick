@@ -1,0 +1,139 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jul 24 14:03:42 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-23.932106 1740000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.mr_buffer_et_ut.
+[treeopen] testrunner.__ts.mr_buffer_et_ut.dut.
+[treeopen] testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.
+[sst_width] 365
+[signals_width] 351
+[sst_expanded] 1
+[sst_vpaned_height] 452
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_aclk
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_aresetn
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.i_reg_is_readonly[15:0]
+@c00200
+-w_ch
+@24
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_wdata[31:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_wready
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_wstrb[3:0]
+@28
+[color] 3
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_wvalid
+@1401200
+-w_ch
+@c00200
+-aw_ch
+@24
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_awaddr[5:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_awprot[2:0]
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_awready
+[color] 3
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_awvalid
+@1401200
+-aw_ch
+@c00200
+-b_ch
+@28
+[color] 3
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_bready
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_bresp[1:0]
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_bvalid
+@1401200
+-b_ch
+@c00200
+-ar_ch
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_araddr[5:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_arprot[2:0]
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_arready
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_arvalid
+@1401200
+-ar_ch
+@c00200
+-r_ch
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_rdata[31:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_rready
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_rresp[1:0]
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.s_axi_rvalid
+@1401200
+-r_ch
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.slv_reg_rden
+testrunner.__ts.mr_buffer_et_ut.dut.axil_slv_i.slv_reg_wren
+@800200
+-mr_buffer
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dr_start_reg
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dw_capture_reg
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.debug_reg[31:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.trigger
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.addrb[7:0]
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dib[15:0]
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dob_c[127:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dr_start_reg_resync
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.dw_capture_reg_resync
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.enb
+@800200
+-s_axis
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_aclk
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_aresetn
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tready
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tvalid
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tdata[127:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tlast
+@29
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tready_force
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tready_i[7:0]
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_axis_tstrb[15:0]
+@1000200
+-s_axis
+@800200
+-m_axis
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_aclk
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_aresetn
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tready
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tvalid
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tdata[15:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tlast
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tstrb[1:0]
+@1000200
+-m_axis
+@22
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_axis_tdata_int[15:0]
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.m_dbg_probe[31:0]
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.s_dbg_probe[31:0]
+@28
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.trigger_or_dbg
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.trigger_resync
+testrunner.__ts.mr_buffer_et_ut.dut.mr_buffer_i.web
+@1000200
+-mr_buffer
+[pattern_trace] 1
+[pattern_trace] 0

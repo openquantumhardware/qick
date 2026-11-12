@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/xcom_ooc.xdc

@@ -1,0 +1,107 @@
+// axis_kidsim_v3_regmap.rdl
+// SystemRDL register definition for axis_kidsim_v3 IP core.
+// L-lane KID simulator. Per-lane config: write registers then pulse WE with
+// ADDR set to the target lane. See kidsim / kidsim_top.
+addrmap axis_kidsim_v3 {
+    name = "axis_kidsim_v3 Registers";
+    desc = "Registers for the axis_kidsim_v3 IP core (L-lane KID simulator).";
+
+    default regwidth   = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    // ------------------------------------------------------------------
+    // Chirp / DDS ramp configuration (see ramp_gen / dds_phase_ctrl).
+    // ramp(n) = B - n*M, for n in [0, N], one step every W cycles.
+    // pinc(n) = FREQ - ramp(n).
+    // ------------------------------------------------------------------
+    reg {
+        name = "DDS_BVAL_REG";
+        desc = "Chirp ramp start value B (signed Q15).";
+        field { sw = rw; hw = r; } BVAL[15:0] = 0;
+    } DDS_BVAL_REG @0x00;
+
+    reg {
+        name = "DDS_SLOPE_REG";
+        desc = "Chirp ramp slope M per step (signed Q15).";
+        field { sw = rw; hw = r; } SLOPE[15:0] = 0;
+    } DDS_SLOPE_REG @0x04;
+
+    reg {
+        name = "DDS_STEPS_REG";
+        desc = "Number of chirp ramp steps N.";
+        field { sw = rw; hw = r; } STEPS[15:0] = 0;
+    } DDS_STEPS_REG @0x08;
+
+    reg {
+        name = "DDS_WAIT_REG";
+        desc = "Wait cycles per chirp step W (W=0 => one step per cycle).";
+        field { sw = rw; hw = r; } WAIT[15:0] = 0;
+    } DDS_WAIT_REG @0x0C;
+
+    reg {
+        name = "DDS_FREQ_REG";
+        desc = "DDS base phase increment (frequency).";
+        field { sw = rw; hw = r; } FREQ[15:0] = 0;
+    } DDS_FREQ_REG @0x10;
+
+    // ------------------------------------------------------------------
+    // IIR resonator coefficients (see iir_iq). H(z)=G(1-C0 z^-1)/(1-C1 z^-1).
+    // Signed Q15. Pass-through: C0=0, C1=0, G=0x7FFF.
+    // ------------------------------------------------------------------
+    reg {
+        name = "IIR_C0_REG";
+        desc = "IIR feed-forward (zero) coefficient C0 (signed Q15).";
+        field { sw = rw; hw = r; } C0[15:0] = 0;
+    } IIR_C0_REG @0x14;
+
+    reg {
+        name = "IIR_C1_REG";
+        desc = "IIR feed-back (pole) coefficient C1 (signed Q15).";
+        field { sw = rw; hw = r; } C1[15:0] = 0;
+    } IIR_C1_REG @0x18;
+
+    reg {
+        name = "IIR_G_REG";
+        desc = "IIR output gain G (signed Q15; 0x7FFF ~= 1.0).";
+        field { sw = rw; hw = r; } G[15:0] = 0;
+    } IIR_G_REG @0x1C;
+
+    // ------------------------------------------------------------------
+    // Output selection.
+    //   0 = processed signal (demod / IIR / remod)
+    //   1 = DDS carrier only
+    //   2 = input bypass  (default)
+    //   3 = zero
+    // ------------------------------------------------------------------
+    reg {
+        name = "OUTSEL_REG";
+        desc = "Output select: 0=signal, 1=DDS, 2=bypass, 3=zero.";
+        field { sw = rw; hw = r; } OUTSEL[1:0] = 2;
+    } OUTSEL_REG @0x20;
+
+    // ------------------------------------------------------------------
+    // Puncturing: index of the sample selected per frame (see punct).
+    // ------------------------------------------------------------------
+    reg {
+        name = "PUNCT_ID_REG";
+        desc = "Puncturing sample index within a frame.";
+        field { sw = rw; hw = r; } PUNCT_ID[15:0] = 0;
+    } PUNCT_ID_REG @0x24;
+
+    // ------------------------------------------------------------------
+    // Lane addressing for register writes.
+    // A write with WE=1 lands on the lane numbered ADDR.
+    // ------------------------------------------------------------------
+    reg {
+        name = "ADDR_REG";
+        desc = "Target lane index for a configuration write.";
+        field { sw = rw; hw = r; } ADDR[7:0] = 0;
+    } ADDR_REG @0x28;
+
+    reg {
+        name = "WE_REG";
+        desc = "Write enable. Pulse 1 (with ADDR set) to latch config into a lane.";
+        field { sw = rw; hw = r; } WE[0:0] = 0;
+    } WE_REG @0x2C;
+};

@@ -11,7 +11,7 @@ of :doc:`readout_v2`: digital down-converter (DDC) IP blocks that sit
 between the RFDC's ADC output and :doc:`avg_buffer`, but whose
 frequency/phase/output-selection/length are set **by the tProcessor, in real
 time, once per shot**, instead of being written ahead of time as PYNQ
-registers from software. Both modules live under ``firmware/ip/`` (in
+registers from software. Both modules live under ``firmware/fusesoc/cores/ip/`` (in
 ``axis_readout_v3/`` and ``axis_dyn_readout_v1/`` respectively) and are
 exposed to Python through ``qick.drivers.readout.AxisReadoutV3`` and
 ``AxisDynReadoutV1``.

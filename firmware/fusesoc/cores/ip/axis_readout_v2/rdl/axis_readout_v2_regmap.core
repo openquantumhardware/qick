@@ -1,0 +1,15 @@
+CAPI=2:
+name: qick:ip:axis_readout_v2_regmap:0.1.0
+description: SystemRDL register map (docs/driver) for axis_readout_v2. RTL decode is the generic axil_slv core.
+
+filesets:
+  rdl:
+    files:
+      - axis_readout_v2_regmap.rdl: {file_type: user}
+
+        ## Optional: if there are generated SV docs/headers with PeakRDL and check them in.
+        ## These are generated artifacts, not hand-written. Keep only if you commit them.
+        #generated:
+        #  files:
+        #    - axis_readout_v2_regmap.sv:     {file_type: systemVerilogSource, is_include_file: true}
+        #    - axis_readout_v2_regmap_pkg.sv: {file_type: systemVerilogSource, is_include_file: true}

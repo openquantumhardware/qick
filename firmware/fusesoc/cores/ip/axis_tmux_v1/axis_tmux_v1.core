@@ -1,0 +1,63 @@
+CAPI=2:
+name: qick:ip:axis_tmux_v1:1.0.0
+description: "QICK AXI4-Stream demultiplexer selected by the word's top byte (axis_tmux_v1) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_tmux_v1.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/ref/axis_tmux_v1_legacy.sv
+      - tests/axis_tmux_v1_tc00.sv
+      - tests/axis_tmux_v1_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_tmux_v1
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_tmux_v1
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/axis_tmux_v1_tc00.sv

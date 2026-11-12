@@ -1,0 +1,51 @@
+CAPI=2:
+name: qick:utils:qproc_inport_reg:1.0.0
+description: qproc_inport_reg (utils library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/qproc_inport_reg.sv
+    file_type: systemVerilogSource
+  tb:
+    files:
+      - tests/qproc_inport_reg_tc00.sv
+      - tests/qproc_inport_reg_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/qproc_inport_reg_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: qproc_inport_reg
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: qproc_inport_reg
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

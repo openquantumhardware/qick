@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/dsp/ssrfft_8x64_sync.sv

@@ -1,0 +1,66 @@
+CAPI=2:
+name: qick:dsp:pfb_ddsprod:1.0.0
+description: >
+  PFB readouts' per-output down-conversion: a phase-coherent DDS
+  (dds_compiler_pfb_ro) multiplied into the selected channel. Port of the
+  legacy ddsprod + dds_top + dds_ctrl + cmult_16x16 (axis_pfb_readout_v3/v4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb_ddsprod.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:mult_32x32
+      - qick:dsp:dds_compiler_pfb_ro
+
+  tb:
+    files:
+      - tests/ref/latency_reg_legacy.v: {file_type: verilogSource}
+      - tests/ref/mult_32x32_legacy.v: {file_type: verilogSource}
+      - tests/ref/cmult_sub_legacy.v: {file_type: verilogSource}
+      - tests/ref/cmult_16x16_legacy.v: {file_type: verilogSource}
+      - tests/ref/dds_ctrl_legacy.sv
+      - tests/ref/dds_top_legacy.sv
+      - tests/ref/ddsprod_legacy.sv
+      - tests/pfb_ddsprod_tc00.sv
+      - tests/pfb_ddsprod_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb_ddsprod
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb_ddsprod
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_ddsprod_tc00.sv

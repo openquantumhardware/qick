@@ -1,0 +1,73 @@
+CAPI=2:
+name: qick:ip:axis_pfb_readout_v4:1.0.0
+description: "QICK PFB readout, 64-channel filter bank with 8 DDS-down-converted outputs (axis_pfb_readout_v4) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_pfb_readout_v4.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:axis_pfb_readout_v4_regmap
+      - qick:axi:axil_slv
+      - qick:dsp:pfb_readout
+
+  constraints:
+    files:
+      - constraints/axis_pfb_readout_v4.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/ref/axi_slv_pfb_v4_legacy.v: {file_type: verilogSource}
+      - tests/axis_pfb_readout_v4_tc00.sv
+      - tests/axis_pfb_readout_v4_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_pfb_readout_v4
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_pfb_readout_v4
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/axis_pfb_readout_v4_tc00.sv

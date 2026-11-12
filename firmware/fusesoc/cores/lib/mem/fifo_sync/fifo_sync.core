@@ -1,0 +1,83 @@
+CAPI=2:
+name: qick:mem:fifo_sync:1.0.0
+description: FIFO implementation.
+
+filesets:
+  hdl:
+    files:
+      - hdl/fifo_sync.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/fifo_sync_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/fifo_sync_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: fifo_sync
+    parameters:
+      - NB
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fifo_sync
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+        synth_options:
+          - -include_dirs $XILINX_VIVADO/data/ip/xpm
+
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

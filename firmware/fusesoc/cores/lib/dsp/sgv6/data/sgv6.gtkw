@@ -1,0 +1,66 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul  1 21:33:57 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-10.119494 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.sgv6_ut.
+[treeopen] testrunner.__ts.sgv6_ut.dut.
+[sst_width] 317
+[signals_width] 206
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_clk
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_rstn
+[color] 6
+testrunner.__ts.sgv6_ut.dut.o_fifo_rd_en
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_fifo_empty
+@22
+[color] 6
+testrunner.__ts.sgv6_ut.dut.o_mem_addr[15:0]
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_fifo_dout[159:0]
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_mem_dout_real[255:0]
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_mem_dout_imag[255:0]
+@28
+[color] 3
+testrunner.__ts.sgv6_ut.dut.i_axis_tready
+[color] 6
+testrunner.__ts.sgv6_ut.dut.o_axis_tvalid
+@22
+[color] 6
+testrunner.__ts.sgv6_ut.dut.o_axis_tdata[255:0]
+@29
+[color] 6
+testrunner.__ts.sgv6_ut.dut.o_sat
+@22
+testrunner.__ts.sgv6_ut.dut.dds_ctrl_int[1151:0]
+testrunner.__ts.sgv6_ut.dut.dds_ctrl_int_r[1151:0]
+@28
+testrunner.__ts.sgv6_ut.dut.dds_tvalid_r
+testrunner.__ts.sgv6_ut.dut.en_int
+testrunner.__ts.sgv6_ut.dut.en_la
+testrunner.__ts.sgv6_ut.dut.en_la_r
+@22
+testrunner.__ts.sgv6_ut.dut.gain_int[15:0]
+testrunner.__ts.sgv6_ut.dut.gain_la[15:0]
+testrunner.__ts.sgv6_ut.dut.mem_addr_int[15:0]
+testrunner.__ts.sgv6_ut.dut.mem_addr_int_r[15:0]
+testrunner.__ts.sgv6_ut.dut.sat_lane[15:0]
+@28
+testrunner.__ts.sgv6_ut.dut.src_int[1:0]
+testrunner.__ts.sgv6_ut.dut.src_la[1:0]
+testrunner.__ts.sgv6_ut.dut.stdy_int
+testrunner.__ts.sgv6_ut.dut.stdy_la
+[pattern_trace] 1
+[pattern_trace] 0

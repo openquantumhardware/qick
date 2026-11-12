@@ -1,0 +1,71 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun  8 14:51:24 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-18.353382 852000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_to_bram_sg_ut.
+[treeopen] testrunner.__ts.axis_to_bram_sg_ut.u_dut.
+[sst_width] 206
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@24
+[color] 2
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.start_addr_reg[31:0]
+@28
+[color] 2
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.capture_reg
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.clk
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.rstn
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.capture_sync
+@22
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.d3[15:0]
+@28
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.read_start_addr_state
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.rw_tdata_state
+@2028
+[color] 2
+^1 firmware/fusesoc/cores/lib/axi/axis_to_bram_sg/data/states.txt
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.state[1:0]
+@28
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.tready_i
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.tready_r
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.v3
+[color] 2
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.handshake
+@800200
+-s_axis
+@420
+[color] 3
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tdata[15:0]
+@28
+[color] 3
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tlast
+[color] 3
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tready
+[color] 3
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.axis.tvalid
+@1000200
+-s_axis
+@800200
+-bram_if
+@25
+[color] 6
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.addr[7:0]
+@421
+[color] 6
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.din[15:0]
+@29
+[color] 6
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.en
+[color] 6
+testrunner.__ts.axis_to_bram_sg_ut.u_dut.bram.we
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0

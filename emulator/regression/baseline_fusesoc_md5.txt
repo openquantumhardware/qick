@@ -1,0 +1,7 @@
+79366e181132d1d892373102b6f7ff95  multi_pulse_dec  shape=(584, 2)  max|x|=4338
+53a3ff3003528f0113fedfda093427f4  simple_sweep_dec  shape=(5, 108, 2)  max|x|=3994
+d6888cf94189b8b39dc3baeeff7bc862  simple_sweep_avg  shape=(1, 5, 2)  max|x|=837.514
+27306d33799d441198819d9e546c53b3  multi_pulse_avg  shape=(1, 2)  max|x|=910.551
+273a36f7bc1d2f397b25fa68d8990741  mux_pfb_dec  shape=(2, 73, 2)  max|x|=2525
+1c4dc283899962d0de1e1cc549d8a541  std_readout_dec  shape=(1, 108, 2)  max|x|=4219
+89bc99d80193852f3d420c497b11c0a5  std_readout_avg  shape=(1, 2)  max|x|=899.854

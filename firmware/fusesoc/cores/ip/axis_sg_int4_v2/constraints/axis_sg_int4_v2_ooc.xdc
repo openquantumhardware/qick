@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_sg_int4_v2_ooc.xdc

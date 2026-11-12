@@ -1,0 +1,82 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jun 12 15:00:16 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-18.045782 520000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.bram_to_axis_ut.
+[treeopen] testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.
+[sst_width] 206
+[signals_width] 192
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@24
+[color] 2
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.start_reg
+[color] 2
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.addr_reg[7:0]
+[color] 2
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.len_reg[8:0]
+@28
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.clk
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.rstn
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.axis_handshake
+@2028
+[color] 2
+^1 firmware/fusesoc/cores/lib/axi/bram_to_axis/data/states.txt
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.current_state[2:0]
+@24
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_din[15:0]
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_dout[15:0]
+@28
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_empty
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_full
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_rd_en
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.fifo_wr_en
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.init_state
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.regs_state
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.read_state
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.write_state
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.stream_state
+@24
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.len_r[8:0]
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.rd_cnt[8:0]
+@28
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.stream_en
+@24
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.wr_cnt[8:0]
+testrunner.__ts.bram_to_axis_ut.u_bram_to_axis.bram_addr[7:0]
+@800200
+-m_axis_if
+@28
+testrunner.__ts.bram_to_axis_ut.axis_if_i.aclk
+testrunner.__ts.bram_to_axis_ut.axis_if_i.aresetn
+@420
+testrunner.__ts.bram_to_axis_ut.axis_if_i.tdata[15:0]
+@28
+testrunner.__ts.bram_to_axis_ut.axis_if_i.tlast
+testrunner.__ts.bram_to_axis_ut.axis_if_i.tready
+testrunner.__ts.bram_to_axis_ut.axis_if_i.tvalid
+@1000200
+-m_axis_if
+@800200
+-bram_if
+@28
+testrunner.__ts.bram_to_axis_ut.bram_if_i.i_clk
+testrunner.__ts.bram_to_axis_ut.bram_if_i.i_rst
+testrunner.__ts.bram_to_axis_ut.bram_if_i.en
+@29
+testrunner.__ts.bram_to_axis_ut.bram_if_i.we
+@24
+testrunner.__ts.bram_to_axis_ut.bram_if_i.addr[7:0]
+@22
+testrunner.__ts.bram_to_axis_ut.bram_if_i.din[15:0]
+testrunner.__ts.bram_to_axis_ut.bram_if_i.dout[15:0]
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0

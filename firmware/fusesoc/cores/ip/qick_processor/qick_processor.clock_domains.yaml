@@ -1,0 +1,27 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# Same three domains as the legacy GUI-packaged IP
+# (openquantumhardware/qick firmware/ip/qick_processor/component.xml: ps_clk/t_clk/c_clk).
+# The *_clk_i names aren't recognized by ipx::infer_bus_interfaces, so
+# without this file every bus of the packaged core had no associated clock.
+# The QPeriph*/QCOM/QNET/*_CTRL custom buses come from
+# qick_processor.bus_interfaces.yaml; the legacy Debug_* buses are not ported.
+
+clock_domains:
+  - name: ps_clk_i
+    interfaces:
+      - s_axi
+      - s_dma_axis_i
+      - m_dma_axis_o
+    reset: ps_resetn
+  - name: t_clk_i
+    interfaces: [m0_axis, m1_axis, m2_axis, m3_axis, m4_axis, m5_axis, m6_axis, m7_axis,
+                 m8_axis, m9_axis, m10_axis, m11_axis, m12_axis, m13_axis, m14_axis, m15_axis,
+                 TIME_CTRL]
+    reset: t_resetn
+  - name: c_clk_i
+    interfaces: [s0_axis, s1_axis, s2_axis, s3_axis, s4_axis, s5_axis, s6_axis, s7_axis,
+                 s8_axis, s9_axis, s10_axis, s11_axis, s12_axis, s13_axis, s14_axis, s15_axis,
+                 QPeriphA, QPeriphB, QCOM, QNET, PROC_CTRL, CORE_CTRL]
+    reset: c_resetn

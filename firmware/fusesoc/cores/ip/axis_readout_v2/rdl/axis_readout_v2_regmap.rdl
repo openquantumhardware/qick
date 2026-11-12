@@ -1,0 +1,56 @@
+// axis_readout_v2_regmap.rdl
+// SystemRDL register definition for the axis_readout_v2 IP core (QICK
+// PS-configured readout).
+//
+// RTL decode is the generic axil_slv core. This RDL is used ONLY for the
+// Python driver layer and documentation -- do NOT generate RTL from it (no
+// --hdl in rdl/Makefile).
+addrmap axis_readout_v2 {
+    name = "axis_readout_v2 (PS-configured readout) Registers";
+    desc = "Demodulation descriptor registers, latched into the internal
+            FIFO on a WE_REG rising edge.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "FREQ_REG";
+        desc = "Phase increment (32-bit, DDS phase step per sample).";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ_REG @0x00;
+
+    reg {
+        name = "PHASE_REG";
+        desc = "Initial phase (32-bit).";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE_REG @0x04;
+
+    reg {
+        name = "NSAMP_REG";
+        desc = "Number of output samples (bits[15:0]).";
+        field { sw = rw; hw = r; } NSAMP[15:0] = 0;
+    } NSAMP_REG @0x08;
+
+    reg {
+        name = "OUTSEL_REG";
+        desc = "Output source select (bits[1:0]): 0=product, 1=DDS only,
+                2=input (bypass).";
+        field { sw = rw; hw = r; } OUTSEL[1:0] = 0;
+    } OUTSEL_REG @0x0C;
+
+    reg {
+        name = "MODE_REG";
+        desc = "Mode (bit 0): 0=NSAMP (one-shot), 1=periodic (non-stop).";
+        field { sw = rw; hw = r; } MODE[0:0] = 0;
+    } MODE_REG @0x10;
+
+    reg {
+        name = "WE_REG";
+        desc = "Write-enable strobe (bit 0). A LEVEL, not self-clearing:
+                pushes one descriptor into the FIFO on its rising edge
+                (resynchronized into the aclk domain via cdc_bit_sync).
+                Software is expected to pulse it 0->1->0 around a
+                FREQ/PHASE/NSAMP/OUTSEL/MODE update.";
+        field { sw = rw; hw = r; } WE[0:0] = 0;
+    } WE_REG @0x14;
+};

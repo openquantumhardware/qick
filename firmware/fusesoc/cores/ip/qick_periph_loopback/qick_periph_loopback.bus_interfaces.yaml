@@ -1,0 +1,14 @@
+# Custom QICK bus interfaces for Vivado IP packaging (read by ip_packager.py;
+# does not affect FuseSoC core parsing). The slave side of the named
+# qick_peripheral bus (QICK:QICK:qick_peripheral:1.0, firmware/ip/qick_interfaces):
+# the tProc's QPeriphA / QPeriphB connect here in the Top BDs, as they do to
+# qick_time_tagger. QPeriphB has no `flag` port: leave flag_o open there.
+
+bus_interfaces:
+  - name: qick_peripheral
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: slave
+    port_maps: {Enable: en_i, Operation: op_i, a_dt: a_i, b_dt: b_i,
+                c_dt: c_i, d_dt: d_i, rdy: rdy_o, dt_in_1: dt1_o,
+                dt_in_2: dt2_o, dt_valid: vld_o, flag: flag_o}

@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_terminator.sv

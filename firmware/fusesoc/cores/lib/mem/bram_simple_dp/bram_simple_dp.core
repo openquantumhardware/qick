@@ -1,0 +1,51 @@
+CAPI=2:
+name: qick:mem:bram_simple_dp:1.0.0
+description: bram_simple_dp (mem library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/bram_simple_dp.sv
+    file_type: systemVerilogSource
+  tb:
+    files:
+      - tests/bram_simple_dp_tc00.sv
+      - tests/bram_simple_dp_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/bram_simple_dp_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: bram_simple_dp
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: bram_simple_dp
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

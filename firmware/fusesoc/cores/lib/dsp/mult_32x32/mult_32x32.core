@@ -1,0 +1,53 @@
+CAPI=2:
+name: qick:dsp:mult_32x32:1.0.0
+description: mult_32x32 (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/mult_32x32.sv
+    file_type: systemVerilogSource
+    # depend:
+    #   - qick:pkg:<your_pkg>   # add package deps here if needed
+  tb:
+    files:
+      - tests/mult_32x32_tc00.sv
+      - tests/mult_32x32_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/mult_32x32_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: mult_32x32
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: mult_32x32
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

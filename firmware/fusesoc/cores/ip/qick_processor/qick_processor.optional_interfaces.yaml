@@ -1,0 +1,72 @@
+# Parameter-dependent interfaces/ports for Vivado IP packaging
+# (ENABLEMENT_DEPENDENCY, see generators/ip_gen/ip_packager.py). Read by
+# ip_packager.py only; does not affect FuseSoC core parsing.
+#
+# Mirrors the legacy GUI-packaged IP
+# (openquantumhardware/qick firmware/ip/qick_processor/component.xml). Differences:
+# - QNET/QCOM/QPeriphA/QPeriphB/PROC_CTRL (qick_processor.bus_interfaces.yaml)
+#   are gated as interfaces, like the legacy IP, and their ports as well.
+# - TIME_CTRL/CORE_CTRL/OUT_TIME have no HDL generic: they are GUI-only
+#   user_parameters, exactly as in the legacy IP, and only gate the
+#   TIME_CTRL/CORE_CTRL buses and t_time_abs_o (216/tpv2_1ch_xcom_mts sets
+#   TIME_CTRL=CORE_CTRL=1 to wire xcom's o_time/o_core).
+
+user_parameters:
+  - {name: TIME_CTRL, format: long, default: 0, choices: [0, 1], description: "External time control (TIME_CTRL bus)"}
+  - {name: CORE_CTRL, format: long, default: 0, choices: [0, 1], description: "External core start/stop (CORE_CTRL bus)"}
+  - {name: OUT_TIME,  format: long, default: 0, choices: [0, 1], description: "Expose t_time_abs_o"}
+
+optional_interfaces:
+  - indexed: {param: IN_PORT_QTY, range: [0, 15]}
+    interfaces: ["s{i}_axis"]
+  - indexed: {param: OUT_WPORT_QTY, range: [1, 15]}
+    interfaces: ["m{i}_axis"]
+  - indexed: {param: OUT_TRIG_QTY, range: [1, 31]}
+    ports: ["trig_{i}_o"]
+  - indexed: {param: OUT_DPORT_QTY, range: [0, 3]}
+    ports: ["port_{i}_dt_o"]
+  - enabled_when: "$CUSTOM_PERIPH > 0"
+    interfaces: [QPeriphA]
+  - enabled_when: "$CUSTOM_PERIPH > 1"
+    interfaces: [QPeriphB]
+  - enabled_when: "$QCOM == 1"
+    interfaces: [QCOM]
+  - enabled_when: "$QNET == 1"
+    interfaces: [QNET]
+  - enabled_when: "$IO_CTRL == 1"
+    interfaces: [PROC_CTRL]
+  - enabled_when: "$TIME_CTRL == 1"
+    interfaces: [TIME_CTRL]
+    ports: [time_rst_i, time_init_i, time_updt_i, time_dt_i]
+  - enabled_when: "$CORE_CTRL == 1"
+    interfaces: [CORE_CTRL]
+    ports: [core_start_i, core_stop_i]
+  - enabled_when: "$DEBUG > 2 || $OUT_TIME == 1"
+    ports: [t_time_abs_o]
+  - enabled_when: "$EXT_FLAG == 1"
+    ports: [ext_flag_i]
+  - enabled_when: "$IO_CTRL == 1 || $QCOM == 1"
+    ports: [proc_start_i]
+  - enabled_when: "$IO_CTRL == 1"
+    ports: [proc_stop_i]
+  - enabled_when: "$GEN_SYNC == 1"
+    ports: [pulse_sync_o]
+  - enabled_when: "$QNET == 1"
+    ports: [qnet_en_o, qnet_op_o, qnet_a_dt_o, qnet_b_dt_o, qnet_c_dt_o,
+            qnet_rdy_i, qnet_dt1_i, qnet_dt2_i, qnet_vld_i, qnet_flag_i]
+  - enabled_when: "$QCOM == 1"
+    ports: [qcom_en_o, qcom_op_o, qcom_dt_o,
+            qcom_rdy_i, qcom_dt1_i, qcom_dt2_i, qcom_vld_i, qcom_flag_i]
+  - enabled_when: "$CUSTOM_PERIPH > 0"
+    ports: [qp1_en_o, qp1_op_o, qp1_a_dt_o, qp1_b_dt_o, qp1_c_dt_o, qp1_d_dt_o,
+            qp1_rdy_i, qp1_dt1_i, qp1_dt2_i, qp1_vld_i, qp1_flag_i]
+  - enabled_when: "$CUSTOM_PERIPH > 1"
+    ports: [qp2_en_o, qp2_op_o, qp2_a_dt_o, qp2_b_dt_o, qp2_c_dt_o, qp2_d_dt_o,
+            qp2_rdy_i, qp2_dt1_i, qp2_dt2_i, qp2_vld_i, qp2_flag_i]
+  - enabled_when: "$DEBUG > 2"
+    ports: [ps_debug_do, t_debug_do, t_fifo_do, c_time_usr_do, c_debug_do,
+            c_time_ref_do, c_proc_do, c_port_do, c_core_do]
+
+# Also tie the time/core control inputs to 0 explicitly (they are disabled
+# unless TIME_CTRL/CORE_CTRL is set), like the legacy component's driver values.
+tie_off_ports: [core_start_i, core_stop_i, time_rst_i, time_init_i, time_updt_i, time_dt_i]

@@ -1,0 +1,22 @@
+[options]
+mode prove
+depth 100
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/axis_dyn_readout_v1/src/fifo/verilog/bin2gray_sv.sv
+../../../firmware/ip/axis_dyn_readout_v1/src/fifo/bin2gray.vhd
+bin2gray_sv_sva.sv
+
+[script]
+plugin -i ghdl
+setenv GHDL /opt/homebrew/bin/ghdl
+# Analyze VHDL
+ghdl --std=08 bin2gray.vhd -e bin2gray
+# Analyze SV - Must include the SV synchronizer now
+read_verilog -sv -formal bin2gray_sv.sv
+read_verilog -sv -formal bin2gray_sv_sva.sv
+# Elaborate SV top
+prep -top bin2gray_sv_sva

@@ -1,0 +1,49 @@
+// axis_sg_mixmux8_v1_regmap.rdl
+// SystemRDL register definition for the axis_sg_mixmux8_v1 IP core (QICK
+// 8-channel mux signal generator with digital mixer output).
+//
+// Register layout is identical to axis_sg_mux8_v1 (the legacy axi_slv.v is
+// byte-for-byte identical between the two IPs) -- only the datapath and
+// output width differ. RTL decode is the generic axil_slv core. This RDL is
+// used ONLY for the Python driver layer and documentation -- do NOT
+// generate RTL from it (no --hdl in rdl/Makefile).
+addrmap axis_sg_mixmux8_v1 {
+    name = "axis_sg_mixmux8_v1 (mux8 signal generator, digital mixer) Registers";
+    desc = "Per-channel phase increment/offset/gain registers for the 8
+            independently-masked complex (I/Q) DDS output waves, plus the
+            shared write-enable strobe. Waveform playback (mask + sample
+            count) is queued over a separate AXI-Stream descriptor path
+            (s_axis_tdata), not through this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "PINC_REG";
+        desc = "Phase increment (32-bit, DDS phase step per sample).";
+        field { sw = rw; hw = r; } PINC[31:0] = 0;
+    } pinc_regfile[8] @0x00;
+
+    reg {
+        name = "POFF_REG";
+        desc = "Phase offset (32-bit, added to the DDS phase accumulator).";
+        field { sw = rw; hw = r; } POFF[31:0] = 0;
+    } poff_regfile[8] @0x20;
+
+    reg {
+        name = "GAIN_REG";
+        desc = "Output gain, signed Q1.15 (bits[15:0]; bits[31:16] unused).
+                Applied independently to both I and Q.";
+        field { sw = rw; hw = r; } GAIN[15:0] = 0;
+    } gain_regfile[8] @0x40;
+
+    reg {
+        name = "WE_REG";
+        desc = "Write-enable strobe (bit 0). A LEVEL, not self-clearing:
+                PINC/POFF are latched into the datapath continuously while
+                this bit is high (resynchronized into the aclk domain via
+                cdc_bit_sync). Software is expected to pulse it 0->1->0
+                around a PINC/POFF/GAIN update.";
+        field { sw = rw; hw = r; } WE[0:0] = 0;
+    } WE_REG @0x60;
+};

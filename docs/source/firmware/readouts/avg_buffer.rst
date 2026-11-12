@@ -13,7 +13,7 @@ accumulated points (:meth:`.AcquireMixin.acquire`) and raw decimated
 waveforms (:meth:`.AcquireMixin.acquire_decimated`) -- see
 :doc:`/topics/readout_modes` for the software-level distinction. The module
 lives in the ``qick`` firmware repository under
-``firmware/ip/axis_avg_buffer/`` and is exposed to Python through
+``firmware/fusesoc/cores/ip/axis_avg_buffer/`` and is exposed to Python through
 ``qick.drivers.readout.AxisAvgBuffer`` (and its ``V1pt1``/``V1pt2``/
 ``AxisWeightedBuffer`` subclasses).
 

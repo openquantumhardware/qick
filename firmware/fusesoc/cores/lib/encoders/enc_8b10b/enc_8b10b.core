@@ -1,0 +1,54 @@
+CAPI=2:
+name: qick:encoders:enc_8b10b:1.0.0
+description: IBM 8b/10b line encoder (single lane), registered output, RD tracked internally
+
+filesets:
+  hdl:
+    files:
+      - hdl/enc_8b10b.sv : {file_type: systemVerilogSource}
+
+  tb:
+    files:
+      - tests/enc_8b10b_tc00.sv : {file_type: systemVerilogSource}
+      - tests/enc_8b10b_tests.sv: {is_include_file: true}
+      # golden vectors consumed by $readmemh at sim time (must be in run dir)
+      - tests/enc_8b10b_golden.hex   : {file_type: user, copyto: enc_8b10b_golden.hex}
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/enc_8b10b_tc00.sv
+
+targets:
+  # Default: elaborate/lint the RTL only.
+  default:
+    filesets: [hdl]
+    toplevel: enc_8b10b
+
+  lint:
+    filesets: [hdl, lint_files]
+    default_tool: veriblelint
+    toplevel: enc_8b10b
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl,tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

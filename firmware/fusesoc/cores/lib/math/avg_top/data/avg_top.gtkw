@@ -1,0 +1,317 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun 18 21:34:09 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-19.369034 883000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.avg_top_ut.
+[treeopen] testrunner.__ts.avg_top_ut.dut.
+[treeopen] testrunner.__ts.avg_top_ut.dut.avg_i.
+[sst_width] 281
+[signals_width] 327
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@800200
+-axi_if
+@28
+testrunner.__ts.avg_top_ut.ctrl_axil_if.aclk
+testrunner.__ts.avg_top_ut.ctrl_axil_if.aresetn
+@800200
+-aw_ch
+@22
+testrunner.__ts.avg_top_ut.ctrl_axil_if.awaddr[7:0]
+@28
+testrunner.__ts.avg_top_ut.ctrl_axil_if.awprot[2:0]
+testrunner.__ts.avg_top_ut.ctrl_axil_if.awready
+testrunner.__ts.avg_top_ut.ctrl_axil_if.awvalid
+@1000200
+-aw_ch
+@800200
+-w_ch
+@420
+testrunner.__ts.avg_top_ut.ctrl_axil_if.wdata[31:0]
+testrunner.__ts.avg_top_ut.ctrl_axil_if.wready
+@22
+testrunner.__ts.avg_top_ut.ctrl_axil_if.wstrb[3:0]
+@420
+testrunner.__ts.avg_top_ut.ctrl_axil_if.wvalid
+@1000200
+-w_ch
+@c00200
+-b_ch
+@28
+testrunner.__ts.avg_top_ut.ctrl_axil_if.bready
+testrunner.__ts.avg_top_ut.ctrl_axil_if.bresp[1:0]
+testrunner.__ts.avg_top_ut.ctrl_axil_if.bvalid
+@1401200
+-b_ch
+@c00200
+-ar_ch
+@24
+testrunner.__ts.avg_top_ut.ctrl_axil_if.araddr[7:0]
+@28
+testrunner.__ts.avg_top_ut.ctrl_axil_if.arprot[2:0]
+testrunner.__ts.avg_top_ut.ctrl_axil_if.arready
+testrunner.__ts.avg_top_ut.ctrl_axil_if.arvalid
+@1401200
+-ar_ch
+@c00200
+-r_ch
+@22
+testrunner.__ts.avg_top_ut.ctrl_axil_if.rdata[31:0]
+@28
+testrunner.__ts.avg_top_ut.ctrl_axil_if.rready
+testrunner.__ts.avg_top_ut.ctrl_axil_if.rresp[1:0]
+testrunner.__ts.avg_top_ut.ctrl_axil_if.rvalid
+@1401200
+-r_ch
+@1000200
+-axi_if
+@800200
+-m0_if
+@28
+testrunner.__ts.avg_top_ut.m0_axis_if.aclk
+testrunner.__ts.avg_top_ut.m0_axis_if.aresetn
+@c00024
+testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+@28
+(0)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(1)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(2)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(3)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(4)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(5)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(6)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(7)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(8)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(9)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(10)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(11)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(12)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(13)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(14)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(15)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(16)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(17)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(18)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(19)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(20)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(21)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(22)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(23)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(24)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(25)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(26)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(27)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(28)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(29)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(30)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(31)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(32)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(33)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(34)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(35)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(36)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(37)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(38)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(39)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(40)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(41)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(42)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(43)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(44)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(45)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(46)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(47)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(48)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(49)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(50)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(51)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(52)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(53)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(54)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(55)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(56)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(57)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(58)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(59)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(60)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(61)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(62)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+(63)testrunner.__ts.avg_top_ut.m0_axis_if.tdata[63:0]
+@1401200
+-group_end
+@28
+testrunner.__ts.avg_top_ut.m0_axis_if.tlast
+testrunner.__ts.avg_top_ut.m0_axis_if.tready
+testrunner.__ts.avg_top_ut.m0_axis_if.tvalid
+@1000200
+-m0_if
+@c00200
+-m1_if
+@28
+testrunner.__ts.avg_top_ut.m1_axis_if.aclk
+testrunner.__ts.avg_top_ut.m1_axis_if.aresetn
+@420
+testrunner.__ts.avg_top_ut.m1_axis_if.tdata[63:0]
+@28
+testrunner.__ts.avg_top_ut.m1_axis_if.tlast
+testrunner.__ts.avg_top_ut.m1_axis_if.tready
+testrunner.__ts.avg_top_ut.m1_axis_if.tvalid
+@1401200
+-m1_if
+@28
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_start_reg_resync
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_addr_reg[9:0]
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_len_reg[31:0]
+@28
+[color] 5
+testrunner.__ts.avg_top_ut.dut.dr_start_reg_resync
+@24
+[color] 5
+testrunner.__ts.avg_top_ut.dut.dr_addr_reg[9:0]
+[color] 5
+testrunner.__ts.avg_top_ut.dut.dr_len_reg[10:0]
+@28
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_photon_mode_reg
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_h_thrsh_reg[15:0]
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_l_thrsh_reg[15:0]
+testrunner.__ts.avg_top_ut.dut.din_i[31:0]
+@28
+testrunner.__ts.avg_top_ut.dut.din_valid_i
+testrunner.__ts.avg_top_ut.dut.trigger_i
+@c00200
+-avg_i
+@24
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_i.start_reg
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_i.addr_reg[9:0]
+[color] 2
+testrunner.__ts.avg_top_ut.dut.avg_i.len_reg[31:0]
+@22
+testrunner.__ts.avg_top_ut.dut.avg_i.acc_photon[63:0]
+@24
+testrunner.__ts.avg_top_ut.dut.avg_i.addr_r[9:0]
+testrunner.__ts.avg_top_ut.dut.avg_i.cnt[31:0]
+@420
+testrunner.__ts.avg_top_ut.dut.avg_i.din_ii[15:0]
+testrunner.__ts.avg_top_ut.dut.avg_i.din_qq[15:0]
+@28
+testrunner.__ts.avg_top_ut.dut.avg_i.high_state
+testrunner.__ts.avg_top_ut.dut.avg_i.high_state_reg
+@24
+testrunner.__ts.avg_top_ut.dut.avg_i.len_r[31:0]
+testrunner.__ts.avg_top_ut.dut.avg_i.out_result_r[63:0]
+@28
+testrunner.__ts.avg_top_ut.dut.avg_i.photon_mode_r
+testrunner.__ts.avg_top_ut.dut.avg_i.photon_mode_reg
+@2028
+[color] 2
+^1 firmware/fusesoc/cores/lib/math/avg/data/states.txt
+testrunner.__ts.avg_top_ut.dut.avg_i.state[2:0]
+@28
+testrunner.__ts.avg_top_ut.dut.avg_i.trigger_i
+testrunner.__ts.avg_top_ut.dut.avg_i.din_valid_i
+@420
+testrunner.__ts.avg_top_ut.dut.avg_i.din_i[31:0]
+@24
+testrunner.__ts.avg_top_ut.dut.avg_i.acc_i[31:0]
+@420
+testrunner.__ts.avg_top_ut.dut.avg_i.acc_q[31:0]
+@28
+testrunner.__ts.avg_top_ut.dut.avg_i.write_mem_state
+testrunner.__ts.avg_top_ut.dut.avg_i.mem_we_o
+@24
+testrunner.__ts.avg_top_ut.dut.avg_i.mem_addr_o[9:0]
+@22
+testrunner.__ts.avg_top_ut.dut.avg_i.mem_di_o[63:0]
+@1401200
+-avg_i
+@800200
+-bram_to_axis
+@29
+[color] 2
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.start_reg
+@25
+[color] 2
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.addr_reg[9:0]
+[color] 2
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.len_reg[10:0]
+@29
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.axis_handshake
+@25
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.bram_addr[9:0]
+@29
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.clk
+@2029
+[color] 2
+^2 firmware/fusesoc/cores/lib/axi/bram_to_axis/data/states.txt
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.current_state[2:0]
+@23
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_din[64:0]
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_dout[64:0]
+@29
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_empty
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_full
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_rd_en
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_tlast_bit
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.fifo_wr_en
+@25
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.len_r[10:0]
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.wr_cnt[10:0]
+@23
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.m_axis_tdata[63:0]
+@29
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.m_axis_tlast
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.m_axis_tready
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.m_axis_tvalid
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.mem_en
+@25
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.mem_addr[9:0]
+@29
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.mem_we
+@23
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.mem_din[63:0]
+testrunner.__ts.avg_top_ut.dut.u_bram_to_axis.mem_dout[63:0]
+@1000200
+-bram_to_axis
+@800200
+-mem_i
+@28
+testrunner.__ts.avg_top_ut.dut.bram_i.clka
+testrunner.__ts.avg_top_ut.dut.bram_i.rsta
+testrunner.__ts.avg_top_ut.dut.bram_i.ena
+testrunner.__ts.avg_top_ut.dut.bram_i.wea
+@24
+testrunner.__ts.avg_top_ut.dut.bram_i.addra[9:0]
+testrunner.__ts.avg_top_ut.dut.bram_i.dia[63:0]
+@22
+testrunner.__ts.avg_top_ut.dut.bram_i.doa[63:0]
+@28
+testrunner.__ts.avg_top_ut.dut.bram_i.clkb
+testrunner.__ts.avg_top_ut.dut.bram_i.rstb
+testrunner.__ts.avg_top_ut.dut.bram_i.enb
+testrunner.__ts.avg_top_ut.dut.bram_i.web
+@24
+testrunner.__ts.avg_top_ut.dut.bram_i.addrb[9:0]
+@22
+testrunner.__ts.avg_top_ut.dut.bram_i.dib[63:0]
+@24
+testrunner.__ts.avg_top_ut.dut.bram_i.dob[63:0]
+@1000200
+-mem_i
+[pattern_trace] 1
+[pattern_trace] 0

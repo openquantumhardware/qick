@@ -1,0 +1,63 @@
+CAPI=2:
+name: qick:ip:sg_translator:1.0.0
+description: "QICK tProc v2 wave-port descriptor translator (sg_translator) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/sg_translator.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/ref/sg_translator_legacy.v: {file_type: verilogSource}
+      - tests/sg_translator_tc00.sv
+      - tests/sg_translator_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: sg_translator
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: sg_translator
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/sg_translator_tc00.sv

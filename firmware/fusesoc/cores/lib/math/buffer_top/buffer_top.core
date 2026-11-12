@@ -1,0 +1,87 @@
+CAPI=2:
+name: qick:math:buffer_top:1.0.0
+description: Top module for the buffer (raw capture) block
+
+filesets:
+  hdl:
+    files:
+      - hdl/buffer_top.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:math:buffer
+      - qick:cdc:cdc_gray_sync
+      - qick:mem:bram_tdp
+      - qick:axi:bram_to_axis
+
+  tb:
+    files:
+      - tests/buffer_top_tc00.sv
+      - tests/buffer_top_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:axi4_stream_if
+      - qick:axi:axil_slv
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/buffer_top_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: buffer_top
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: buffer_top
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ns -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns -L xpm]
+      icarus:
+        iverilog_options:
+          - -g2012
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+        synth_options:
+          - -include_dirs $XILINX_VIVADO/data/ip/xpm
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

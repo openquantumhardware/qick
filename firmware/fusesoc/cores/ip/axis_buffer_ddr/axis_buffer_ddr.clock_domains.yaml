@@ -1,0 +1,13 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# Mirrors the legacy IP (openquantumhardware/qick firmware/ip/axis_buffer_ddr/component.xml):
+# s_axi on s_axi_aclk; the DDR master, both streams and the trigger on aclk.
+
+clock_domains:
+  - name: s_axi_aclk
+    interfaces: [s_axi]
+    reset: s_axi_aresetn
+  - name: aclk
+    interfaces: [s_axis, m_axis, m_axi]
+    reset: aresetn

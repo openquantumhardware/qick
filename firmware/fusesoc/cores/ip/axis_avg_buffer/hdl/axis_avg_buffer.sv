@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_avg_buffer.sv

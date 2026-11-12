@@ -1,0 +1,169 @@
+// qick_time_tagger_regmap.rdl
+// SystemRDL register definition for the qick_time_tagger IP core (QICK
+// time tagger: photon/edge timestamp capture across up to 4 ADC channels).
+//
+// RTL decode is the generic axil_slv core (AUTO_CLEAR_BIT0=1 for
+// CTRL_REG). This RDL is used ONLY for the Python driver layer and
+// documentation -- do NOT generate RTL from it (no --hdl in rdl/Makefile).
+// QICK_Time_Tagger (qick_lib/qick/drivers/peripherals.py) takes its REGISTERS
+// from this file; the indexes are the legacy axi_slv_qtt.vhd's own register
+// table (openquantumhardware/qick firmware/ip/qick_time_tagger/src/axi_slv_qtt.vhd).
+// Address 0x10 is a real register in both the legacy VHDL and here (AXI
+// index 4), but is never wired to anything on either side -- present only
+// for address-map parity, with no attribute in QICK_Time_Tagger.
+addrmap qick_time_tagger {
+    name = "qick_time_tagger Registers";
+    desc = "Command/config registers (CTRL_REG..AXI_DT1_REG) plus captured
+            tag/sample/status readback. Captured tags/samples stream out
+            over m_axis (AXI4-Stream DMA read, selected by DMA_CFG_REG's
+            mem_sel field), not through this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "CTRL_REG";
+        desc = "One-shot command register. Self-clears to 0 one cycle after
+                any nonzero write (axil_slv's AUTO_CLEAR_BIT0, register
+                index 0) -- software writes a command and never needs to
+                clear it back down.
+                bit0     = strobe (issues the command in bits[4:1] to qtt_cmd)
+                bits[4:1]= op (0=disarm,1=arm,2=pop_dt,4=set_threshold,
+                           5=set_dead_time,7=reset; AXI_DT1_REG supplies the
+                           command's data payload where relevant)
+                bit5     = dma_rd (starts a DMA read of DMA_CFG_REG's
+                           selected memory/length, no strobe bit of its own)";
+        field { sw = rw; hw = w; } CTRL[5:0] = 0;
+    } CTRL_REG @0x00;
+
+    reg {
+        name = "CFG_REG";
+        desc = "Time-tagger configuration. LEVEL, not self-clearing.
+                bit0      = filter enable
+                bit1      = slope-compensated comparison enable
+                bits[4:2] = interpolation bits (0-4 in practice, CMP_INTER
+                            parameter dependent)
+                bits[9:5] = sample-store write quantity (cfg_smp_wr_qty)
+                bit10     = invert";
+        field { sw = rw; hw = r; } CFG[10:0] = 0;
+    } CFG_REG @0x04;
+
+    reg {
+        name = "DMA_CFG_REG";
+        desc = "DMA read selection/length for CTRL_REG.dma_rd.
+                bits[2:0]  = mem_sel (0-3=tag channels 0-3, 4=arm store,
+                             5=sample store)
+                bits[23:4] = length, in words";
+        field { sw = rw; hw = r; } DMA_CFG[23:0] = 0;
+    } DMA_CFG_REG @0x08;
+
+    reg {
+        name = "AXI_DT1_REG";
+        desc = "Staging data for the next CTRL_REG command (e.g. the
+                threshold value for op=set_threshold, or the dead-time for
+                op=set_dead_time).";
+        field { sw = rw; hw = r; } AXI_DT1[31:0] = 0;
+    } AXI_DT1_REG @0x0C;
+
+    reg {
+        name = "RESERVED_REG";
+        desc = "Present in the legacy register file at this address but
+                never wired to anything on either the read or write side
+                (confirmed against axi_slv_qtt.vhd). Kept only so the
+                address map lines up; not part of QICK_Time_Tagger.REGISTERS.";
+        field { sw = rw; hw = r; } RESERVED[31:0] = 0;
+    } RESERVED_REG @0x10;
+
+    reg {
+        name = "PROC_DT_REG";
+        desc = "Last tag word popped for the tProc (CTRL_REG op=pop_dt),
+                mirrors tag_dt_o.";
+        field { sw = r; hw = w; } PROC_DT[31:0] = 0;
+    } PROC_DT_REG @0x14;
+
+    reg {
+        name = "PROC_QTY_REG";
+        desc = "Number of tags pending on the tProc-side read pointer
+                (tag channel 0 only).";
+        field { sw = r; hw = w; } PROC_QTY[31:0] = 0;
+    } PROC_QTY_REG @0x18;
+
+    reg {
+        name = "TAG0_QTY_REG";
+        desc = "Number of tags pending on the DMA-side read pointer, tag
+                channel 0.";
+        field { sw = r; hw = w; } TAG0_QTY[31:0] = 0;
+    } TAG0_QTY_REG @0x1C;
+
+    reg {
+        name = "TAG1_QTY_REG";
+        desc = "Tag channel 1 DMA-side pending count.";
+        field { sw = r; hw = w; } TAG1_QTY[31:0] = 0;
+    } TAG1_QTY_REG @0x20;
+
+    reg {
+        name = "TAG2_QTY_REG";
+        desc = "Tag channel 2 DMA-side pending count.";
+        field { sw = r; hw = w; } TAG2_QTY[31:0] = 0;
+    } TAG2_QTY_REG @0x24;
+
+    reg {
+        name = "TAG3_QTY_REG";
+        desc = "Tag channel 3 DMA-side pending count.";
+        field { sw = r; hw = w; } TAG3_QTY[31:0] = 0;
+    } TAG3_QTY_REG @0x28;
+
+    reg {
+        name = "SMP_QTY_REG";
+        desc = "Sample-store pending count (SMP_STORE parameter).";
+        field { sw = r; hw = w; } SMP_QTY[31:0] = 0;
+    } SMP_QTY_REG @0x2C;
+
+    reg {
+        name = "ARM_QTY_REG";
+        desc = "Arm-store (trigger count per arm session) pending count
+                (ARM_STORE parameter).";
+        field { sw = r; hw = w; } ARM_QTY[31:0] = 0;
+    } ARM_QTY_REG @0x30;
+
+    reg {
+        name = "THR_INH_REG";
+        desc = "Readback of the currently active threshold/dead-time (set
+                via CTRL_REG op=set_threshold/set_dead_time, staged through
+                AXI_DT1_REG). Correction 2026-09-18: this register carries
+                NO command counter -- re-derived directly from
+                qick_time_tagger.sv's own assign (`{8'd0, qtt_cmp_inh,
+                {ZfTh{1'b0}}, qtt_cmp_th}`); the previous bits[31:24]
+                description here was wrong (the command counter actually
+                lives in QTT_STATUS_REG, see below).
+                bits[15:0]  = threshold (signed, zero-extended from SMP_DW bits)
+                bits[23:16] = dead-time/inhibit count
+                bits[31:24] = 0 (unused)";
+        field { sw = r; hw = w; } THR_INH[31:0] = 0;
+    } THR_INH_REG @0x34;
+
+    reg {
+        name = "QTT_STATUS_REG";
+        desc = "Correction 2026-09-18: bit positions below re-derived
+                directly from qick_time_tagger.sv's own assign
+                (`{qtt_reg_status_s, cmd_cnt_do}`, where qtt_reg_status_s's
+                own bits[7:0]/[9:8] are qtt_core's trig-FSM/DMA-FSM fields
+                shifted up by 8 once cmd_cnt_do occupies the low byte) --
+                the previous bits[9:8]/[17:10] description here had the
+                trigger-FSM and DMA-FSM fields at the wrong positions.
+                bits[7:0]  = qtt_cmd command counter (tProc/ext-arm count in
+                             bits[7:4], AXI/Python count in bits[3:0])
+                bits[15:8] = trigger control FSM one-hot state
+                bits[17:16]= DMA read FSM state
+                bits[31:18]= reserved (0)";
+        field { sw = r; hw = w; } QTT_STATUS[31:0] = 0;
+    } QTT_STATUS_REG @0x38;
+
+    reg {
+        name = "QTT_DEBUG_REG";
+        desc = "Debug bus, contents depend on the DEBUG parameter (0=all
+                zero, 1=internal debug register, 2=same plus the live debug
+                bus also driven out on qtt_do).";
+        field { sw = r; hw = w; } QTT_DEBUG[31:0] = 0;
+    } QTT_DEBUG_REG @0x3C;
+};

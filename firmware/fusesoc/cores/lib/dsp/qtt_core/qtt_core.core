@@ -1,0 +1,62 @@
+CAPI=2:
+name: qick:dsp:qtt_core:1.0.0
+description: qtt_core (dsp library core). Top non-AXI composition for the
+  qick_time_tagger IP (Tier 2) -- named qtt_core, not qick_time_tagger, since
+  the packaged IP (qick:ip:qick_time_tagger) already owns that VLNV.
+
+filesets:
+  hdl:
+    files:
+      - hdl/qtt_core.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:tag_gen
+      - qick:mem:tag_mem
+      - qick:mem:dma_fifo_rd
+      - qick:mem:smp_mem
+      - qick:mem:tag_fifo_dc
+      - qick:cdc:cdc_reg_sync
+      - qick:cdc:cdc_handshake
+  tb:
+    files:
+      - tests/qtt_core_tc00.sv
+      - tests/qtt_core_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/qtt_core_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: qtt_core
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: qtt_core
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

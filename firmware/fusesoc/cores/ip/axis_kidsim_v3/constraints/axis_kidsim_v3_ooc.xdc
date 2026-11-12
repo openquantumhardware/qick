@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_kidsim_v3_ooc.xdc

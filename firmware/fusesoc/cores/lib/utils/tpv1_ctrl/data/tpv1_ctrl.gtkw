@@ -1,0 +1,104 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jun 26 16:15:38 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-4.305777 50 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.tpv1_ctrl_ut.
+[sst_width] 206
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.clk
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.rstn
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.start
+@2022
+[color] 3
+^1 firmware/fusesoc/cores/lib/utils/tpv1_ctrl/data/opcodes.txt
+testrunner.__ts.tpv1_ctrl_ut.u_dut.opcode[7:0]
+@28
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.ir_en
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_src
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_en
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_rst
+@2029
+[color] 6
+^4 firmware/fusesoc/cores/lib/utils/tpv1_ctrl/data/alu_src_b.txt
+testrunner.__ts.tpv1_ctrl_ut.u_dut.alu_src_b[1:0]
+@28
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.alu_zero
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.alut_src_b
+@2028
+[color] 6
+^2 firmware/fusesoc/cores/lib/utils/tpv1_ctrl/data/reg_src.txt
+testrunner.__ts.tpv1_ctrl_ut.u_dut.reg_src[2:0]
+@28
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.reg_wen
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.cond_flag
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_en
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_op
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_full
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_empty
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.fifo_wr_en
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.fifo_full
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.dmem_we
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.addr_src
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.t_en
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.t_sync_en
+[color] 3
+testrunner.__ts.tpv1_ctrl_ut.u_dut.waitt
+[color] 6
+testrunner.__ts.tpv1_ctrl_ut.u_dut.waitt_ack
+testrunner.__ts.tpv1_ctrl_ut.u_dut.addr_src_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.alu_src_b_i[1:0]
+testrunner.__ts.tpv1_ctrl_ut.u_dut.alut_src_b_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.dmem_we_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.fifo_wr_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.ir_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_rst_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.pc_src_i
+@2028
+^1 firmware/fusesoc/cores/lib/utils/tpv1_ctrl/data/opcodes.txt
+testrunner.__ts.tpv1_ctrl_ut.u_dut.reg_src_i[2:0]
+@28
+testrunner.__ts.tpv1_ctrl_ut.u_dut.reg_wen_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.stack_op_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.state_condj
+testrunner.__ts.tpv1_ctrl_ut.u_dut.state_loopnz
+testrunner.__ts.tpv1_ctrl_ut.u_dut.t_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.t_sync_en_i
+testrunner.__ts.tpv1_ctrl_ut.u_dut.waitt_ack_i
+@2024
+[color] 2
+^3 firmware/fusesoc/cores/lib/utils/tpv1_ctrl/data/states.txt
+testrunner.__ts.tpv1_ctrl_ut.u_dut.state[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

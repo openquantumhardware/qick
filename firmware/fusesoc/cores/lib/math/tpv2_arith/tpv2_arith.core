@@ -1,0 +1,53 @@
+CAPI=2:
+name: qick:math:tpv2_arith:1.0.0
+description: tpv2_arith (math library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/tpv2_arith.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:tpv2_dsp_macro
+  tb:
+    files:
+      - tests/tpv2_arith_tc00.sv
+      - tests/tpv2_arith_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/tpv2_arith_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: tpv2_arith
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: tpv2_arith
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

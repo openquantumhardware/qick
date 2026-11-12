@@ -1,0 +1,118 @@
+CAPI=2:
+name: qick:ip:axis_set_reg:1.0.0
+description: > 
+  Simple register that captures AXI‑Stream slave data when tvalid is high.
+  The module always asserts tready = 1, i.e. it never back‑pressures the master.
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_set_reg.sv
+    file_type: systemVerilogSource
+
+  tb00:
+    files:
+      - tests/tb_axis_set_reg.sv
+    file_type: systemVerilogSource
+
+  tb01:
+    files:
+      - tests/axis_set_reg_tc00.sv
+      - tests/axis_set_reg_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/axis_set_reg_tc00.sv
+
+  axis_set_reg_packager_gen:
+    generator: ip_packager
+    parameters:
+      config:
+        module_name: axis_set_reg
+        version: 1.0.0
+        vendor: qick
+        library: ip
+        display_name: axis_set_reg 
+        description: Simple register that captures AXI‑Stream slave data when tvalid is high.
+        part: xczu49dr-ffvf1760-2-e
+
+parameters:
+  DATA_WIDTH:
+    datatype: int
+    description: Data bus width
+    paramtype: vlogparam  
+    default: 16
+
+targets:
+  default: &default
+    filesets: [hdl, lint_files]
+    toplevel: axis_set_reg
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_set_reg
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  #test:
+  #  # Copy all key/value pairs from the "default" target.
+  #  <<: *default
+  #  description: Simulate the design
+  #  default_tool: icarus
+  #  filesets_append: [tb00]
+  #  toplevel: tb_axis_set_reg
+  #  tools:
+  #    icarus:
+  #      iverilog_options:
+  #        - -g2012 # Use SystemVerilog-2012
+  #    modelsim:
+  #      vlog_options:
+  #        - -timescale=1ns/1ns
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb01]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  synth:
+    description: Synthesize the design
+    filesets: [hdl, lint_files]
+    toplevel: axis_set_reg
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - DATA_WIDTH
+
+  package:
+    description: Package IP for Vivado IP Catalog
+    filesets: [hdl]
+    toplevel: axis_set_reg
+    generate: [axis_set_reg_packager_gen]

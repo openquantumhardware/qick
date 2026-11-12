@@ -13,7 +13,7 @@ siblings) which play one tone at a time but can shape it with an arbitrary
 envelope. There is no envelope memory here -- a "pulse" on this generator is
 just "play some subset of the 8 pre-programmed tones for N samples". The
 module lives in the ``qick`` firmware repository under
-``firmware/ip/axis_sg_mux8_v1/`` and is exposed to Python through
+``firmware/fusesoc/cores/ip/axis_sg_mux8_v1/`` and is exposed to Python through
 ``qick.drivers.generator.AxisSgMux8V1``.
 
 A related core, **axis_sg_mixmux8_v1**, adds a DAC-side digital mixer on top
@@ -85,7 +85,7 @@ The mux4 RTL is out of scope for this document.
        samples each tone (and the final summed waveform) produces per
        ``aclk`` cycle. ``m_axis_tdata`` is ``N_DDS*16`` bits wide (16 bits
        per sample lane). Real board bitstreams use larger values -- e.g. the
-       ZCU216 tProc-v2 reference design (``firmware/projects/qick_tprocv2_216_demo``)
+       ZCU216 tProc-v2 reference design (``firmware/Top/216/tpv2_demo``)
        instantiates this core with ``N_DDS = 16``.
 
 The number of simultaneous tones (``N_OUT = 8``) is a fixed ``localparam``
@@ -213,7 +213,7 @@ not attempt to enumerate the combined end-to-end pipeline latency, since
 that was not directly measured/simulated in this pass.
 
 In a full tProc-v2 design (verified against
-``firmware/projects/qick_tprocv2_216_demo/bd_2023-1.tcl``), the tProcessor
+``firmware/Top/216/tpv2_demo/bd_2023-1.tcl``), the tProcessor
 does not drive this 40-bit format directly -- an ``sg_translator`` IP sits
 between the tProc's common per-generator wave descriptor and this core's
 ``s_axis``, repacking it into the ``{mask, nsamp}`` format above.
@@ -342,4 +342,4 @@ Related Documentation
   wave-descriptor mechanism translated by ``sg_translator`` into this core's
   mask/length format.
 * :doc:`../index` -- firmware overview and channel assignments.
-* `axis_sg_mux8_v1 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_sg_mux8_v1>`_
+* `axis_sg_mux8_v1 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/fusesoc/cores/ip/axis_sg_mux8_v1>`_

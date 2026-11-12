@@ -1,0 +1,35 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Aug 18 03:33:42 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -921 -541
+*-9.918785 468 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.sync_ab_en_ut.
+[sst_width] 206
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+testrunner.__ts.sync_ab_en_ut.dut.clk_a_i
+testrunner.__ts.sync_ab_en_ut.dut.rst_a_ni
+testrunner.__ts.sync_ab_en_ut.dut.a_en_o
+testrunner.__ts.sync_ab_en_ut.dut.a_pulse_ack
+testrunner.__ts.sync_ab_en_ut.dut.a_pulse_req
+testrunner.__ts.sync_ab_en_ut.dut.a_pulse_req_cdc
+testrunner.__ts.sync_ab_en_ut.dut.clk_b_i
+@29
+testrunner.__ts.sync_ab_en_ut.dut.rst_b_ni
+@28
+testrunner.__ts.sync_ab_en_ut.dut.b_en_o
+testrunner.__ts.sync_ab_en_ut.dut.b_pulse_ack
+testrunner.__ts.sync_ab_en_ut.dut.b_pulse_ack_cdc
+testrunner.__ts.sync_ab_en_ut.dut.b_pulse_req
+testrunner.__ts.sync_ab_en_ut.dut.pulse_a
+testrunner.__ts.sync_ab_en_ut.dut.pulse_b
+testrunner.__ts.sync_ab_en_ut.dut.pulse_b_req_r
+[pattern_trace] 1
+[pattern_trace] 0

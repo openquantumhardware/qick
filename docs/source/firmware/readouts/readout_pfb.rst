@@ -14,21 +14,16 @@ hardware*, then lets software/tProc pick which slice(s) to route to its
 output port(s) and fine-tune each with its own DDS. One PFB readout instance
 therefore behaves like several single-tone readouts operating simultaneously
 on disjoint (or shared) parts of the spectrum, rather than one tunable
-downconverter. All three modules live under ``firmware/ip/`` --
-``axis_pfb_readout_v2/``, ``axis_pfb_readout_v3/``, ``axis_pfb_readout_v4/``
--- and are exposed to Python through ``qick.drivers.readout.AbsPFBReadout``
+downconverter. ``axis_pfb_readout_v2`` and ``axis_pfb_readout_v3`` live under
+``firmware/ip/``, ``axis_pfb_readout_v4`` under ``firmware/fusesoc/cores/ip/``,
+and all three are exposed to Python through ``qick.drivers.readout.AbsPFBReadout``
 and its ``AxisPFBReadoutV2``/``V3``/``V4`` subclasses.
 
 .. note::
-  Like most of the cores in this doc set, this is **legacy RTL that has not
-  been ported to the newer fusesoc build system** -- it exists only in the
-  ``firmware/ip/`` tree, not under a fusesoc core description. That does not
-  make it dead code: it is real, currently-shipping firmware. The flagship
-  ZCU216 "tpv2_std" board design (``firmware/Top/216/tpv2_std/bd_2023-1.tcl``,
-  tracked on branch ``feature/114-integrate-hog-fusesoc``, since it predates
-  this branch's docs-only history) instantiates one **axis_pfb_readout_v4**
-  alongside two ``axis_dyn_readout_v1`` (:doc:`readout_dynamic`) -- see
-  :ref:`readout-pfb-zcu216` below.
+  The flagship ZCU216 "tpv2_std" board design
+  (``firmware/Top/216/tpv2_std/bd_2023-1.tcl``) instantiates one
+  **axis_pfb_readout_v4** alongside two ``axis_dyn_readout_v1``
+  (:doc:`readout_dynamic`) -- see :ref:`readout-pfb-zcu216` below.
 
 .. _readout-pfb-general:
 

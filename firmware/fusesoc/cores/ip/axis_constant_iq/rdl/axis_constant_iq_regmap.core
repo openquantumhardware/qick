@@ -1,0 +1,9 @@
+CAPI=2:
+name: qick:ip:axis_constant_iq_regmap:0.1.1
+
+filesets:
+  rdl:
+    files:
+        - axis_constant_iq_regmap.rdl : {file_type: user }
+        - axis_constant_iq_regmap.sv : {file_type: systemVerilogSource, is_include_file: true}
+        - axis_constant_iq_regmap_pkg.sv : {file_type: systemVerilogSource, is_include_file: true}

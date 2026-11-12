@@ -1,0 +1,57 @@
+CAPI=2:
+name: qick:processors:qcore_cpu:1.0.0
+description: qcore_cpu (processors library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/qcore_cpu.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:pkg:tpv2_pkg
+      - qick:utils:qcore_ctrl_hazard
+      - qick:mem:qcore_reg_bank
+      - qick:math:tpv2_alu
+      - qick:mem:tpv2_stack
+  tb:
+    files:
+      - tests/qcore_cpu_tc00.sv
+      - tests/qcore_cpu_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/qcore_cpu_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: qcore_cpu
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: qcore_cpu
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

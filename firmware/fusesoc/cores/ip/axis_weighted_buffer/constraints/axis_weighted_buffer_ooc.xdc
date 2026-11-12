@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_weighted_buffer_ooc.xdc

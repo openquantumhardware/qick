@@ -1,0 +1,11 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# One domain: the tProc core clock (c_clk_i of qick_processor). clk_i is not a
+# name ipx::infer_bus_interfaces recognises as a clock.
+
+clock_domains:
+  - name: clk_i
+    interfaces:
+      - qick_peripheral
+    reset: rst_ni

@@ -1,0 +1,6 @@
+*_regmap_pkg/
+*_regmap.sv
+*_regmap_pkg.sv
+*_regmap.svh
+*.pyc
+__pycache__/

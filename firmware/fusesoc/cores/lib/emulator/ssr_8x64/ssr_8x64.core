@@ -1,0 +1,32 @@
+CAPI=2:
+name: qick:emulator:ssr_8x64:1.0.2
+description: >
+  Behavioural model of the System Generator FFT ssr_8x64 (64 points, 8 samples per clock; same module
+  name and ports as the entity of qick:dsp:ssr_fft_8x64) for the Verilator emulator, which cannot read
+  VHDL. Plain DFT with real arithmetic, from the HRL / Harvey Mudd clinic emulator (Diego Martin). Same
+  latency, valid pattern and bin order as the core; the result differs by at most 20 counts of its
+  27-bit output (tests/vendor/run_vendor_check.sh). Not for xsim or synthesis (those use the VHDL).
+
+filesets:
+  hdl:
+    files:
+      - hdl/ssr_8x64.sv
+    file_type: systemVerilogSource
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: ssr_8x64
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

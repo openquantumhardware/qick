@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/sg_translator.sv

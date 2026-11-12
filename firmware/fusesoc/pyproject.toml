@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qick_fw"
+version = "0.2.0"
+description = "QICK FuseSoC environment"
+requires-python = ">=3.8"
+dependencies = [
+    "fusesoc==2.4.3",
+    "edalize==0.6.1",
+    "jinja2",
+    "pytest==8.4.2",
+    "numpy",
+    "systemrdl-compiler",
+    "peakrdl>=0.6.0",
+    "peakrdl-python==3.1.2",
+    "peakrdl-regblock",
+    "peakrdl-html",
+]
+
+[tool.setuptools]
+packages = []
+py-modules = []
+
+[tool.pytest.ini_options]
+pythonpath = ["scripts"]

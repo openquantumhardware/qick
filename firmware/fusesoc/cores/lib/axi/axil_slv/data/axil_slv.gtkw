@@ -1,0 +1,97 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun  8 20:24:42 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-16.778812 572000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axil_slv_ut.
+[sst_width] 206
+[signals_width] 198
+[sst_expanded] 1
+[sst_vpaned_height] 599
+@28
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_aclk
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_aresetn
+@800200
+-write_addr_ch
+@24
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awaddr[5:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awready
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awprot[2:0]
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_awvalid
+@1000200
+-write_addr_ch
+@800200
+-write_data_ch
+@22
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wdata[31:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wready
+@22
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wstrb[3:0]
+@28
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wvalid
+@1000200
+-write_data_ch
+@800200
+-write_resp_ch
+@28
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bready
+@29
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bresp[1:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_bvalid
+@1000200
+-write_resp_ch
+@800200
+-read_addr_ch
+@24
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_araddr[5:0]
+@28
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arready
+@24
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_arvalid
+@1000200
+-read_addr_ch
+@800200
+-read_data_ch
+@22
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rdata[31:0]
+@28
+[color] 3
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rready
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rresp[1:0]
+[color] 6
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_rvalid
+@1000200
+-read_data_ch
+@28
+testrunner.__ts.axil_slv_ut.u_axil_slv.slv_reg_rden
+testrunner.__ts.axil_slv_ut.u_axil_slv.slv_reg_wren
+testrunner.__ts.axil_slv_ut.u_axil_slv.s_axi_wstrb[3:0]
+testrunner.__ts.axil_slv_ut.u_axil_slv.axi_awready
+@22
+testrunner.__ts.axil_slv_ut.u_axil_slv.reg_data_out[31:0]
+testrunner.__ts.axil_slv_ut.u_axil_slv.axi_rdata[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

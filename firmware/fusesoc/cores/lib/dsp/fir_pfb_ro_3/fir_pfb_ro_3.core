@@ -1,0 +1,46 @@
+CAPI=2:
+name: qick:dsp:fir_pfb_ro_3:1.0.0
+description: >
+  FIR 3 of the PFB readouts' polyphase filter (Xilinx FIR Compiler 7.2,
+  Component_Name renamed from the legacy fir_3). Simulation model via
+  qick:dsp:fir_pfb_ro_model (bit/cycle-exact, checked against the real
+  core); real .xci and .coe for synthesis/packaging.
+
+filesets:
+  # Simulation model (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/fir_pfb_ro_3.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:fir_pfb_ro_model
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/fir_pfb_ro_3.xci: {file_type: xci}
+      - xci/fir_pfb_ro_3.coe: {file_type: user, is_include_file: true}
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fir_pfb_ro_3
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  synth:
+    filesets: [synth_xci]

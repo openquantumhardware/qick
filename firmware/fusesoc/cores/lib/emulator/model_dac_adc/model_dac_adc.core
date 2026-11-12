@@ -1,0 +1,16 @@
+CAPI=2:
+name: qick:emulator:model_dac_adc:1.0.0
+description: >
+  Behavioural models of the RF data converters for the QICK emulator: model_DAC (generator samples to a
+  real RF signal) and model_ADC (that signal back to readout samples, optional Gaussian noise from a fixed
+  seed). From the HRL / Harvey Mudd clinic emulator (Diego Martin). Simulation only.
+
+filesets:
+  hdl:
+    files:
+      - hdl/model_dac_adc.sv
+    file_type: systemVerilogSource
+
+targets:
+  default:
+    filesets: [hdl]

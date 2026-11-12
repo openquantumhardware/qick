@@ -1,0 +1,66 @@
+CAPI=2:
+name: qick:dsp:pfb_readout:1.0.0
+description: >
+  PFB readouts' datapath: pfb (64 channels) -> NOUT x (pfb_chsel ->
+  pfb_ddsprod). Port of the legacy pfb_readout + pfb_top + ddsprod_v of
+  axis_pfb_readout_v4 (NOUT = 8) and v3 (NOUT = 4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb_readout.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:pfb
+      - qick:dsp:pfb_chsel
+      - qick:dsp:pfb_ddsprod
+
+  tb:
+    files:
+      - tests/ref/pfb_top_v4_legacy.sv
+      - tests/ref/ddsprod_v_v4_legacy.sv
+      - tests/ref/pfb_readout_v4_legacy.v: {file_type: verilogSource}
+      - tests/ref/pfb_top_v3_legacy.sv
+      - tests/ref/ddsprod_v_v3_legacy.sv
+      - tests/ref/pfb_readout_v3_legacy.v: {file_type: verilogSource}
+      - tests/pfb_readout_tc00.sv
+      - tests/pfb_readout_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb_readout
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb_readout
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (wiring against the legacy v3/v4 files, and a tone end to end)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_readout_tc00.sv

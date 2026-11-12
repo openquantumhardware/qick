@@ -1,0 +1,13 @@
+# Custom QICK bus interfaces for Vivado IP packaging (read by ip_packager.py;
+# does not affect FuseSoC core parsing). Port map copied from the legacy IP
+# (openquantumhardware/qick firmware/ip/qick_time_tagger/component.xml): the tProc's
+# QPeriphA connects here in the Top BDs.
+
+bus_interfaces:
+  - name: qick_peripheral
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: slave
+    port_maps: {Enable: qtag_en_i, Operation: qtag_op_i, a_dt: qtag_dt1_i, b_dt: qtag_dt2_i,
+                c_dt: qtag_dt3_i, d_dt: qtag_dt4_i, rdy: qtag_rdy_o, dt_in_1: qtag_dt1_o,
+                dt_in_2: qtag_dt2_o, dt_valid: qtag_vld_o, flag: qtag_flag_o}

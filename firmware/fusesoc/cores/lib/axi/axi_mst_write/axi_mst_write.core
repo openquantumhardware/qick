@@ -1,0 +1,32 @@
+CAPI=2:
+name: qick:axi:axi_mst_write:1.0.3
+description: >
+  AXI4 master write channel of axis_buffer_ddr: AXI4-Stream into a FIFO, written
+  to DDR in bursts when triggered. Port of the legacy axi_mst_write.
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi_mst_write.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_bit_sync
+      - qick:mem:fifo_axi
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axi_mst_write
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axi_mst_write
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

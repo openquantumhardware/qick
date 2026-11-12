@@ -1,0 +1,56 @@
+CAPI=2:
+name: qick:dsp:pfb_chsel:1.0.0
+description: >
+  PFB readouts' channel selector: one chosen channel out of every PFB frame.
+  Port of the legacy pfb_chsel.sv (axis_pfb_readout_v3/v4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb_chsel.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/ref/pfb_chsel_legacy.sv
+      - tests/pfb_chsel_tc00.sv
+      - tests/pfb_chsel_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb_chsel
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb_chsel
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_chsel_tc00.sv

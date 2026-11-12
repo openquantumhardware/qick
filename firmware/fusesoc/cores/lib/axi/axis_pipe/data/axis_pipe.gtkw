@@ -1,0 +1,55 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 16 15:32:12 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-15.143276 152000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_pipe_ut.
+[treeopen] testrunner.__ts.axis_pipe_ut.u_axis_pipe.
+[sst_width] 206
+[signals_width] 226
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@800200
+-s_axis
+@28
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.aclk
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.aresetn
+[color] 6
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.tready
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.tvalid
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.tlast
+@22
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.s_axis.tdata[31:0]
+@1000200
+-s_axis
+@800200
+-m_axis
+@28
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.aclk
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.aresetn
+[color] 3
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.tready
+[color] 6
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.tvalid
+@29
+[color] 6
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.tlast
+@22
+[color] 6
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.m_axis.tdata[31:0]
+@1000200
+-m_axis
+@28
+testrunner.__ts.axis_pipe_ut.u_axis_pipe.rstn
+[pattern_trace] 1
+[pattern_trace] 0

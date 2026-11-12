@@ -1,234 +1,268 @@
-QICK firmware
-=================================================
+# QICK Firmware
 
-For a description of the firmware design, see the [documentation](https://qick-docs.readthedocs.io/latest/firmware.html).
+This directory contains the FPGA firmware for the
+[QICK (Quantum Instrumentation Control Kit)](https://github.com/openquantumhardware/qick) project.
 
-# Building the firmware yourself
+For a full description of the firmware architecture see the
+[QICK documentation](https://qick-docs.readthedocs.io/latest/firmware/index.html).
 
-If you want to make changes to the firmware, or you just want to look at the design and dig around:
+**Documentation index: [docs/README.md](docs/README.md)** (what to read for each task).
 
-* Pick the firmware project you want to build. The projects for the standard images for ZCU111, ZCU216, and RFSoC4x2 (`qick_111.bit`, `qick_216.bit`, `qick_4x2.bit`) are in subdirectories of the `projects` directory, as are projects for ZCU111 images with support for the v1 and v2 RF boards. You will find a project script (`proj.tcl`) and a block design script (`bd_2022-1.tcl` or similar).
-* Install the version of Vivado specified by the block design filename (e.g. 2022.1 - older or newer will fail!), with a license that is valid for the FPGA you are using (you will have received such a license with your board). Start Vivado.
-* In the Tcl console at the bottom of the screen navigate to this directory, then run the project script (e.g. `source ./proj.tcl`). This will create the firmware project and will end by showing you a block diagram of the firmware.
-* Now click "Generate Bitstream" in the navigation menu at the left: this will compile the firmware.
-* You need the .bit and .hwh files. These are not easy to find but the `out` directory has symlinks to their locations.
+---
 
-To save your block design:
+## Repository structure
 
 ```
-write_bd_tcl -force -include_layout bd.tcl
+firmware/
+├── Hog/              HOG submodule — build system
+├── Top/              HOG project definitions (source of truth for each project)
+│   ├── 111/          ZCU111 projects
+│   ├── 2x4/          RFSoC 2x4 projects
+│   ├── 216/          ZCU216 projects
+│   └── 4x2/          RFSoC4x2 projects
+├── rtl_lib/          Source of truth for shared RTL modules
+│   ├── axi/          AXI4/AXI4-Lite/AXI4-Stream utilities
+│   ├── cdc/          Clock domain crossing modules
+│   ├── constraints/  Shared XDC constraint files
+│   ├── ctrl/         Control-plane blocks (streamer, ramp/DDS control, etc.)
+│   ├── dsp/          DSP datapath blocks (signal gen, IQ correction, etc.)
+│   ├── encoders/     Link-layer / 8b10b / framing blocks
+│   ├── interfaces/   SystemVerilog interfaces (AXI, BRAM, etc.)
+│   ├── ip/           Top-level packaged-IP RTL (axis_tprocv1.sv, etc.)
+│   ├── math/         ALUs and other math blocks
+│   ├── mem/          Memories, FIFOs, register files
+│   ├── misc/         Miscellaneous shared blocks
+│   ├── pkg/          Shared packages (qick_pkg.sv, tproc_pkg.sv, alu_pkg.sv, ...)
+│   ├── processors/   tProcessor cores (tprocv1.sv, ...)
+│   ├── utils/        Utility modules (FIFOs, buffers, command handlers)
+│   └── xci/          Xilinx-IP (.xci) sources used by dsp/ behavioural pairs
+├── ip/               Custom QICK IP cores (use modules from rtl_lib)
+├── docs/             Documentation: user/, developer/, process/ (start at docs/README.md)
+├── Projects/         Vivado generated projects — gitignored, recreated with HOG
+├── bin/              Bitfile outputs (.bit + .hwh named by Git SHA) — gitignored
+└── fusesoc/          IP development and simulation environment
 ```
 
-## Generators and readouts
-Block RAM (1080 tiles total) is always the limiting resource. It is only used for our own IPs as listed below, with the exception of DMA cores which use 1-8 tiles each and the DDR4 interface which uses ~25.5 tiles.
-High BRAM utilization will often make it harder for a design to meet timing.
+---
 
-### standard readout (`axis_readout_v2`), regular dynamic readout (`axis_dyn_readout_v1`):
+## Quick start — build a standard bitfile
 
-RFDC ADC settings:
-* Digital Output Data: Real
-* Decimation Mode: 1x
-* Samples per AXI4-Stream Cycle: 8
-* Mixer Type: Coarse
-* Mixer Mode: Real->Real
+### Prerequisites
 
-connect: RFDC -> axis register slice (optional, defaults) -> readout
+- Vivado 2023.1 installed and licensed for your board.
+- Git with submodule support.
+- Python 3.8+ with venv (for FuseSoC simulation).
 
-BRAM: 16 tiles
+### 1. Clone the repo
 
-### fast dynamic readout (`axis_readout_v3`):
+```bash
+git clone --recursive <url_of_the_repository>
+cd <repository>/firmware
+```
 
-RFDC ADC settings: same as standard
+The `--recursive` flag is required to initialize the HOG submodule.
+If you already cloned without it:
 
-connect:
-* RFDC -> axis clock converter (optional, defaults) -> axis resampler (B=16, N=8) -> axis register slice (optional, fully-registered) ->  readout, s1_axis
-* tProc -> axis clock converter or cdcsync -> readout, s0_axis
+```bash
+git submodule update --init --recursive
+```
 
-BRAM: 8 tiles
+### 2. Set up the Python environment (for FuseSoC simulation, optional)
 
-### mux readout (`axis_pfb_readout_v2`) on 111:
+```bash
+cd fusesoc
+make setup_environment
+cd ..
+```
 
-RFDC ADC settings:
-* Digital Output Data: I/Q
-* Decimation Mode: 2x
-* Samples per AXI4-Stream Cycle: 4
-* Mixer Type: Coarse
-* Mixer Mode: Real->I/Q
-* Frequency: -Fs/4
+### 3. Pick your project
 
-connect: RFDC -> axis combiner (default settings) -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" unchecked)
+**`Top/<board>/<project>/` is the only place where a firmware project lives**, for development and for a release alike. There is no
+separate `projects/` directory: the names `Top` (the project definitions) and `Projects` (what Vivado generates from them, ignored by git) are
+Hog's and cannot be changed. A project directory holds the block design (`bd_<vivado version>.tcl`), the constraints, `hog.conf` (part, board
+part, IP repository, strategies), `list/` and `proj.tcl`. Two ways to build the same directory:
 
-need a clock wizard to double the clock coming out of the RFDC
+- **With Hog** (development; the fusesoc tools package the IPs in `pre-creation.tcl`): `./Hog/Do CREATEWORKFLOW <board>/<project>`.
+- **Without Hog** (a release: the packaged IPs are in `ip/`, nothing else is needed): from `firmware/`,
+  `vivado -source Top/<board>/<project>/proj.tcl`. With no open project, `proj.tcl` creates it in `Projects/<board>/<project>` from `hog.conf`
+  and `list/constraints.con`, so the part and the constraints have one source for both ways. Then run synthesis and implementation.
 
-### mux readout (`axis_pfb_readout_v2`) on 216:
+Projects are organized by board type in `Top/`:
 
-RFDC ADC settings:
-* Digital Output Data: I/Q
-* Decimation Mode: 2x
-* Samples per AXI4-Stream Cycle: 8
-* Mixer Type: Coarse
-* Mixer Mode: Real->I/Q
-* Frequency: -Fs/4
+| Board | Project path | Vivado version |
+|-------|-------------|----------------|
+| ZCU216 | `Top/216/tpv2_std` | 2023.1 |
+| ZCU216 (demo) | `Top/216/tpv2_demo` | 2023.1 |
+| ZCU111 | `Top/111/tpv2_std` | 2023.1 |
+| RFSoC4x2 | `Top/4x2/tpv2_std` | 2023.1 |
+| ZCU111 (RFBv1) | `Top/111/tpv1_rfbv1_std` | 2023.1 |
+| ZCU111 (RFBv2) | `Top/111/tpv1_rfbv2_std` | 2023.1 |
+| RFSoC 2x4 | `Top/2x4/tpv2_std`, `Top/2x4/tpv1_std` | 2023.1 |
 
-connect: RFDC -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" checked)
+The names of the old `firmware/projects/` directory of the public repository map to these paths:
 
-### mux readout (`axis_pfb_readout_v3`, `axis_pfb_readout_v4`):
-Same RFDC settings and connectivity as v2; this readout always expects interleaved input, and for dual-ADC systems (ZCU111, RFSoC4x2) you need to use an axis combiner and `axis_reorder_iq_v1`
+| Old `projects/` name | `Top/` path |
+|---|---|
+| `qick_tprocv1_111_standard` | `Top/111/tpv1_std` |
+| `qick_tprocv1_111_rfbv1_standard` | `Top/111/tpv1_rfbv1_std` |
+| `qick_tprocv1_111_rfbv2_standard` | `Top/111/tpv1_rfbv2_std` |
+| `qick_tprocv1_216_standard` | `Top/216/tpv1_std` |
+| `qick_tprocv1_4x2_standard` | `Top/4x2/tpv1_std` |
+| `qick_tprocv2_111_standard` | `Top/111/tpv2_std` |
+| `qick_tprocv2_216_standard` | `Top/216/tpv2_std` |
+| `qick_tprocv2_216_rfbv2_standard` | `Top/216/tpv2_std_rfbv2` |
+| `qick_tprocv2_216_demo` | `Top/216/tpv2_demo` |
+| `qick_tprocv2_4x2_standard` | `Top/4x2/tpv2_std` |
+| `qick_tprocv1_2x4_standard` | `Top/2x4/tpv1_std` |
+| `qick_tprocv2_2x4_standard` | `Top/2x4/tpv2_std` |
 
-BRAM: 8 tiles for v3, 16 tiles for v4
+### 4. Recreate the Vivado project
 
-### full-speed gen (`axis_signal_gen_v6`):
+```bash
+./Hog/Do CREATE 216/tpv2_std
+```
 
-gen settings: N Dds=16, N is up to you (buffer size will be `16*2^N`)
+This recreates the project from scratch in `firmware/Projects/`.
+Open it in Vivado to inspect the design:
 
-RFDC DAC settings:
-* Interpolation Mode: 1x
-* Samples per AXI4-Stream Cycle: 16
-* Datapath Mode: No DUC 0 to Fs/2
-* Mixer Type: Coarse
-* Mixer Mode: Real->Real
+```bash
+vivado Projects/tpv2_std/tpv2_std.xpr
+```
 
-BRAM: 32 tiles for the DDSes, 64 tiles for our typical buffer size of N=12
+### 5. Build the bitfile
 
-### mux4 gen (`axis_sg_mux4`) v1 or v2, mixmux8 (`axis_sg_mixmux8_v1`):
+```bash
+./Hog/Do W 216/tpv2_std
+```
 
-gen settings: N_DDS=4
+The bitfile appears in `firmware/bin/`.
 
-RFDC DAC settings:
-* Interpolation Mode: 4x
-* Samples per AXI4-Stream Cycle: 8
-* Datapath Mode: DUC 0 to Fs/2
-* Mixer Type: Fine
-* Mixer Mode: I/Q->Real
+---
 
-BRAM: 32 tiles for mux4, 64 tiles for mixmux8
+## Saving changes to the block design
 
-### mux4 gen v3 (`axis_sg_mux4_v3`), mux8 gen v1 (`axis_sg_mux8_v1`):
+After modifying the block design in Vivado, export the TCL script before closing:
 
-gen settings: N Dds=16
+```
+File → Export → Export Block Design → save to Top/<project_path>/bd_2023-1.tcl
+```
 
-RFDC DAC settings: same as full-speed
+For example:
+```
+File → Export → Export Block Design → save to Top/216/tpv2_std/bd_2023-1.tcl
+```
 
-BRAM: 128 tiles for mux4, 256 tiles for mux8
+Then commit it:
 
-### I/Q gen (`axis_constant_iq`):
+```bash
+git add Top/216/tpv2_std/bd_2023-1.tcl
+git commit -m "Update BD with <description of change>"
+```
 
-gen settings: B=16, N=8
+> **IMPORTANT**: HOG only processes committed files. Always commit before running `./Hog/Do W`.
+
+---
 
-RFDC DAC settings:
-* Interpolation Mode: 2x
-* Samples per AXI4-Stream Cycle: 16
-* Datapath Mode: DUC 0 to Fs/2
-* Mixer Type: Fine
-* Mixer Mode: I/Q->Real
+## HOG commands
+
+| Command | Description |
+|---------|-------------|
+| `./Hog/Do CREATE <project_path>` | Recreate Vivado project from scratch |
+| `./Hog/Do W <project_path>` | Full build: synthesis + implementation + bitstream |
+| `./Hog/Do S <project_path>` | Synthesis only |
+| `./Hog/Do I <project_path>` | Implementation only |
+| `./Hog/Do B <project_path>` | Bitstream only |
 
-### int4 gen (`axis_sg_int4_v1`, `axis_sg_int4_v2`):
+**Note:** `<project_path>` is relative to `firmware/Top/`. Examples:
+- `216/tpv2_std`
+- `111/tpv2_std`
+- `4x2/tpv2_std`
 
-gen settings: N is up to you (buffer size will be `2^N`)
+---
 
-RFDC DAC settings:
-* Interpolation Mode: 4x
-* Samples per AXI4-Stream Cycle: 8
-* Datapath Mode: DUC 0 to Fs/2
-* Mixer Type: Fine
-* Mixer Mode: I/Q->Real
+## IP development and simulation with FuseSoC
 
-BRAM: 8 tiles for DDSes, 4 tiles for our typical N=12
+The `fusesoc/` directory provides a [FuseSoC](https://fusesoc.readthedocs.io)-based
+environment for developing and simulating individual IP cores.
 
-### standard buffer (`axis_avg_buffer`):
+RTL sources are organized as:
+- `rtl_lib/` — Shared modules (AXI, CDC, interfaces, utilities)
+- `ip/` — QICK IP cores that use modules from `rtl_lib`
 
-* s_axis input: decimated data stream from readout
-* m0_axis output: accumulated buffer to DMA, typically through a switch
-* m1_axis output: decimated buffer to DMA, typically through a switch
-* m2_axis output: individual accumulated data points to tProc input (for fast feedback), typically through a clock converter
+> **In progress**: `qick:ip:qick_processor` (tProcessor v2) is being ported
+> from `firmware/ip/qick_processor/src/` into `rtl_lib/` bottom-up, the same
+> way `axis_tprocv1` was. Its `.core` file describes the target layout but
+> `hdl/` is not populated yet, so `make sim IP=qick_processor` does not work
+> until that port is further along.
 
-buffer settings: N_AVG and N_BUF are up to you, setting the accumulated and decimated buffer lengths (buffer size will be `2^N`)
+### Available Makefile commands in `fusesoc/`
 
-BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile for decimated at typical N_BUF=10
+| Command | Description |
+|---------|-------------|
+| `make setup_environment` | Initialize submodules, create venv, install dependencies, check Verilator (needed for `make coverage`) |
+| `make sim IP=<ip_name>` | Run simulation for a specific IP |
+| `make sim_svunit` | `make sim` on every core with a test target (JUnit reports in `report_svunit/`) |
+| `make coverage IP=<ip_name>` | DUT line+toggle coverage via Verilator (see [docs/developer/COVERAGE.md](docs/developer/COVERAGE.md)) |
+| `make lint IP=<ip_name>` | Run linter on an IP |
+| `make list-cores` | List all available cores |
+| `make core-info CORE=<core_name>` | Show detailed core information |
+| `make deps IP=<ip_name>` | Show dependencies of an IP |
+| `make package IP=<ip_name>` | Package an IP for Vivado Block Design |
 
-### weighted buffer (`axis_weighted_buffer`):
+**Examples:**
+```bash
+cd firmware/fusesoc
+source venv/bin/activate
 
-same configuration as the standard buffer, adds the following port:
+# Simulate an IP
+make sim IP=tpv2_alu
 
-* s1_axis_weights: weights from DMA, typically through a switch (this can be the same switch that is used for generator envelopes)
+# Run all tests
+make sim_svunit
 
-buffer settings: N_AVG, N_BUF, N_WGT are up to you, setting the accumulated and decimated buffer lengths and the weights memory (size will be `2^N`)
+# Package an IP for Vivado
+make package IP=xcom RESOLVE_DEPS=1
+```
 
-BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile each for decimated and weights at typical N_BUF=N_WGT=10
+For detailed FuseSoC documentation, see `fusesoc/README.md`.
 
-### multi-rate buffer (`mr_buffer_et`):
+---
 
-buffer settings: NM is samples per fabric clock, use 8; B is bits per sample, use 32; N is buffer size, up to you (buffer size will be `NM*2^N` samples)
-BRAM: 8 tiles for typical N=10
+## Two workflows: HOG vs FuseSoC
 
-### resonator emulator (`axis_pfba_pr_4x256_v1`, `axis_kidsim_v3`, `axis_pfbs_pr_4x256_v1`):
+| Task | Tool | Command |
+|------|------|---------|
+| Full bitstream build | HOG | `./Hog/Do W 216/tpv2_std` |
+| Single IP simulation | FuseSoC | `cd fusesoc && make sim IP=tpv2_alu` |
+| Unit tests | FuseSoC | `cd fusesoc && make sim_svunit` |
+| IP packaging | FuseSoC | `cd fusesoc && make package IP=xcom` |
 
-RFDC ADC settings on 216:
-* Digital Output Data: I/Q
-* Decimation Mode: 2x
-* Samples per AXI4-Stream Cycle: 8
-* Mixer Type: Coarse
-* Mixer Mode: Real->I/Q
-* Frequency: -Fs/4
+The RTL sources are shared:
+- `rtl_lib/` → common modules used by both HOG and FuseSoC
+- `ip/` → QICK IP cores
 
-on 4x2/111, 4 samples per cycle; between RFDC and analysis chain need a combiner then reorder IQ (B=16 L=4)
+---
 
-kidsim L=8
+## Troubleshooting
 
-RFDC DAC settings:
-* Interpolation Mode: 2x
-* Samples per AXI4-Stream Cycle: 8
-* Datapath Mode: DUC 0 to Fs/2
-* Mixer Type: Coarse
-* Mixer Mode: I/Q->Real
-* Frequency: Fs/4
+**"Git working directory not clean" critical warning**
+HOG cannot embed a valid SHA if there are uncommitted changes. Commit all
+files under `Top/<project>/` before running `./Hog/Do W`.
 
-### time tagger (`qick_time_tagger`):
-* qick_peripheral: to tProc v2 QPeriphA/B
-* c_clk/c_aresetn: tProc core clock
-* adc_clk/adc_aresetn: ADC fabric clock
-* ps_clk/ps_aresetn: AXI clock
-* m_axis_dma: to S_AXIS_S2MM port of a DMA
+**"Invalid Top Module" dialog when opening in Vivado**
+Verify that `post-creation.tcl` exists and is committed. It should contain:
+```tcl
+set_property top "d_1_wrapper" [get_filesets sources_1]
+```
 
-If IO ARM control is enabled, arm_i input can be connected to a tProc trigger bit.
+**VHDL modules not found in Block Design**
+Make sure VHDL files are listed in `list/src.src` with the library name:
+```
+../../hdl/lo_spi_mux_v2.vhd work
+```
 
-DMA should have:
-* buffer length width 18, address width 32
-* write enabled, 1 channel, width 32 (auto), burst 16
+**HOG ignores my files**
+HOG only processes committed files. Run `git status` and commit any untracked
+files in `Top/<project>/` before running HOG commands.
 
-BRAM: 4.5 base for single input (2 SMP_MEM, 1.5 ARM_MEM, 1 TAG_MEM), plus 232 for TAG_FIFO_AW=18, 240 for SMP_FIFO_AW=19
-
-### tProc v1 (`axis_tproc64x32_x8`):
-
-BRAM: 0.5 tile base, 1 tile for data memory, 2 tiles for standard program memory of 1k words (8 kB in address map)
-
-### tProc v2 (`qick_processor`):
-* s0_axis: feedback inputs
-* dma: to DMA AXIS ports
-* t_clk: timing clock (typically one of the DAC clocks)
-* c_clk: core clock (can be anything, but max ~200 MHz, doubling the PL clock makes sense)
-* ps_clk: AXI clock, from PS
-
-need a DMA:
-* buffer length width 26, address width 32
-* read enabled, 1 channel, width 256, burst 2
-* write enabled, 1 channel, width 256, burst 16
-
-BRAM: 1 tile per trigger output, 3 tiles per wave output, 8/4/5 tiles for P/D/W memories with AW=12/12/10
-
-## Expanding the program memory (tProc v1)
-
-In theory you just need to change it in the address editor and it will propagate to the block design, but there is some bug in Vivado which leads to an error message that complains about asymmetry between the two memory ports:
-
-https://support.xilinx.com/s/question/0D52E00007GSLhKSAX/block-memory-generator-asymmetry-error
-
-This will even cause a saved bd.tcl script to fail: if you make a big memory with the workaround below, and save the bd.tcl, you will not be able to regenerate the project using that bd.tcl. So we give you a bd.tcl with a small program memory.
-
-THe solution is similar to what is suggested in the forum post:
-
-* reconfigure the memory controller for 2 ports
-* disconnect the port B signals from the memory
-* connect the memory controller port B to the memory port B
-* now you can expand the memory and validate the design
-* put things back the way they were - disconnect and remove controller port B, reconnect the memory to the tProc
-
+---

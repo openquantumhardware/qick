@@ -1,0 +1,119 @@
+CAPI=2:
+name: qick:ip:xcom:1.0.2
+description: Board communication peripheral.
+
+filesets:
+  hdl:
+    files:
+      - hdl/xcom.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:axi:axil_slv
+      - qick:cdc:xcom_cdc
+      - qick:utils:xcom_cmd
+      - qick:utils:xcom_cmd_hold
+      - qick:utils:xcom_txrx
+      - qick:utils:xcom_link_rx
+      - qick:utils:xcom_link_tx
+      - qick:utils:xcom_qctrl
+      - qick:utils:diff_in_nb
+      - qick:utils:diff_out_nb
+
+  constraints:
+    files:
+      - constraints/xcom.xdc: {file_type: xdc}
+      - constraints/xcom_late.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/xcom_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/xcom_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+      - qick:interfaces:axi4_lite_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/xcom_tc00.sv
+
+  xcom_packager_gen:
+    generator: ip_packager
+    parameters:
+      config:
+        module_name: xcom
+        version: 1.0.0
+        vendor: qick
+        library: ip
+        display_name: XCOM Communication Core
+        description: Board communication peripheral for QICK
+        part: xczu49dr-ffvf1760-2-e
+
+parameters:
+  NB:
+    datatype: int
+    description: Width of the I/O ports in bits
+    paramtype: vlogparam  
+    default: 8
+
+targets:
+  default:
+    filesets: [hdl, lint_files]
+    toplevel: xcom
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: xcom
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, lint_files, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: [testrunner, glbl]
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  synth:
+    description: Synthesize the design
+    filesets: [hdl, lint_files]
+    toplevel: xcom
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - NB
+
+  package:
+    description: Package IP for Vivado IP Catalog
+    filesets: [hdl]
+    toplevel: xcom
+    generate: [xcom_packager_gen]

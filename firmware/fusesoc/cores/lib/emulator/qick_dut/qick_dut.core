@@ -1,0 +1,35 @@
+CAPI=2:
+name: qick:emulator:qick_dut:1.0.0
+description: >
+  Device under test of the QICK emulator: tProc v2, signal generators and multiplexers, readouts (standard,
+  dynamic, PFB v4) and averaging buffers, behind one AXI-Lite master (the testbench master of axi4_lite_if) and
+  axi_router_lite. Built from the qick:ip cores of the ported IPs; the vendor blocks that Verilator cannot
+  read are replaced by the models of qick:emulator:xpm_* and qick:emulator:ssr_8x64. Simulation only.
+
+filesets:
+  hdl:
+    files:
+      - hdl/qick_dut.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:emulator:axi_router_lite
+      - qick:interfaces:axi4_lite_if
+      - qick:ip:qick_processor
+      - qick:ip:axis_cdcsync_v1
+      - qick:ip:sg_translator
+      - qick:ip:axis_signal_gen_v6
+      - qick:ip:axis_sg_mux8_v1
+      - qick:ip:axis_dyn_readout_v1
+      - qick:ip:axis_readout_v2
+      - qick:ip:axis_pfb_readout_v4
+      - qick:ip:axis_avg_buffer
+      - qick:mem:mr_buffer
+      - qick:emulator:xpm_memory_tdpram
+      - qick:emulator:xpm_fifo_sync
+      - qick:emulator:xpm_fifo_async
+      - qick:emulator:ssr_8x64
+
+targets:
+  default:
+    filesets: [hdl]
+    toplevel: qick_dut

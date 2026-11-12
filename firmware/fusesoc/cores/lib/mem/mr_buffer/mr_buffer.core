@@ -1,0 +1,90 @@
+CAPI=2:
+name: qick:mem:mr_buffer:1.0.0
+description: Multi-Rate (MR) Buffer with External Trigger (ET).
+
+filesets:
+  hdl:
+    files:
+      - hdl/mr_buffer.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_gray_sync
+      - qick:axi:axis_to_bram_trig
+      - qick:mem:bram_tdp
+      - qick:axi:bram_to_axis_nt
+
+  tb:
+    files:
+      - tests/mr_buffer_tc00.sv
+      - tests/mr_buffer_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/mr_buffer_tc00.sv
+
+parameters:
+  NB:
+    datatype: int
+    description: Width of the I/O ports in bits
+    paramtype: vlogparam  
+    default: 8
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: mr_buffer
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: mr_buffer
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns -L xpm]              # XPM library
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - N
+      - B
+
+  package:
+    description: Package IP for Vivado IP Catalog
+    filesets: [hdl]
+    toplevel: mr_buffer
+    generate: [mr_buffer_packager_gen]

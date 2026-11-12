@@ -1,0 +1,1 @@
+../../../../../rtl_lib/pkg/qick_pkg.sv

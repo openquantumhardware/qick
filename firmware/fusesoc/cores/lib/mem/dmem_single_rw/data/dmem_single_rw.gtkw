@@ -1,0 +1,67 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 29 20:52:16 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-8.274063 588 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dmem_single_rw_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.clk
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.rstn
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.rw_i
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.exec_i
+[color] 6
+testrunner.__ts.dmem_single_rw_ut.u_dut.exec_ack_o
+@24
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.addr_i[9:0]
+@420
+[color] 3
+testrunner.__ts.dmem_single_rw_ut.u_dut.din_i[15:0]
+@22
+[color] 6
+testrunner.__ts.dmem_single_rw_ut.u_dut.do_o[15:0]
+@28
+testrunner.__ts.dmem_single_rw_ut.u_dut.ack_int
+@22
+testrunner.__ts.dmem_single_rw_ut.u_dut.addr_r[9:0]
+testrunner.__ts.dmem_single_rw_ut.u_dut.din_r[15:0]
+testrunner.__ts.dmem_single_rw_ut.u_dut.dout_r[15:0]
+@28
+testrunner.__ts.dmem_single_rw_ut.u_dut.init_state
+@2024
+[color] 2
+^1 firmware/fusesoc/cores/lib/mem/dmem_single_rw/data/states.txt
+testrunner.__ts.dmem_single_rw_ut.u_dut.state[2:0]
+@28
+testrunner.__ts.dmem_single_rw_ut.u_dut.we_int
+@800200
+-bram_if
+@28
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.i_clk
+@29
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.i_rst
+@22
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.addr[9:0]
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.din[15:0]
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.dout[15:0]
+@28
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.en
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.we
+testrunner.__ts.dmem_single_rw_ut.bram_if_i.we_be[1:0]
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0
