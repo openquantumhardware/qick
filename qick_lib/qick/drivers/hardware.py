@@ -555,7 +555,7 @@ class FilterADMV8818:
 
         if f < 100:
             raise ValueError("unexpectedly small filter frequency %f MHz: either you should be using bypass mode, or you are using units of GHz instead of MHz" % (f))
-        else if f > 20000:
+        elif f > 20000:
             raise ValueError("unexpectedly large filter frequency %f MHz: either you should be using bypass mode, or you are using units of MHz instead of GHz" % (f))
         freqs = np.concatenate([np.linspace(f0, f15, 16) for f0, f15 in BANDS[section]])
         sortlist = list(enumerate(freqs))
