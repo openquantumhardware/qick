@@ -1220,7 +1220,7 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
 
         self.bias_gpio.channel1.write(0, 0x1)
 
-    def rfb_set_gen_filter(self, gen_ch, fc, bw=1000, ftype='bandpass'):
+    def rfb_set_gen_filter(self, gen_ch, fc, bw=1.0, ftype='bandpass'):
         """Set the programmable analog filter of the QICK box DAC port connected to a specified generator.
 
         Parameters
@@ -1228,9 +1228,9 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         gen_ch : int
             generator channel (index in 'gens' list)
         fc : float
-            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass [GHz].
         bw : float
-            Bandwidth.
+            Bandwidth [GHz].
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
@@ -1239,7 +1239,7 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
             raise RuntimeError("generator %d is not connected to an RF signal chain" % (gen_ch))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
-    def rfb_set_ro_filter(self, ro_ch, fc, bw=1000, ftype='bandpass'):
+    def rfb_set_ro_filter(self, ro_ch, fc, bw=1.0, ftype='bandpass'):
         """Set the programmable analog filter of the QICK box ADC port connected to a specified readout channel.
 
         Parameters
@@ -1247,9 +1247,9 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         ro_ch : int
             readout channel (index in 'avg_bufs' list)
         fc : float
-            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass [GHz].
         bw : float
-            Bandwidth.
+            Bandwidth [GHz].
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
@@ -1259,7 +1259,7 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
         self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
 
-    def rfb_set_dac_filter(self, dac_port, fc, bw=1000, ftype='bandpass'):
+    def rfb_set_dac_filter(self, dac_port, fc, bw=1.0, ftype='bandpass'):
         """Set the programmable analog filter of the specified QICK box DAC port.
 
         Parameters
@@ -1267,9 +1267,9 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         dac_port : int
             QICK box DAC port number (0-15)
         fc : float
-            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass [GHz].
         bw : float
-            Bandwidth.
+            Bandwidth [GHz].
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
@@ -1278,7 +1278,7 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
             raise RuntimeError("DAC port %d does not have a RF signal chain" % (dac_port))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
-    def rfb_set_adc_filter(self, adc_port, fc, bw=1000, ftype='bandpass'):
+    def rfb_set_adc_filter(self, adc_port, fc, bw=1.0, ftype='bandpass'):
         """Set the programmable analog filter of the specified QICK box ADC port.
 
         Parameters
@@ -1286,9 +1286,9 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         adc_port : int
             QICK box ADC port number (0-7)
         fc : float
-            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass [GHz].
         bw : float
-            Bandwidth.
+            Bandwidth [GHz].
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
@@ -1310,7 +1310,7 @@ class RFQickSoc216V1Mixin(RFQickSocMixin):
         section : str
             "HPF" or "LPF"
         f : float
-            Desired cutoff frequency [MHz]
+            Desired 3 dB cutoff frequency [GHz]
         n : int
             Number of filter steps to find
 

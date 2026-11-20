@@ -486,6 +486,10 @@ class FilterADMV8818:
     # Number of bits for band setting.
     B = 4
 
+    # filter units are in GHz to maintain compatibility with old experiment code, but we will eventually move to MHz
+    # at that point we will switch this flag and change the docstrings for the filter methods in RFQickSoc216V1Mixin
+    FILTER_IN_MHZ = False
+
     # Constructor.
     def __init__(self, spi_ip, ch, cs_t=""):
         # SPI.
@@ -529,8 +533,9 @@ class FilterADMV8818:
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
         return int(res[2])
 
-    @staticmethod
-    def freq2steps(section, f, n=11, get_freqs=False):
+    @classmethod
+    def freq2steps(cls, section, f, n=11, get_freqs=False):
+
         # state=0 and state=15 frequencies for each filter band, from data sheet
         BANDS = {'LPF':
                 [
@@ -548,8 +553,10 @@ class FilterADMV8818:
                     ]
                 }
 
-        if f < 1000:
+        if f < 100:
             raise ValueError("unexpectedly small filter frequency %f MHz: either you should be using bypass mode, or you are using units of GHz instead of MHz" % (f))
+        else if f > 20000:
+            raise ValueError("unexpectedly large filter frequency %f MHz: either you should be using bypass mode, or you are using units of MHz instead of GHz" % (f))
         freqs = np.concatenate([np.linspace(f0, f15, 16) for f0, f15 in BANDS[section]])
         sortlist = list(enumerate(freqs))
         sortlist.sort(key=lambda x: np.abs(x[1]-f))
@@ -597,6 +604,9 @@ class FilterADMV8818:
         self.write_reg(reg="WR0_FILTER", value=filt_state)
 
     def set_filter(self, fc, bw, ftype):
+        if not self.FILTER_IN_MHZ:
+            fc *= 1000
+            bw *= 1000
         # Low-pass.
         if ftype == 'lowpass':
             logger.debug("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
