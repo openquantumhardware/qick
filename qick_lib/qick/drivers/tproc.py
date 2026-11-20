@@ -619,7 +619,7 @@ class Axis_QICK_Proc(SocIP):
         :rtype: int
         """
         # Read data.
-        self.mem_addr = i
+        self.mem_addr = addr
         self.tproc_cfg = 0x11 + (mem_sel << 2)
         val = self.mem_dt_o
         self.tproc_cfg         &= ~63
@@ -636,7 +636,7 @@ class Axis_QICK_Proc(SocIP):
         :type data: int
         """
         # Write data.
-        self.mem_addr = i
+        self.mem_addr = addr
         self.tproc_cfg = 0x13 + (mem_sel << 2)
         self.mem_dt_i = data
         self.tproc_cfg         &= ~63

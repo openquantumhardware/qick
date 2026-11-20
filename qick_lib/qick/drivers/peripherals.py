@@ -678,8 +678,8 @@ class QICK_Net(SocIP):
         print( ' T17  : ' + str(cmd17_st) + ' - ' + self.cmd_list[cmd17_st])
         print( ' T18  : ' + str(cmd18_st) + ' - ' + self.cmd_list[cmd18_st])
         print( ' T19  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd19_st])
-        print( ' T20  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd20_st])
-        
+        print( ' T20  : ' + str(cmd20_st) + ' - ' + self.cmd_list[cmd20_st])
+
     def get_sth(self):
         debug_num = self.tnet_debug
         debug_bin = '{:032b}'.format(debug_num)
@@ -695,15 +695,15 @@ class QICK_Net(SocIP):
         print('---------------------------------------------')
         print( ' AURORA_CNT  : ' + debug_bin[27:32] )
         print( ' AURORA_OP   : ' + debug_bin[23:27] )
-        print( ' TASK_ST     : ' + str(task_st) + ' - ' + task_list[task_st])
+        print( ' TASK_ST     : ' + str(task_st) + ' - ' + self.task_list[task_st])
         print( ' MAIN_ST     : ' + debug_bin[15:19] )
-        print( ' T0   : ' + str(cmd0_st) + ' - ' + cmd_list[cmd0_st])
-        print( ' T1   : ' + str(cmd1_st) + ' - ' + cmd_list[cmd1_st])
-        print( ' T2   : ' + str(cmd2_st) + ' - ' + cmd_list[cmd2_st])
-        print( ' T3   : ' + str(cmd3_st) + ' - ' + cmd_list[cmd3_st])
-        print( ' T4   : ' + str(cmd4_st) + ' - ' + cmd_list[cmd4_st])
-        print( ' T5   : ' + str(cmd5_st) + ' - ' + cmd_list[cmd5_st])
-        
+        print( ' T0   : ' + str(cmd0_st) + ' - ' + self.cmd_list[cmd0_st])
+        print( ' T1   : ' + str(cmd1_st) + ' - ' + self.cmd_list[cmd1_st])
+        print( ' T2   : ' + str(cmd2_st) + ' - ' + self.cmd_list[cmd2_st])
+        print( ' T3   : ' + str(cmd3_st) + ' - ' + self.cmd_list[cmd3_st])
+        print( ' T4   : ' + str(cmd4_st) + ' - ' + self.cmd_list[cmd4_st])
+        print( ' T5   : ' + str(cmd5_st) + ' - ' + self.cmd_list[cmd5_st])
+
 class QICK_XTalk_Compensation(SocIP):
     """
     QICK_XTalk_Compensation class

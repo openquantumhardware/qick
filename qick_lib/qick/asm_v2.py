@@ -881,6 +881,8 @@ class Delay(TimedMacro):
             # if this was a delay_auto and we have no relevant channels, it should compile to nothing
             return []
         elif isinstance(t_reg, int):
+            if not check_bytes(t_reg, 4):
+                raise RuntimeError("DELAY argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
         else:
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':prog._get_reg(t_reg)}, addr_inc=1)]
@@ -1784,6 +1786,11 @@ class StandardGenManager(AbsGenManager):
 
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
 
+        # gain is a fraction of full scale, a value past +/-1 does not fit in the gain register and would be truncated by Waveform.compile()
+        # raise an error instead
+        if par['gain'].maxval() > 1 or par['gain'].minval() < -1:
+            raise RuntimeError("gen %d has a pulse with gain in the range [%f, %f], but gain must be in [-1, 1] (a fraction of full scale, not DAC units)" % (self.ch, par['gain'].minval(), par['gain'].maxval()))
+
         # gains should be rounded towards zero to avoid overflow
         if par['style']=='flat_top':
             # the flat segment is played at half gain, to match the ramps
@@ -1800,6 +1807,9 @@ class StandardGenManager(AbsGenManager):
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv']*self.chcfg['maxv_scale'], parname='gain', trunc=True)
         else:
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', trunc=True)
+        # warn if a nonzero requested gain is being rounded to zero
+        if not par['gain'].spans and par['gain'].start != 0 and w['gainreg'].start == 0:
+            logger.warning("gen %d has a pulse with gain %g, which rounds to 0 (the gain step is 1/%d of full scale)" % (self.ch, par['gain'].start, self.chcfg['maxv']))
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -1933,10 +1943,13 @@ class ReadoutManager(AbsRegisterManager):
         # if the matching generator has a mixer, that frequency needs to be added to this one
         # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
         # the relevant quantization step is still going to be the readout+generator step
-        if 'gen_ch' in par and 'mixer_freq' in self.prog.gen_chs[par['gen_ch']]:
+        gen_ch = par.get('gen_ch')
+        if gen_ch is not None and gen_ch not in self.prog.gen_chs:
+            raise RuntimeError("readout %d is frequency-matched to generator %d, but that generator is not declared in this program"%(self.ch, gen_ch))
+        if gen_ch is not None and 'mixer_freq' in self.prog.gen_chs[gen_ch]:
             # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
             # but we round here anyway - TODO: we could warn if it's not rounded
-            mixer_freq = self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
+            mixer_freq = self.prog.gen_chs[gen_ch]['mixer_freq']['rounded']
             mixer_freq = self.prog.roundfreq(mixer_freq, [self.chcfg])
         else:
             mixer_freq = 0
@@ -1944,7 +1957,7 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq'] - mixer_freq
         else:
             f_dds = par['freq']
-        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=gen_ch)
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
         if self.prog.FLIP_DOWNCONVERSION: freqreg *= -1
 
@@ -2059,7 +2072,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # * declare_gen, declare_readout
         # * add_pulse
         # * macros
-        # 
+        #
         # user commands can add macros and/or waveforms+pulses to the program
         # macros are user commands
         # preprocessing: allocate registers, convert params from physical units to ASM values, define the timeline
@@ -2405,8 +2418,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
         length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
-        gen_ch : int
-            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+        gen_ch : int or None
+            generator channel (omit or use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         if isinstance(ch, Number):
             ch = [ch]

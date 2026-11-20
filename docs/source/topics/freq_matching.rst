@@ -37,6 +37,24 @@ Round the frequency to the closest value that is valid on both channels:
    matched_freq = soccfg.adcfreq(100.0, gen_ch=0, ro_ch=0)
    freq_reg = soccfg.freq2reg(matched_freq, gen_ch=0)
 
+In tProc v2 programs (AveragerProgramV2)
+----------------------------------------
+
+Both sides of the pair must be matched: the pulse to the readout, and the readout to the generator.
+
+.. code-block:: python
+
+   self.add_pulse(ch=GEN_CH, name="p", style="const", freq=f, length=0.5,
+                  phase=0, gain=0.5, ro_ch=RO_CH)        # pulse matched to the readout
+   self.add_readoutconfig(ch=RO_CH, name="ro", freq=f,
+                          gen_ch=GEN_CH)                  # readout matched to the generator
+
+For a muxed generator the pulse has no ``freq``; pass ``ro_ch`` to ``declare_gen()`` instead, and ``gen_ch`` to each ``declare_readout()``.
+
+``gen_ch`` alone is not enough. Without ``ro_ch``, ``add_pulse()`` rounds ``f`` only to the generator's own step, while ``add_readoutconfig(gen_ch=...)`` rounds it to the coarser common step. The two frequencies then differ by a few Hz: for example, on the RFSoC4x2 the generator step is 2.3 Hz, the common step 20.6 Hz, and at 100 MHz the difference is 9.2 Hz. That turns the demodulated phase once every ~0.1 s, so each run of the same program returns I/Q at a different angle, even though the phase looks stable within a run.
+
+Rounding ``f`` first with ``soccfg.adcfreq(f, gen_ch=GEN_CH, ro_ch=RO_CH)`` works too, as long as every pulse and readout config uses that rounded value.
+
 Trade-offs
 ----------
 

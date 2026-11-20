@@ -63,7 +63,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
     addr = 0
     for line in fd:
         # Match comments.
-        m = re.search("^\s*//", line)
+        m = re.search(r"^\s*//", line)
 
         # If there is a match.
         if m:
@@ -76,7 +76,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
             inst_re_I = "pushi|popi|mathi|seti|synci|waiti|bitwi|memri|memwi|regwi|setbi|"
             inst_re_J = "loopnz|condj|end|"
             inst_re_R = "math|set|sync|read|wait|bitw|memr|memw|setb"
-            inst_re = "\s*(" + inst_re_I + inst_re_J + inst_re_R + ")\s+(.+);"
+            inst_re = r"\s*(" + inst_re_I + inst_re_J + inst_re_R + r")\s+(.+);"
             comp_re = jump_re + inst_re
             m = re.search(comp_re, line, flags=re.MULTILINE)
 
@@ -110,7 +110,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
             # Check special case of "end" instruction.
             else:
-                m = re.search("\s*(end)\s*;", line)
+                m = re.search(r"\s*(end)\s*;", line)
 
                 # If there is a match.
                 if m:
@@ -235,7 +235,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # pushi p, $ra, $rb, imm
         if inst == 'pushi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -255,7 +255,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # popi p, $r
         elif inst == 'popi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -273,7 +273,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # mathi p, $ra, $rb oper imm
         if inst == 'mathi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([\+\-\*])\s*(0?x?\-?[0-9a-fA-F]+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([\+\-\*])\s*(0?x?\-?[0-9a-fA-F]+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -294,7 +294,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # seti ch, p, $r, t
         if inst == 'seti':
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -314,7 +314,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # synci t
         if inst == 'synci':
-            comp_re = "\s*(\d+)"
+            comp_re = r"\s*(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -330,7 +330,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # waiti ch, t
         if inst == 'waiti':
-            comp_re = "\s*(\d+)\s*,\s*(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -348,7 +348,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # bitwi p, $ra, $rb oper imm
         if inst == 'bitwi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([&|<>^]+)\s*(0?x?\-?[0-9a-fA-F]+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([&|<>^]+)\s*(0?x?\-?[0-9a-fA-F]+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -365,7 +365,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
             # bitwi p, $ra, ~imm
             else:
-                comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*~\s*(0?x?\-?[0-9a-fA-F]+)"
+                comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*~\s*(0?x?\-?[0-9a-fA-F]+)"
                 m = re.search(comp_re, args)
 
                 # If there is a match.
@@ -385,7 +385,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # memri p, $r, imm
         if inst == 'memri':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -404,7 +404,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # memwi p, $r, imm
         if inst == 'memwi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -423,7 +423,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # regwi p, $r, imm
         if inst == 'regwi':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(0?x?\-?[0-9a-fA-F]+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -442,7 +442,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # setbi ch, p, $r, t
         if inst == 'setbi':
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)\s*,\s*(\-?\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -465,7 +465,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # loopnz p, $r, @label
         if inst == 'loopnz':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\@(.+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\@(.+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -493,7 +493,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # condj p, $ra op $rb, @label
         if inst == 'condj':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*([<>=!]+)\s*\$(\d+)\s*,\s*\@(.+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*([<>=!]+)\s*\$(\d+)\s*,\s*\@(.+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -530,7 +530,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # math p, $ra, $rb oper $rc
         if inst == 'math':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([\+\-\*])\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([\+\-\*])\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -552,8 +552,8 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # set ch, p, $ra, $rb, $rc, $rd, $re, $rt
         if inst == 'set':
-            regs = "\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*," + regs
+            regs = r"\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*," + regs
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -578,7 +578,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # sync p, $r
         if inst == 'sync':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -596,7 +596,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # read ch, p, oper $r
         if inst == 'read':
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*,\s*(upper|lower)\s+\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*,\s*(upper|lower)\s+\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -616,7 +616,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # wait ch, p, $r
         if inst == 'wait':
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*,\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -635,7 +635,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # bitw p, $ra, $rb oper $rc
         if inst == 'bitw':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([&|<>^]+)\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*([&|<>^]+)\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -653,7 +653,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
             # bitw p, $ra, ~$rb
             else:
-                comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*~\s*\$(\d+)"
+                comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*~\s*\$(\d+)"
                 m = re.search(comp_re, args)
 
                 # If there is a match.
@@ -674,7 +674,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # memr p, $ra, $rb
         if inst == 'memr':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -694,7 +694,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # memw p, $ra, $rb
         if inst == 'memw':
-            comp_re = "\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
             m = re.search(comp_re, args)
 
             # If there is a match.
@@ -714,8 +714,8 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
         # setb ch, p, $ra, $rb, $rc, $rd, $re, $rt
         if inst == 'setb':
-            regs = "\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
-            comp_re = "\s*(\d+)\s*,\s*(\d+)\s*," + regs
+            regs = r"\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)\s*,\s*\$(\d+)"
+            comp_re = r"\s*(\d+)\s*,\s*(\d+)\s*," + regs
             m = re.search(comp_re, args)
 
             # If there is a match.

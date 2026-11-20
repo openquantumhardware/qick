@@ -1,5 +1,5 @@
-Timing
-======
+Timing with tProcessor v1
+=========================
 
 * Every generator contains a timed FIFO queue.
   There is only one master clock time `t_master`, which is shared by all timed queues.
