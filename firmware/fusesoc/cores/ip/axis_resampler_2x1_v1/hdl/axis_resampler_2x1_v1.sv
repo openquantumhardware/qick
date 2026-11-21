@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_resampler_2x1_v1.sv

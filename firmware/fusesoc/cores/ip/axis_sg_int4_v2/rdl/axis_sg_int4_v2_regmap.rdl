@@ -1,0 +1,33 @@
+// axis_sg_int4_v2_regmap.rdl
+// SystemRDL register definition for the axis_sg_int4_v2 IP core (QICK
+// interpolated x4 arbitrary signal generator).
+//
+// RTL decode is the generic axil_slv core. This RDL is used ONLY for the
+// Python driver layer and documentation -- do NOT generate RTL from it (no
+// --hdl in rdl/Makefile).
+addrmap axis_sg_int4_v2 {
+    name = "axis_sg_int4_v2 (interpolated x4 signal generator) Registers";
+    desc = "Envelope-writer control registers. Envelope samples are loaded
+            over a separate AXI-Stream path (s0_axis_tdata) and waveform
+            playback (frequency/phase/gain/nsamp/etc.) is queued over
+            another AXI-Stream descriptor path (s1_axis_tdata), not through
+            this register map.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "START_ADDR_REG";
+        desc = "Envelope write start address (32-bit).";
+        field { sw = rw; hw = r; } START_ADDR[31:0] = 0;
+    } START_ADDR_REG @0x00;
+
+    reg {
+        name = "WE_REG";
+        desc = "Envelope write enable (capture), bit 0. A LEVEL, not
+                self-clearing: software pulses it 0->1->0 around an
+                envelope load, matching axis_to_bram_sg's capture_reg
+                protocol.";
+        field { sw = rw; hw = r; } WE[0:0] = 0;
+    } WE_REG @0x04;
+};

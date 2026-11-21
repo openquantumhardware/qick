@@ -346,8 +346,10 @@ class FullSpeedGenManager(AbsGenManager):
             elif style=='flat_top':
                 # address for ramp-down
                 self.set_reg('addr2', addr+(wfm_length+1)//2)
-                # gain for flat segment
-                self.set_reg('gain2', params['gain']//2)
+                # gain for flat segment: half, to match the ramps -- except on
+                # generators with a full-scale envelope product (fusesoc
+                # sgv4/sgv6, see AxisSignalGen: env_full_scale)
+                self.set_reg('gain2', params['gain'] if self.gencfg.get('env_full_scale') else params['gain']//2)
                 # mode for ramp up
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
                 self.set_reg('mode2', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')

@@ -1,0 +1,7 @@
+# Parameter-dependent ports for Vivado IP packaging (read by
+# generators/ip_gen/ip_packager.py only). Mirrors the legacy IP
+# (openquantumhardware/qick firmware/ip/qick_vec2bit/component.xml): dout<i> is shown when
+# OUT_QTY > i (dout0 always).
+optional_interfaces:
+  - indexed: {param: OUT_QTY, range: [1, 15]}
+    ports: ["dout{i}"]

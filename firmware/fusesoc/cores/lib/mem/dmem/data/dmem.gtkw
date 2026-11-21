@@ -1,0 +1,96 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 29 21:58:38 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-18.085638 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dmem_ut.
+[sst_width] 206
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.clk
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.rstn
+testrunner.__ts.dmem_ut.u_dut.busy_o
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.oper_i
+@22
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.addr_i[9:0]
+@c00022
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+@28
+(0)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(1)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(2)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(3)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(4)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(5)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(6)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(7)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(8)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(9)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(10)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(11)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(12)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(13)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(14)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(15)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(16)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(17)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(18)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(19)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(20)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(21)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(22)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(23)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(24)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(25)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(26)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(27)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(28)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(29)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(30)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+(31)testrunner.__ts.dmem_ut.u_dut.din_i[31:0]
+@1401200
+-group_end
+@22
+[color] 6
+testrunner.__ts.dmem_ut.u_dut.dout_o[31:0]
+@29
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.exec_i
+@28
+[color] 6
+testrunner.__ts.dmem_ut.u_dut.exec_ack_o
+@22
+testrunner.__ts.dmem_ut.u_dut.addr_reg[9:0]
+@28
+testrunner.__ts.dmem_ut.u_dut.ar_exec
+testrunner.__ts.dmem_ut.u_dut.ar_exec_ack
+testrunner.__ts.dmem_ut.u_dut.aw_exec
+testrunner.__ts.dmem_ut.u_dut.aw_exec_ack
+@22
+testrunner.__ts.dmem_ut.u_dut.len_reg[9:0]
+[color] 6
+testrunner.__ts.dmem_ut.u_dut.mem_addr_o[9:0]
+[color] 6
+testrunner.__ts.dmem_ut.u_dut.mem_di_o[31:0]
+[color] 3
+testrunner.__ts.dmem_ut.u_dut.mem_do_i[31:0]
+@28
+[color] 6
+testrunner.__ts.dmem_ut.u_dut.mem_we_o
+testrunner.__ts.dmem_ut.u_dut.mode_reg
+testrunner.__ts.dmem_ut.u_dut.sel[1:0]
+testrunner.__ts.dmem_ut.u_dut.start_reg
+[pattern_trace] 1
+[pattern_trace] 0

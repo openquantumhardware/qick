@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_weighted_buffer.sv

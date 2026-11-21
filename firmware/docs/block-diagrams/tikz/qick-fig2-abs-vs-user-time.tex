@@ -1,0 +1,81 @@
+\documentclass[tikz,border=3mm]{standalone}
+\usepackage[siunitx]{circuitikz}
+\usetikzlibrary{calc,positioning,arrows.meta}
+
+\begin{document}
+
+% Rep boundaries along the shared x-axis (absolute time).
+\def\repw{4.4}          % width of one repetition, in cm
+\def\xa{0}
+\def\xb{\repw}
+\def\xc{2*\repw}
+\def\xd{3*\repw}
+\def\ybase{0}            % t_usr = 0 baseline
+\def\ytop{2.6}            % t_usr ramp ceiling within a rep
+
+\begin{tikzpicture}
+[node distance=0.6cm]
+
+% --- Top ruler: t_abs, split into repetitions. ------------------------
+\node[font=\scriptsize,align=left] at (\xa,4.7) {$t_{abs}$ --- absolute time counter, 48 bit, never resets within a shot};
+
+\draw[draw={rgb,255:red,200; green,188; blue,188},line width=0.8pt]
+  (\xa,4.0) rectangle (\xd,4.5);
+\draw[draw={rgb,255:red,200; green,188; blue,188},line width=0.8pt] (\xb,4.0) -- (\xb,4.5);
+\draw[draw={rgb,255:red,200; green,188; blue,188},line width=0.8pt] (\xc,4.0) -- (\xc,4.5);
+\node[font=\scriptsize] at ({(\xa+\xb)/2},4.25) {REP $N-1$};
+\node[font=\scriptsize] at ({(\xb+\xc)/2},4.25) {REP $N$};
+\node[font=\scriptsize] at ({(\xc+\xd)/2},4.25) {REP $N+1$};
+
+\draw[black!55] (\xa,4.0) -- (\xa,3.75) node[below,font=\tiny] {TIME rst};
+\draw[black!55] (\xb,4.0) -- (\xb,3.6) node[below,font=\tiny] {set\_ref};
+\draw[black!55] (\xc,4.0) -- (\xc,3.6) node[below,font=\tiny] {set\_ref};
+
+% Guides linking the ruler down to the plot below.
+\draw[black!35,dashed] (\xb,3.5) -- (\xb,\ybase-0.3);
+\draw[black!35,dashed] (\xc,3.5) -- (\xc,\ybase-0.3);
+
+% --- Main plot: t_usr vs t_abs. ----------------------------------------
+\draw[-{Latex[length=2.5mm]},line width=0.8pt] (-0.5,\ybase) -- (\xd+0.6,\ybase) node[right,font=\scriptsize] {$t_{abs}\to$};
+\draw[-{Latex[length=2.5mm]},line width=0.8pt] (-0.5,\ybase) -- (-0.5,\ytop+0.25) node[above,font=\scriptsize] {$t_{usr}$};
+\node[font=\scriptsize,anchor=east] at (-0.55,\ybase) {0};
+
+\node[font=\scriptsize,black!55] at ({\xa+0.7},{\ybase-0.35}) {Ref $t=0$};
+\node[font=\scriptsize,black!55] at ({\xb+0.7},{\ybase-0.35}) {Ref $t=0$};
+\node[font=\scriptsize,black!55] at ({\xc+0.7},{\ybase-0.35}) {Ref $t=0$};
+
+\node[draw={rgb,255:red,200; green,188; blue,188},fill={rgb,255:red,255; green,240; blue,240},
+      rounded corners,font=\scriptsize,align=center,inner sep=3pt]
+  at ({\xa+1.5},\ytop+0.15) {$t_{usr} = t_{abs} - t_{ref}$};
+
+% Sawtooth: ramps up during each rep, drops to 0 at the next TIME set_ref.
+\draw[draw={rgb,255:red,213; green,139; blue,99},line width=1.6pt]
+  (\xa,\ybase) -- (\xb,\ytop) -- (\xb,\ybase)
+             -- (\xc,\ytop) -- (\xc,\ybase)
+             -- (\xd,\ytop);
+
+\node[font=\tiny,align=left,anchor=west,black!55] at ({\xb+0.18},{\ytop-0.35}) {reset: $t_{ref}\leftarrow t_{abs}$\\($t_{usr}$ snaps to 0)};
+
+% Example events scheduled within REP N.
+\coordinate (m1) at ({\xb+0.22*\repw},{\ybase+0.22*\ytop});
+\coordinate (m2) at ({\xb+0.55*\repw},{\ybase+0.55*\ytop});
+\coordinate (m3) at ({\xb+0.85*\repw},{\ybase+0.85*\ytop});
+\coordinate (m2base) at ({\xb+0.55*\repw},\ybase);
+\coordinate (m2yaxis) at (-0.5,{\ybase+0.55*\ytop});
+
+\fill[draw={rgb,255:red,213; green,139; blue,99},fill={rgb,255:red,213; green,139; blue,99}] (m1) circle (1.6pt);
+\node[font=\tiny,above] at (m1) {pulse @ $t_1$};
+
+\fill[draw={rgb,255:red,213; green,139; blue,99},fill={rgb,255:red,213; green,139; blue,99}] (m2) circle (1.8pt);
+\draw[black!45,dashed] (m2) -- (m2base) node[below,font=\tiny] {@time};
+\draw[black!45,dashed] (m2) -- (m2yaxis);
+\node[font=\tiny,above,align=center] at (m2) {trigger @ $t_2$};
+
+\fill[draw={rgb,255:red,213; green,139; blue,99},fill={rgb,255:red,213; green,139; blue,99}] (m3) circle (1.6pt);
+\node[font=\tiny,above] at (m3) {pulse @ $t_3$};
+
+\node[font=\tiny,align=left,black!55] at ({\xd+1.3},{0.55*\ytop}) {events schedule\\their own $t_{usr}$\\within the rep};
+
+\end{tikzpicture}
+
+\end{document}

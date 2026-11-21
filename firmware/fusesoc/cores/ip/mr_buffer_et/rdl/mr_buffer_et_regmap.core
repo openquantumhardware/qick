@@ -1,0 +1,10 @@
+CAPI=2:
+name: qick:ip:mr_buffer_et_regmap:0.1.0
+description: "SystemRDL register map for the mr_buffer_et IP core."
+filesets:
+  rdl:
+    files:
+      - mr_buffer_et_regmap.rdl : {file_type: user}
+targets:
+  default:
+    filesets: [rdl]

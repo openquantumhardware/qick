@@ -1,0 +1,79 @@
+CAPI=2:
+name: qick:ip:axis_signal_gen_v6:1.0.0
+description: QICK Arbitrary Signal Generator v6 - arbitrary waveform generation with envelope memory and DDS up-conversion (16 parallel lanes, complex/real envelopes, per-pulse gain, saturation detection).
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_signal_gen_v6.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_gray_sync
+      - qick:axi:axil_slv
+      - qick:dsp:sgv6_top
+
+  constraints:
+    files:
+      - constraints/axis_signal_gen_v6.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/axis_signal_gen_v6_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/axis_signal_gen_v6_tc00.sv
+      - tests/axis_signal_gen_v6_tests.sv: {is_include_file: true}
+      - tests/dds_phase_probe.sv: {is_include_file: true}
+      - tests/mem_skew_probe.sv: {is_include_file: true}
+      - tests/mem_write_probe.sv: {is_include_file: true}
+      - tests/write_startup_probe.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/axis_signal_gen_v6_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_signal_gen_v6
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_signal_gen_v6
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none

@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul  9 15:37:34 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-15.266050 139200 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.punct_ut.
+[sst_width] 206
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@29
+[color] 3
+testrunner.__ts.punct_ut.dut.i_clk
+[color] 3
+testrunner.__ts.punct_ut.dut.i_rstn
+[color] 3
+testrunner.__ts.punct_ut.dut.i_din_valid
+@23
+[color] 3
+testrunner.__ts.punct_ut.dut.i_id_reg[15:0]
+[color] 3
+testrunner.__ts.punct_ut.dut.id_reg_r[15:0]
+@29
+[color] 3
+testrunner.__ts.punct_ut.dut.i_din_last
+@23
+testrunner.__ts.punct_ut.dut.cnt[15:0]
+@29
+testrunner.__ts.punct_ut.dut.flag
+testrunner.__ts.punct_ut.dut.last_r1
+testrunner.__ts.punct_ut.dut.last_r2
+testrunner.__ts.punct_ut.dut.valid_r1
+testrunner.__ts.punct_ut.dut.valid_r2
+[color] 6
+testrunner.__ts.punct_ut.dut.o_dout_valid
+[color] 6
+testrunner.__ts.punct_ut.dut.o_dout_en
+[color] 6
+testrunner.__ts.punct_ut.dut.o_dout_last
+[pattern_trace] 1
+[pattern_trace] 0

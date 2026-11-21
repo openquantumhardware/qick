@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/emulator/xpm_fifo_sync.sv

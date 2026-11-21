@@ -1,0 +1,56 @@
+CAPI=2:
+name: qick:dsp:readout_top_dynro:1.0.0
+description: readout_top_dynro (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/readout_top_dynro.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo_sync
+      - qick:dsp:down_conversion_dynro
+      - qick:dsp:fir_decim8_dynro
+  tb:
+    files:
+      - tests/readout_top_dynro_tc00.sv
+      - tests/readout_top_dynro_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/readout_top_dynro_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: readout_top_dynro
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: readout_top_dynro
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

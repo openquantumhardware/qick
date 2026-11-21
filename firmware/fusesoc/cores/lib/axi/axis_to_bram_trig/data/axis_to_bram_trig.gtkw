@@ -1,0 +1,76 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul 16 22:06:13 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-18.798676 2930000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_to_bram_trig_ut.
+[sst_width] 206
+[signals_width] 185
+[sst_expanded] 1
+[sst_vpaned_height] 696
+@28
+[color] 2
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.capture_reg
+@24
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.addr_cnt[3:0]
+@28
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.clk
+@2028
+[color] 2
+^1 firmware/fusesoc/cores/lib/axi/axis_to_bram_trig/data/states.txt
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.current_state[1:0]
+@420
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.fifo_dout[15:0]
+@28
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.fifo_empty
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.fifo_full
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.fifo_rd_en
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.fifo_wr_en
+@22
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.mem_addr_r[3:0]
+@420
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.mem_di_r[15:0]
+@28
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.mem_we_r
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.rstn
+[color] 3
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.trigger
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.write_en
+@29
+[color] 6
+testrunner.__ts.axis_to_bram_trig_ut.u_dut.o_capture_done
+@800200
+-axis_if
+@420
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tdata[15:0]
+@28
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tready
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tvalid
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tlast
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tkeep[1:0]
+testrunner.__ts.axis_to_bram_trig_ut.axis_if.tstrb[1:0]
+@1000200
+-axis_if
+@800200
+-bram_if
+@28
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.i_clk
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.i_rst
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.we
+@24
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.addr[3:0]
+@420
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.din[15:0]
+@22
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.dout[15:0]
+@28
+testrunner.__ts.axis_to_bram_trig_ut.bram_if_i.en
+@1000200
+-bram_if
+[pattern_trace] 1
+[pattern_trace] 0

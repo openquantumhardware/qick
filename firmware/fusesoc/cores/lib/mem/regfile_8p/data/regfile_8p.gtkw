@@ -1,0 +1,63 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri Jun 26 20:07:25 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-16.872370 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.regfile_8p_ut.
+[sst_width] 206
+[signals_width] 118
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.clk
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.rstn
+@22
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr0[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr1[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr2[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr3[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr4[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr5[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr6[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.addr7[4:0]
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.din7[15:0]
+@28
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.wen7
+[color] 3
+testrunner.__ts.regfile_8p_ut.u_dut.pnum[2:0]
+@23
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout0[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout1[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout2[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout3[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout4[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout5[15:0]
+[color] 6
+testrunner.__ts.regfile_8p_ut.u_dut.dout6[15:0]
+@28
+testrunner.__ts.regfile_8p_ut.u_dut.pnum_r[2:0]
+[pattern_trace] 1
+[pattern_trace] 0

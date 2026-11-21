@@ -1,0 +1,53 @@
+CAPI=2:
+name: qick:ctrl:kidsim_top:1.0.0
+description: "One-lane KID simulator: puncturing + kidsim datapath + latency-matched bypass mux."
+filesets:
+  hdl:
+    files:
+      - hdl/kidsim_top.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ctrl:kidsim
+      - qick:ctrl:punct
+      - qick:utils:delay_line
+      - qick:cdc:cdc_bit_sync
+  tb:
+    files:
+      - tests/kidsim_top_tc00.sv
+      - tests/kidsim_top_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/kidsim_top_tc00.sv
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: kidsim_top
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: kidsim_top
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

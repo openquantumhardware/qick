@@ -1,0 +1,24 @@
+[options]
+mode prove
+depth 30
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/axis_signal_gen_v6/src/synchronizer_n.vhd
+../../../firmware/ip/axis_signal_gen_v6/src/verilog/synchronizer_n_sv.sv
+../../../firmware/ip/axis_signal_gen_v6/src/data_writer.vhd
+../../../firmware/ip/axis_signal_gen_v6/src/verilog/data_writer_sv.sv
+data_writer_sva.sv
+
+[script]
+plugin -i ghdl
+# Analyze VHDL
+ghdl --std=08 synchronizer_n.vhd data_writer.vhd -e data_writer
+# Analyze SV - Must include the SV synchronizer now
+read_verilog -sv -formal synchronizer_n_sv.sv
+read_verilog -sv -formal data_writer_sv.sv
+read_verilog -sv -formal data_writer_sva.sv
+# Elaborate SV top
+prep -top data_writer_sv

@@ -1,0 +1,79 @@
+CAPI=2:
+name: qick:ip:axis_avg_buffer:1.2.1
+description: "QICK averager + raw buffer (axis_avg_buffer) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_avg_buffer.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:axis_avg_buffer_regmap
+      - qick:axi:axil_slv
+      - qick:math:avg_buffer
+
+  constraints:
+    files:
+      - constraints/axis_avg_buffer.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/axis_avg_buffer_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/axis_avg_buffer_tc00.sv
+      - tests/axis_avg_buffer_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+      - qick:interfaces:axi4_stream_if
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axis_avg_buffer
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axis_avg_buffer
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/axis_avg_buffer_tc00.sv

@@ -1,0 +1,97 @@
+CAPI=2:
+name: qick:encoders:bin2gray:1.0.0
+description: Binary to Gray code converter.
+
+filesets:
+  hdl:
+    files:
+      - hdl/bin2gray.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      #- tests/tb_bin2gray.sv: {file_type: systemVerilogSource}
+      - tests/bin2gray_tc00.sv: {file_type: systemVerilogSource}
+      - tests/tests.sv: {is_include_file: true}
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/bin2gray_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: bin2gray
+    parameters:
+      - B
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: bin2gray
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  #test:
+  #  # Copy all key/value pairs from the "default" target.
+  #  <<: *default
+  #  description: Simulate the design
+  #  default_tool: icarus
+  #  filesets_append: [tb]
+  #  toplevel: tb_bin2gray
+  #  tools:
+  #    icarus:
+  #      iverilog_options:
+  #        - -g2012 # Use SystemVerilog-2012
+  #    modelsim:
+  #      vlog_options:
+  #        - -timescale=1ns/1ns
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - B=8
+
+parameters:
+  B:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

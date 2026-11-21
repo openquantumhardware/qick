@@ -1,0 +1,129 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul  9 13:44:06 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-15.548532 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dds_phase_ctrl_ut.
+[sst_width] 206
+[signals_width] 166
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_clk
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_rstn
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_trigger
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_din_valid
+@22
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_bval_reg[15:0]
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_slope_reg[15:0]
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_steps_reg[15:0]
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_wait_reg[15:0]
+[color] 3
+testrunner.__ts.dds_phase_ctrl_ut.dut.i_freq_reg[15:0]
+testrunner.__ts.dds_phase_ctrl_ut.dut.freq[15:0]
+testrunner.__ts.dds_phase_ctrl_ut.dut.freq_r1[15:0]
+testrunner.__ts.dds_phase_ctrl_ut.dut.freq_reg_r[15:0]
+testrunner.__ts.dds_phase_ctrl_ut.dut.mod_out[15:0]
+testrunner.__ts.dds_phase_ctrl_ut.dut.mod_out_r1[15:0]
+@28
+testrunner.__ts.dds_phase_ctrl_ut.dut.trigger_sync
+testrunner.__ts.dds_phase_ctrl_ut.dut.valid_r1
+testrunner.__ts.dds_phase_ctrl_ut.dut.valid_r2
+[color] 6
+testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout_valid
+@800022
+[color] 6
+testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+@c00022
+[color] 6
+#{o_phase} (0)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (1)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (2)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (3)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (4)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (5)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (6)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (7)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (8)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (9)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (10)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (11)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (12)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (13)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (14)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (15)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+@28
+[color] 6
+(0)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(1)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(2)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(3)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(4)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(5)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(6)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(7)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(8)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(9)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(10)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(11)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(12)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(13)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(14)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(15)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+@1401200
+-group_end
+@c00023
+[color] 6
+#{o_pinc} (16)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (17)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (18)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (19)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (20)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (21)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (22)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (23)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (24)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (25)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (26)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (27)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (28)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (29)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (30)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0] (31)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+@28
+[color] 6
+(16)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(17)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(18)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(19)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(20)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(21)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(22)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(23)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(24)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(25)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(26)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(27)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(28)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(29)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(30)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+[color] 6
+(31)testrunner.__ts.dds_phase_ctrl_ut.dut.o_dout[31:0]
+@1401201
+-group_end
+@1001200
+-group_end
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,80 @@
+CAPI=2:
+name: qick:math:avg:1.0.1
+description: Averager block
+
+filesets:
+  hdl:
+    files:
+      - hdl/avg.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/avg_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/avg_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: avg
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: avg
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the avg block using Icarus Verilog
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

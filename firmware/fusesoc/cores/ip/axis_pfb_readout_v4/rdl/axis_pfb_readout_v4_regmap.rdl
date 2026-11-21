@@ -1,0 +1,185 @@
+// axis_pfb_readout_v4_regmap.rdl
+// SystemRDL register definition for the axis_pfb_readout_v4 IP core (QICK
+// PFB readout, 8 outputs).
+//
+// RTL decode is the generic axil_slv core (64 read/write registers; the ones
+// not listed here, 0x60..0xFC, are unused storage). This RDL is used ONLY for
+// the Python driver layer and documentation -- do NOT generate RTL from it
+// (no --hdl in rdl/Makefile).
+addrmap axis_pfb_readout_v4 {
+    name = "axis_pfb_readout_v4 (PFB readout, 8 outputs) Registers";
+    desc = "Per output: the PFB channel it takes and its DDS frequency/phase.
+            The registers are read by the aclk domain as they are (no
+            synchronizer): write them while the output is not in use.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "ID0_REG";
+        desc = "Output 0: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID0_REG @0x00;
+
+    reg {
+        name = "ID1_REG";
+        desc = "Output 1: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID1_REG @0x04;
+
+    reg {
+        name = "ID2_REG";
+        desc = "Output 2: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID2_REG @0x08;
+
+    reg {
+        name = "ID3_REG";
+        desc = "Output 3: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID3_REG @0x0C;
+
+    reg {
+        name = "ID4_REG";
+        desc = "Output 4: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID4_REG @0x10;
+
+    reg {
+        name = "ID5_REG";
+        desc = "Output 5: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID5_REG @0x14;
+
+    reg {
+        name = "ID6_REG";
+        desc = "Output 6: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID6_REG @0x18;
+
+    reg {
+        name = "ID7_REG";
+        desc = "Output 7: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID7_REG @0x1C;
+
+    reg {
+        name = "FREQ0_REG";
+        desc = "Output 0 (PINC0_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ0_REG @0x20;
+
+    reg {
+        name = "PHASE0_REG";
+        desc = "Output 0 (POFF0_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE0_REG @0x24;
+
+    reg {
+        name = "FREQ1_REG";
+        desc = "Output 1 (PINC1_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ1_REG @0x28;
+
+    reg {
+        name = "PHASE1_REG";
+        desc = "Output 1 (POFF1_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE1_REG @0x2C;
+
+    reg {
+        name = "FREQ2_REG";
+        desc = "Output 2 (PINC2_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ2_REG @0x30;
+
+    reg {
+        name = "PHASE2_REG";
+        desc = "Output 2 (POFF2_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE2_REG @0x34;
+
+    reg {
+        name = "FREQ3_REG";
+        desc = "Output 3 (PINC3_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ3_REG @0x38;
+
+    reg {
+        name = "PHASE3_REG";
+        desc = "Output 3 (POFF3_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE3_REG @0x3C;
+
+    reg {
+        name = "FREQ4_REG";
+        desc = "Output 4 (PINC4_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ4_REG @0x40;
+
+    reg {
+        name = "PHASE4_REG";
+        desc = "Output 4 (POFF4_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE4_REG @0x44;
+
+    reg {
+        name = "FREQ5_REG";
+        desc = "Output 5 (PINC5_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ5_REG @0x48;
+
+    reg {
+        name = "PHASE5_REG";
+        desc = "Output 5 (POFF5_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE5_REG @0x4C;
+
+    reg {
+        name = "FREQ6_REG";
+        desc = "Output 6 (PINC6_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ6_REG @0x50;
+
+    reg {
+        name = "PHASE6_REG";
+        desc = "Output 6 (POFF6_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE6_REG @0x54;
+
+    reg {
+        name = "FREQ7_REG";
+        desc = "Output 7 (PINC7_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ7_REG @0x58;
+
+    reg {
+        name = "PHASE7_REG";
+        desc = "Output 7 (POFF7_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE7_REG @0x5C;
+};

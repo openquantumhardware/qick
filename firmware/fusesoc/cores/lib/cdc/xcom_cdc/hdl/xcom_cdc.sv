@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/cdc/xcom_cdc.sv

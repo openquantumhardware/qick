@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/mem/bram_simple_sp.sv

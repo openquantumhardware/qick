@@ -1,0 +1,55 @@
+CAPI=2:
+name: qick:dsp:down_conversion_ro_v3:1.0.0
+description: down_conversion_ro_v3 (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/down_conversion_ro_v3.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ctrl:ctrl_dyn_ro
+      - qick:dsp:dds_compiler_dyn_readout
+      - qick:utils:delay_line
+  tb:
+    files:
+      - tests/down_conversion_ro_v3_tc00.sv
+      - tests/down_conversion_ro_v3_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/down_conversion_ro_v3_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: down_conversion_ro_v3
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: down_conversion_ro_v3
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

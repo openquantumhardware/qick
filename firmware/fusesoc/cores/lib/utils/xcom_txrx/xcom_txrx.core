@@ -1,0 +1,140 @@
+CAPI=2:
+name: qick:utils:xcom_txrx:0.1.1
+description: Board communication peripheral.
+
+filesets:
+  hdl:
+    files:
+      - hdl/xcom_txrx.sv
+    file_type: systemVerilogSource
+    depend:
+       - qick:pkg:qick_pkg
+       - qick:utils:tx_cmd
+       - qick:utils:rx_cmd
+       - qick:utils:xcom_qctrl
+       - qick:utils:xcom_cmd
+
+
+  tb_alone:
+    files:
+      - data/states.txt: {file_type : user, copyto : states.txt}
+      - data/opcodes.txt: {file_type : user, copyto : opcodes.txt}
+      - tests/xcom_txrx_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+
+  tb_cmd:
+    files:
+      - data/states.txt: {file_type : user, copyto : states.txt}
+      - tests/xcom_txrx_tc01.sv
+      - tests/tests_cmd.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+  pynq_z2:
+    files:
+      - data/pynq_z2.xdc: {file_type: xdc}
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          #- tests/xcom_txrx_tc00.sv
+          - tests/xcom_txrx_tc01.sv
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+    toplevel: xcom_txrx
+    parameters:
+      - NB
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [bram]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test_alone:
+    <<: *default
+    description: Simulate the design (test_alone)
+    filesets_append: [tb_alone]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: [testrunner, glbl]
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  test_cmd:
+    <<: *default
+    description: Simulate the design (test_cmd)
+    filesets_append: [tb_cmd]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: [testrunner, glbl]
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # Default test target for `make sim`. Alias of test_alone (basic xcom_link_tx
+  # direct driving). Use test_cmd for the xcom_cmd-driven integration tests.
+  test:
+    <<: *default
+    description: Simulate the design (alias of test_alone)
+    filesets_append: [tb_alone]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: [testrunner, glbl]
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -L unisims_ver -L secureip]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam

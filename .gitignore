@@ -79,3 +79,18 @@ Temporary Items
 *.tmp
 *.cache/
 *.hw/
+
+# Firmware flow (fusesoc, Hog, Vivado)
+firmware/Projects/
+firmware/bin/
+firmware/.gen/
+firmware/*.gen/
+firmware/d_1.hwh
+firmware/ip/*
+!firmware/ip/README.md
+.Xilinx/
+*.pb
+*.wdb
+
+# Register packages written by `make driver`: local output, the drivers do not read them
+qick_lib/qick/rdl_pkgs/

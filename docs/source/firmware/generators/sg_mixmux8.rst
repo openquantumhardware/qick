@@ -10,7 +10,7 @@ Multiplexed Signal Generator with Mixer (axis_sg_mixmux8_v1) - QICK Firmware
 almost identical in its control logic to :doc:`sg_mux8`
 (``axis_sg_mux8_v1``), but with a **complex (I/Q) datapath** so that its
 output can drive the RFDC's own digital mixer/NCO. The module lives under
-``firmware/ip/axis_sg_mixmux8_v1/`` and is exposed to Python through
+``firmware/fusesoc/cores/ip/axis_sg_mixmux8_v1/`` and is exposed to Python through
 ``qick.drivers.generator.AxisSgMixMux8V1``.
 
 --------------------------------------------------------------------
@@ -27,7 +27,7 @@ samples per clock.
 
 The one substantive RTL difference from ``axis_sg_mux8_v1`` -- confirmed by
 diffing the two IPs' ``src/`` directories file-by-file (``diff -rq
-firmware/ip/axis_sg_mux8_v1/src firmware/ip/axis_sg_mixmux8_v1/src``) -- is
+firmware/fusesoc/cores/ip/axis_sg_mux8_v1/ firmware/fusesoc/cores/ip/axis_sg_mixmux8_v1/``) -- is
 that **every per-tone DDS core is configured as a complex (I/Q) oscillator
 instead of a real-valued one**, and the entire summation/quantization
 datapath downstream of it is duplicated to carry both components. Concretely:

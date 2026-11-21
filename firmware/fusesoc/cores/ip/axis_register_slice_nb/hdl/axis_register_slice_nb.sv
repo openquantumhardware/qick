@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/axis_register_slice_nb.sv

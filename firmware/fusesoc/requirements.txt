@@ -1,0 +1,4 @@
+# Dependencies are declared in pyproject.toml ([project].dependencies).
+# Installing this file installs the project (and all its deps) in editable mode.
+#   pip install -r requirements.txt  ==  pip install -e .
+-e .

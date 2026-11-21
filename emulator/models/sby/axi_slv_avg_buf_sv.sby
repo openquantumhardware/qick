@@ -1,0 +1,22 @@
+[options]
+mode bmc
+depth 30
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/axis_avg_buffer/src/axi_slv_avg_buf_sv.sv
+../../../firmware/ip/axis_avg_buffer/src/axi_slv_avg_buf.vhd
+axi_slv_avg_buf_sv_sva.sv
+
+[script]
+plugin -i ghdl
+setenv GHDL /opt/homebrew/bin/ghdl
+# Analyze VHDL
+ghdl --std=08 axi_slv_avg_buf.vhd -e axi_slv_avg_buf
+# Analyze SV - Must include the SV synchronizer now
+read_verilog -sv -formal axi_slv_avg_buf_sv.sv
+read_verilog -sv -formal axi_slv_avg_buf_sv_sva.sv
+# Elaborate SV top
+prep -top axi_slv_avg_buf_sv_sva

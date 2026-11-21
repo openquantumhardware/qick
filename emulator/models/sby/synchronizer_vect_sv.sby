@@ -1,0 +1,23 @@
+[options]
+mode prove
+depth 100
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/axis_dyn_readout_v1/src/fifo/verilog/synchronizer_vect_sv.sv
+../../../firmware/ip/axis_dyn_readout_v1/src/fifo/synchronizer_vect.vhd
+synchronizer_vect_sv_sva.sv
+
+[script]
+plugin -i ghdl
+setenv GHDL /opt/homebrew/bin/ghdl
+# Analyze VHDL
+ghdl --std=08 synchronizer_vect.vhd -e synchronizer_vect
+# Analyze SV - Must include the SV synchronizer now
+read_verilog -sv -formal synchronizer_vect_sv.sv
+read_verilog -sv -formal synchronizer_vect_sv_sva.sv
+# Elaborate SV top
+prep -top synchronizer_vect_sv_sva
+

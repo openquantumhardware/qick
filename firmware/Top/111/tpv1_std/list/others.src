@@ -1,0 +1,5 @@
+# proj.tcl is sourced here — must run after HOG creates the project
+# so that the BD and wrapper are added to an existing project
+Top/111/tpv1_std/proj.tcl source
+# The block design proj.tcl sources: listed (used by no run) so that Hog's version and SHA follow it.
+Top/111/tpv1_std/bd_2023-1.tcl nosynth noimpl nosim

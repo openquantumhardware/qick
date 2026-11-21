@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/cdc/cdc_reg_sync.sv

@@ -1,0 +1,76 @@
+CAPI=2:
+name: qick:cdc:cdc_handshake:1.1.0
+description: Multi-bit CDC via 4-phase req/ack toggle handshake (for infrequent control/status words, not streaming).
+
+filesets:
+  hdl:
+    files:
+      - hdl/cdc_handshake.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_bit_sync
+
+  tb:
+    files:
+      - tests/cdc_handshake_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/cdc_handshake_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+    toplevel: cdc_handshake
+    parameters:
+      - DW
+      - NS
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+parameters:
+  DW:
+    datatype    : int
+    description : Data width in bits
+    paramtype   : vlogparam
+  NS:
+    datatype    : int
+    description : Number of synchronizer stages
+    paramtype   : vlogparam

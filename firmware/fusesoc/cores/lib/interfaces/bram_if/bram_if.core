@@ -1,0 +1,29 @@
+CAPI=2:
+name: qick:interfaces:bram_if:0.1.1
+description: BRAM memory interface 
+
+filesets:
+  hdl:
+    files:
+      - hdl/bram_if.sv
+    file_type: systemVerilogSource
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+
+targets:
+  default: &default
+    filesets: [hdl]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: bram_if
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+

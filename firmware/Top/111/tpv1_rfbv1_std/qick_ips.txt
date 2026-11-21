@@ -1,0 +1,10 @@
+# qick:ip IPs this project packages in pre-creation (scripts/hog/package_bd_ips.tcl), one per line.
+# Checked against the BD by scripts/hog/gen_qick_ip_lists.py.
+axis_avg_buffer
+axis_constant
+axis_readout_v2
+axis_register_slice_nb
+axis_set_reg
+axis_signal_gen_v6
+axis_terminator
+axis_tprocv1

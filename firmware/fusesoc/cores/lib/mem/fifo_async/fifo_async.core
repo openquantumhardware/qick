@@ -1,0 +1,112 @@
+CAPI=2:
+name: qick:mem:fifo_async:1.0.0
+description: "Asynchronous (dual-clock) FIFO wrapper around XPM_FIFO_ASYNC."
+
+filesets:
+  hdl:
+    files:
+      - hdl/fifo_async.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tests/fifo_async_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/fifo_async_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: fifo_async
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fifo_async
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design (SVUnit + xsim)
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    # TB configuration knobs. Driven from the Makefile:
+    #   make sim IP=fifo_async MODE=fwft DEPTH=16 WIDTH=24 SWAP_CLK=1
+    parameters: [FWFT, TB_B, TB_N, SWAP_CLK]
+    tools:
+      xsim:
+        # NOTE: precision must be finer than 1ns. With 1ns/1ns a 307.2 MHz
+        # clk_gen half-period (1.6276 ns) silently rounds to 2 ns.
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      modelsim:
+        vlog_options: [-timescale=1ns/1ps -L xpm]
+      icarus:
+        iverilog_options:
+          - -g2012              # does not support XPM
+
+  synth:
+    <<: *default
+    description: Synthesize the design
+    default_tool: vivado
+    parameters: [B, N]
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        synth_options:
+          - -include_dirs $XILINX_VIVADO/data/ip/xpm
+
+parameters:
+  # ---- RTL parameters (synth / default targets) --------------------------
+  B:
+    datatype    : int
+    description : Data width in bits
+    paramtype   : vlogparam
+  N:
+    datatype    : int
+    description : FIFO depth (power of two, >= 16)
+    paramtype   : vlogparam
+
+  # ---- Testbench configuration (test target) -----------------------------
+  # These are vlogdefines, not vlogparams: the xsim toplevel is the generated
+  # SVUnit 'testrunner', so parameters would never reach the unit-test module.
+  FWFT:
+    datatype    : int
+    description : "0 = READ_MODE std, 1 = READ_MODE fwft"
+    paramtype   : vlogdefine
+    default     : 0
+  TB_B:
+    datatype    : int
+    description : Testbench data width
+    paramtype   : vlogdefine
+    default     : 32
+  TB_N:
+    datatype    : int
+    description : Testbench FIFO depth
+    paramtype   : vlogdefine
+    default     : 2048
+  SWAP_CLK:
+    datatype    : int
+    description : "0 = wr_clk fast / rd_clk slow, 1 = the other way round"
+    paramtype   : vlogdefine
+    default     : 0

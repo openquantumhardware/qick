@@ -1,0 +1,13 @@
+# Interface/port options for Vivado IP packaging (see
+# generators/ip_gen/ip_packager.py). Read by ip_packager.py only; does not
+# affect FuseSoC core parsing.
+#
+# The legacy IP hid s1..s3_axis_adc* behind ADC_QTY and arm_i behind
+# EXT_ARM. Here those ports stay visible (the hw-validated dbg benches wire
+# them explicitly with ADC_QTY 1/2, EXT_ARM 0), but every input that may be
+# left open is tied to 0 so a Top BD using fewer ADCs (tpv2_std: ADC0 only)
+# doesn't get BD 41-759 "not connected and no tie-off" critical warnings.
+
+tie_off_ports: [s0_axis_adc1_tvalid, s0_axis_adc1_tdata, s0_axis_adc2_tvalid, s0_axis_adc2_tdata,
+                s0_axis_adc3_tvalid, s0_axis_adc3_tdata, arm_i,
+                qtag_en_i, qtag_op_i, qtag_dt1_i, qtag_dt2_i, qtag_dt3_i, qtag_dt4_i]

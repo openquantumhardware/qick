@@ -1,0 +1,101 @@
+// axis_pfb_readout_v3_regmap.rdl
+// SystemRDL register definition for the axis_pfb_readout_v3 IP core (QICK
+// PFB readout, 4 outputs).
+//
+// RTL decode is the generic axil_slv core (16 read/write registers; the ones
+// not listed here, 0x30..0x3C, are unused storage). This RDL is used ONLY for
+// the Python driver layer and documentation -- do NOT generate RTL from it
+// (no --hdl in rdl/Makefile).
+addrmap axis_pfb_readout_v3 {
+    name = "axis_pfb_readout_v3 (PFB readout, 4 outputs) Registers";
+    desc = "Per output: the PFB channel it takes and its DDS frequency/phase.
+            The registers are read by the aclk domain as they are (no
+            synchronizer): write them while the output is not in use.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "ID0_REG";
+        desc = "Output 0: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID0_REG @0x00;
+
+    reg {
+        name = "ID1_REG";
+        desc = "Output 1: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID1_REG @0x04;
+
+    reg {
+        name = "ID2_REG";
+        desc = "Output 2: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID2_REG @0x08;
+
+    reg {
+        name = "ID3_REG";
+        desc = "Output 3: PFB channel. [7:0] clock within the PFB frame, [15:8]
+                word within that clock; channel k (0..63) is {k % 8, k / 8}.";
+        field { sw = rw; hw = r; } PACKET[7:0] = 0;
+        field { sw = rw; hw = r; } INDEX[15:8] = 0;
+    } ID3_REG @0x0C;
+
+    reg {
+        name = "FREQ0_REG";
+        desc = "Output 0 (PINC0_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ0_REG @0x10;
+
+    reg {
+        name = "PHASE0_REG";
+        desc = "Output 0 (POFF0_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE0_REG @0x14;
+
+    reg {
+        name = "FREQ1_REG";
+        desc = "Output 1 (PINC1_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ1_REG @0x18;
+
+    reg {
+        name = "PHASE1_REG";
+        desc = "Output 1 (POFF1_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE1_REG @0x1C;
+
+    reg {
+        name = "FREQ2_REG";
+        desc = "Output 2 (PINC2_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ2_REG @0x20;
+
+    reg {
+        name = "PHASE2_REG";
+        desc = "Output 2 (POFF2_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE2_REG @0x24;
+
+    reg {
+        name = "FREQ3_REG";
+        desc = "Output 3 (PINC3_REG in the RTL): DDS phase increment per output sample (one output per
+                32 input samples), 2^32 = one cycle.";
+        field { sw = rw; hw = r; } FREQ[31:0] = 0;
+    } FREQ3_REG @0x28;
+
+    reg {
+        name = "PHASE3_REG";
+        desc = "Output 3 (POFF3_REG in the RTL): DDS phase offset, 2^32 = one cycle.";
+        field { sw = rw; hw = r; } PHASE[31:0] = 0;
+    } PHASE3_REG @0x2C;
+};

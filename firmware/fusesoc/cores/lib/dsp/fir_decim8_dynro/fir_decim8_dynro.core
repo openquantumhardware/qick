@@ -1,0 +1,72 @@
+CAPI=2:
+name: qick:dsp:fir_decim8_dynro:1.0.1
+description: >
+  Decimate-by-8 FIR (Xilinx IP, Component_Name renamed from fir_compiler_0),
+  used by axis_dyn_readout_v1. Behavioural model for sim/lint, exact: the output
+  of the FIR Compiler (round to zero of sum(c*x)/2^19, 67 clocks of latency),
+  checked clock by clock against the real core in tests/vendor/run_vendor_check.sh;
+  real .xci for synth/packaging. 1.0.1 fixes the gain (the model had 16 times
+  too much) and the latency of 1.0.0.
+
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/fir_decim8_dynro.sv
+    file_type: systemVerilogSource
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/fir_decim8_dynro.xci: {file_type: xci}
+      - xci/fir_decim8_dynro.coe: {file_type: user, is_include_file: true}
+
+  tb:
+    files:
+      - tests/fir_decim8_dynro_tc00.sv
+      - tests/fir_decim8_dynro_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fir_decim8_dynro
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  test:
+    description: Simulate the design
+    filesets: [sim_model, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    filesets: [synth_xci]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/fir_decim8_dynro_tc00.sv

@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/mem/smp_mem.sv

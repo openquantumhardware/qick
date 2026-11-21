@@ -1,0 +1,1 @@
+../../../../../rtl_lib/ip/qick_processor.sv

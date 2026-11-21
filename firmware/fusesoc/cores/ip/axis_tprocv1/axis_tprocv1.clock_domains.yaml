@@ -1,0 +1,12 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+
+clock_domains:
+  - name: s0_axis_aclk
+    interfaces:
+      - s0_axis
+    reset: s0_axis_aresetn
+  - name: m0_axis_aclk
+    interfaces:
+      - m0_axis
+    reset: m0_axis_aresetn

@@ -1,0 +1,3 @@
+# axi4_stream_if declares localparams at interface scope, which
+# proper-parameter-declaration only accepts in modules and classes.
+waive --rule=proper-parameter-declaration

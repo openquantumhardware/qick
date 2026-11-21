@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/cdc/cdc_bit_sync.sv

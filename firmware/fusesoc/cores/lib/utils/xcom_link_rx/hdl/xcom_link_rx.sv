@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/utils/xcom_link_rx.sv

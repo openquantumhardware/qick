@@ -1,0 +1,9 @@
+CAPI=2:
+name: qick:ip:axis_dyn_readout_v1_regmap:0.1.0
+
+filesets:
+  rdl:
+    files:
+        - axis_dyn_readout_v1_regmap.rdl : {file_type: user }
+        - axis_dyn_readout_v1_regmap.sv : {file_type: systemVerilogSource, is_include_file: true}
+        - axis_dyn_readout_v1_regmap_pkg.sv : {file_type: systemVerilogSource, is_include_file: true}

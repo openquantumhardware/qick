@@ -1,0 +1,4 @@
+# Simulation outputs
+*.vvp
+*.vcd
+*.csv

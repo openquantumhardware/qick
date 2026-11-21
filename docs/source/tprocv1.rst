@@ -10,7 +10,7 @@ The **tProcessor v1** (``axis_tproc64x32_x8``) is the original QICK real-time
 co-processor: an 8-channel, 64-bit-instruction / 32-bit-register core that
 runs a user-written program to sequence pulses, trigger readouts, and react
 to feedback with cycle-level timing. The module lives in the ``qick``
-firmware repository under ``firmware/ip/axis_tproc64x32_x8_v1/`` and is
+firmware repository as the fusesoc core ``firmware/fusesoc/cores/ip/axis_tprocv1/`` and is
 exposed to Python through ``qick.drivers.tproc.AxisTProc64x32_x8``; programs
 are written with ``qick.asm_v1.QickProgram``.
 
@@ -632,11 +632,3 @@ Related Documentation
   readout, channel assignments).
 * :doc:`/firmware/readouts/avg_buffer` -- Averager + Buffer readout block, whose ``trigger``
   input is typically driven from a v1 tProc output channel bit.
-* `tProcessor_64_and_Signal_Generator_V4.pdf
-  <https://github.com/openquantumhardware/qick/blob/main/firmware/tProcessor_64_and_Signal_Generator_V4.pdf>`_
-  -- an older learning-oriented write-up of the v1 tProcessor and the
-  signal generator it was originally paired with. The upstream ``qick``
-  repository's own firmware overview explicitly flags this PDF as **not**
-  up to date with the current RTL; treat it as background reading only; the
-  bit-level facts on this page were verified directly against the RTL and
-  Python driver in this repository, not against that PDF.

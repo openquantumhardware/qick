@@ -16,12 +16,12 @@ sits upstream of decimation, ``mr_buffer_et`` sees the full ADC-rate signal
 (useful for looking at spurs, noise, or transient/settling behavior that
 decimation would filter out), at the cost of a much smaller capture depth
 (on-chip BRAM, not DDR4). The module lives in the ``qick`` firmware
-repository under ``firmware/ip/mr_buffer_et/`` and is exposed to Python
+repository under ``firmware/fusesoc/cores/ip/mr_buffer_et/`` and is exposed to Python
 through ``qick.drivers.readout.MrBufferEt``.
 
 .. note::
 
-   The RTL under ``firmware/ip/mr_buffer_et/src/`` (``mr_buffer_et.sv``) is
+   The RTL under ``firmware/fusesoc/cores/ip/mr_buffer_et/`` (``mr_buffer_et.sv``) is
    a SystemVerilog rewrite whose file header identifies it as VLNV
    ``qick:ip:mr_buffer_et:1.2.0`` / ``@version 1.2``. However, as of this
    writing the packaged ``component.xml`` in the same directory (Xilinx IP
@@ -30,7 +30,7 @@ through ``qick.drivers.readout.MrBufferEt``.
    the Python driver's ``bindto`` list (``qick_lib/qick/drivers/readout.py``)
    only recognizes VLNVs ending in ``:1.0`` and ``:1.1``. Board designs
    checked in this repository (e.g.
-   ``firmware/projects/qick_tprocv2_111_standard/bd_2023-1.tcl``) also
+   ``firmware/Top/111/tpv2_std/bd_2023-1.tcl``) also
    instantiate ``QICK:QICK:mr_buffer_et:1.1``. This document describes the
    behavior of the SystemVerilog source in ``src/`` (which is what a fresh
    IP-XACT repackage would pick up), and calls out anywhere that source
@@ -53,7 +53,7 @@ and then started by an external hardware ``trigger`` input; once the
 window fills, the captured data is drained out as a single ``B``-bit
 AXI4-Stream on the read side (``m_axis_aclk``) when software pulses
 ``dr_start_reg=1``. Per the module's own header comment
-(``firmware/ip/mr_buffer_et/src/mr_buffer_et.sv``), the intended flow is:
+(``firmware/rtl_lib/ip/mr_buffer_et.sv``), the intended flow is:
 
 1. SW writes ``dw_capture_reg=1`` -- arm the writer.
 2. External ``trigger`` fires -- BRAMs fill with ``2**N`` samples/channel.
@@ -75,7 +75,7 @@ rate`` in real time, and ``mr_buffer_et`` writes all ``NM`` of them into
 ``NM`` separate BRAMs in that same beat.
 
 In board designs (see e.g.
-``firmware/projects/qick_tprocv2_111_standard/bd_2023-1.tcl``),
+``firmware/Top/111/tpv2_std/bd_2023-1.tcl``),
 ``mr_buffer_et`` sits downstream of a many-to-one AXI4-Stream switch
 (``axis_switch_mr``) whose inputs are the ``m0_axis`` ports of the board's
 dynamic readouts (``axis_dyn_readout_v1``) -- the undecimated tap; compare
@@ -148,7 +148,7 @@ also how the Python driver computes it -- see Section 5).
 ``mr_buffer.sv`` slices the wide ``s_axis_tdata`` (``NM*B`` bits) into
 ``NM`` per-channel ``B``-bit slices and instantiates one
 ``axis_to_bram_trig`` plus one true-dual-port BRAM (``bram_tdp``) per
-channel. Each ``axis_to_bram_trig`` (``firmware/ip/mr_buffer_et/src/axis_to_bram_trig.sv``)
+channel. Each ``axis_to_bram_trig`` (``firmware/rtl_lib/axi/axis_to_bram_trig.sv``)
 runs a 4-state FSM:
 
 ``INIT_ST -> TRIGGER_ST -> CAPTURE_ST -> END_ST``
@@ -191,7 +191,7 @@ AXI4-Lite ``STATUS`` register (register index 2, bit 0 -- see Section 4).
 
 On the read side, all ``NM`` BRAMs' port-B outputs are concatenated into
 one wide bus and fed to a single ``bram_to_axis_nt`` instance
-(``firmware/ip/mr_buffer_et/src/bram_to_axis_nt.sv``), which walks every
+(``firmware/rtl_lib/axi/bram_to_axis_nt.sv``), which walks every
 address (0 to ``2**N-1``) and every channel (0 to ``NM-1``) at each
 address, serializing the whole window onto the ``B``-bit
 ``m_axis_tdata``/``m_axis_tvalid``/``m_axis_tlast`` output. Output word

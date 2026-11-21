@@ -1,0 +1,68 @@
+CAPI=2:
+name: qick:dsp:sg_mux8:1.0.0
+description: sg_mux8 (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/sg_mux8.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo_sync
+      - qick:dsp:dds_top_sgmux8
+      - qick:ctrl:ctrl_sgmux8
+      - qick:utils:delay_line
+  tb:
+    files:
+      - tests/sg_mux8_tc00.sv
+      - tests/sg_mux8_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+  lint_files:
+    depend:
+      - qick:common:lint
+
+parameters:
+  SG_MUX8_N_DDS:
+    datatype: int
+    paramtype: vlogdefine
+    default: 2
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/sg_mux8_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: sg_mux8
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: sg_mux8
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test: &test
+    <<: *default
+    description: Simulate the design (fast default, N_DDS=2)
+    filesets_append: [tb]
+    parameters: [SG_MUX8_N_DDS]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+  test_deployed:
+    <<: *test
+    description: Simulate the design at the parametrization of the debug bench (N_DDS=16)
+    parameters: [SG_MUX8_N_DDS=16]

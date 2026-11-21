@@ -1,0 +1,58 @@
+CAPI=2:
+name: qick:dsp:matched_filter:1.0.0
+description: matched_filter (dsp library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/matched_filter.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:axi:axis_to_bram_sg
+      - qick:mem:bram_tdp
+      - qick:dsp:mult_pipe3
+      - qick:interfaces:axi4_stream_if
+      - qick:interfaces:bram_if
+  tb:
+    files:
+      - tests/matched_filter_tc00.sv
+      - tests/matched_filter_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/matched_filter_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: matched_filter
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: matched_filter
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

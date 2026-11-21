@@ -1,0 +1,22 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# The readout side (m0_axis averages, m1_axis raw buffer, m2_axis live
+# averages to the tProc) runs on m_axis_aclk. None of those names matches the
+# packager's naming convention, and the IP has no plain aclk, so they were
+# packaged with no clock at all: every dbg bench patched ASSOCIATED_BUSIF on
+# the cell pin, and every Top BD using qick:ip:axis_avg_buffer failed
+# validate_bd_design with [BD 41-237] FREQ_HZ mismatches (found running
+# 216/tpv2_1ch_xcom_mts, 2026-09-24).
+
+clock_domains:
+  - name: s_axis_aclk
+    interfaces:
+      - s_axis
+    reset: s_axis_aresetn
+  - name: m_axis_aclk
+    interfaces:
+      - m0_axis
+      - m1_axis
+      - m2_axis
+    reset: m_axis_aresetn

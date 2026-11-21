@@ -1,0 +1,44 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 23 22:00:46 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-7.306181 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.alu_bitwise_unit_ut.
+[sst_width] 206
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@29
+[color] 3
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.clk
+[color] 3
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.rstn
+@23
+[color] 3
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.din_a[15:0]
+[color] 3
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.din_b[15:0]
+[color] 3
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.op[3:0]
+@22
+[color] 6
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.dout[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.and_i[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.din_a_r[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.din_b_r[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.dout_mux[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.dout_r[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.dout_rr[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.ls_mux[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.not_i[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.op_r[3:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.or_i[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.rs_mux[15:0]
+testrunner.__ts.alu_bitwise_unit_ut.u_dut.xor_i[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,28 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Mon May 26 02:56:55 2025
+[*]
+[timestart] 0
+[size] 2049 1103
+[pos] -1 -1
+*-18.277275 116000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.rising_edge_det_ut.
+[sst_width] 206
+[signals_width] 270
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_clk
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_rstn
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_strobe
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.delay_r
+@29
+[color] 6
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.o_pulse
+[pattern_trace] 1
+[pattern_trace] 0

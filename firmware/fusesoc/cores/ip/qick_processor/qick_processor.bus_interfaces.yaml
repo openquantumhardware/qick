@@ -1,0 +1,49 @@
+# Custom QICK bus interfaces for Vivado IP packaging (read by ip_packager.py;
+# does not affect FuseSoC core parsing). Port maps copied from the legacy
+# GUI-packaged IP (openquantumhardware/qick firmware/ip/qick_processor/component.xml), so
+# Top BDs keep connecting QPeriphA -> qick_time_tagger/qick_peripheral,
+# xcom/o_proc -> PROC_CTRL, etc. Bus definitions: firmware/ip/qick_interfaces.
+
+bus_interfaces:
+  - name: QPeriphA
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: master
+    port_maps: {Enable: qp1_en_o, Operation: qp1_op_o, a_dt: qp1_a_dt_o, b_dt: qp1_b_dt_o,
+                c_dt: qp1_c_dt_o, d_dt: qp1_d_dt_o, rdy: qp1_rdy_i, dt_in_1: qp1_dt1_i,
+                dt_in_2: qp1_dt2_i, dt_valid: qp1_vld_i, flag: qp1_flag_i}
+  - name: QPeriphB
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: master
+    port_maps: {Enable: qp2_en_o, Operation: qp2_op_o, a_dt: qp2_a_dt_o, b_dt: qp2_b_dt_o,
+                c_dt: qp2_c_dt_o, d_dt: qp2_d_dt_o, rdy: qp2_rdy_i, dt_in_1: qp2_dt1_i,
+                dt_in_2: qp2_dt2_i, dt_valid: qp2_vld_i, flag: qp2_flag_i}
+  - name: QCOM
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: master
+    port_maps: {Enable: qcom_en_o, Operation: qcom_op_o, a_dt: qcom_dt_o, rdy: qcom_rdy_i,
+                dt_in_1: qcom_dt1_i, dt_in_2: qcom_dt2_i, dt_valid: qcom_vld_i, flag: qcom_flag_i}
+  - name: QNET
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: master
+    port_maps: {Enable: qnet_en_o, Operation: qnet_op_o, a_dt: qnet_a_dt_o, b_dt: qnet_b_dt_o,
+                c_dt: qnet_c_dt_o, rdy: qnet_rdy_i, dt_in_1: qnet_dt1_i, dt_in_2: qnet_dt2_i,
+                dt_valid: qnet_vld_i, flag: qnet_flag_i}
+  - name: PROC_CTRL
+    vlnv: QICK:QICK:qick_qproc_control:1.0
+    abstraction: QICK:QICK:qick_qproc_control_rtl:1.0
+    mode: slave
+    port_maps: {start: proc_start_i, stop: proc_stop_i}
+  - name: CORE_CTRL
+    vlnv: QICK:QICK:qick_qproc_control:1.0
+    abstraction: QICK:QICK:qick_qproc_control_rtl:1.0
+    mode: slave
+    port_maps: {start: core_start_i, stop: core_stop_i}
+  - name: TIME_CTRL
+    vlnv: QICK:QICK:qick_time_control:1.0
+    abstraction: QICK:QICK:qick_time_control_rtl:1.0
+    mode: slave
+    port_maps: {time_rst: time_rst_i, time_init: time_init_i, time_updt: time_updt_i, time_dt: time_dt_i}

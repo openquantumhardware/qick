@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/dsp/sysgen/ssr_fft_8x64/synth_reg_w_init.vhd

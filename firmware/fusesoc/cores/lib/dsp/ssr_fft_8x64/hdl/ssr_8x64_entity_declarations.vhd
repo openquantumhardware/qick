@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/dsp/sysgen/ssr_fft_8x64/ssr_8x64_entity_declarations.vhd

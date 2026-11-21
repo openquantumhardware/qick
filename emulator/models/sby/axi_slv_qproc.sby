@@ -1,0 +1,22 @@
+[options]
+mode prove
+depth 20
+
+[engines]
+smtbmc boolector
+
+[files]
+../../../firmware/ip/qick_processor/src/verilog/axi_slv_qproc.vhd
+../../../firmware/ip/qick_processor/src/verilog/axi_slv_qproc_sv.sv
+axi_slv_qproc_sva.sv
+
+[script]
+plugin -i ghdl
+plugin -i slang
+
+ghdl --std=08 axi_slv_qproc.vhd -e axi_slv_qproc
+read_verilog -sv -formal axi_slv_qproc_sv.sv axi_slv_qproc_sva.sv
+
+hierarchy -check
+
+prep -top axi_slv_qproc_equiv

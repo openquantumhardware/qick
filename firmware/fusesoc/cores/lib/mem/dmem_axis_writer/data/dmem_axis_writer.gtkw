@@ -1,0 +1,66 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 29 21:37:06 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-17.527456 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dmem_axis_writer_ut.
+[sst_width] 206
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.dmem_axis_writer_ut.u_dut.clk
+testrunner.__ts.dmem_axis_writer_ut.u_dut.rstn
+testrunner.__ts.dmem_axis_writer_ut.u_dut.ack_int
+@22
+testrunner.__ts.dmem_axis_writer_ut.u_dut.addr_cnt[9:0]
+testrunner.__ts.dmem_axis_writer_ut.u_dut.addr_cnt_r[9:0]
+testrunner.__ts.dmem_axis_writer_ut.u_dut.addr_i[9:0]
+testrunner.__ts.dmem_axis_writer_ut.u_dut.data_r[15:0]
+@28
+testrunner.__ts.dmem_axis_writer_ut.u_dut.exec_ack_o
+testrunner.__ts.dmem_axis_writer_ut.u_dut.exec_i
+testrunner.__ts.dmem_axis_writer_ut.u_dut.init_state
+@2025
+[color] 2
+^1 firmware/fusesoc/cores/lib/mem/dmem_axis_writer/data/states.txt
+testrunner.__ts.dmem_axis_writer_ut.u_dut.state[1:0]
+@28
+testrunner.__ts.dmem_axis_writer_ut.u_dut.we_int
+testrunner.__ts.dmem_axis_writer_ut.u_dut.we_int_r
+testrunner.__ts.dmem_axis_writer_ut.u_dut.write_state
+@800200
+-s_axis
+@28
+testrunner.__ts.dmem_axis_writer_ut.axis_if.aclk
+testrunner.__ts.dmem_axis_writer_ut.axis_if.aresetn
+@22
+testrunner.__ts.dmem_axis_writer_ut.axis_if.tdata[15:0]
+@28
+testrunner.__ts.dmem_axis_writer_ut.axis_if.tlast
+testrunner.__ts.dmem_axis_writer_ut.axis_if.tready
+testrunner.__ts.dmem_axis_writer_ut.axis_if.tvalid
+@1000200
+-s_axis
+@800200
+-m_bram
+@28
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.i_clk
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.i_rst
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.en
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.we
+@22
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.addr[9:0]
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.din[15:0]
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.dout[15:0]
+@28
+testrunner.__ts.dmem_axis_writer_ut.bram_if_i.we_be[1:0]
+@1000200
+-m_bram
+[pattern_trace] 1
+[pattern_trace] 0

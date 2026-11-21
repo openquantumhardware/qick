@@ -1,0 +1,53 @@
+CAPI=2:
+name: qick:mem:dma_fifo_rd:1.0.0
+description: dma_fifo_rd (mem library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/dma_fifo_rd.sv
+    file_type: systemVerilogSource
+    # depend:
+    #   - qick:pkg:<your_pkg>   # add package deps here if needed
+  tb:
+    files:
+      - tests/dma_fifo_rd_tc00.sv
+      - tests/dma_fifo_rd_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/dma_fifo_rd_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: dma_fifo_rd
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dma_fifo_rd
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

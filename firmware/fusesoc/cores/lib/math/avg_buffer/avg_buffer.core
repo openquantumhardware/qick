@@ -1,0 +1,57 @@
+CAPI=2:
+name: qick:math:avg_buffer:1.0.0
+description: avg_buffer (math library core).
+
+filesets:
+  hdl:
+    files:
+      - hdl/avg_buffer.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_bit_sync
+      - qick:math:avg_top
+      - qick:math:buffer_top
+  tb:
+    files:
+      - tests/avg_buffer_tc00.sv
+      - tests/avg_buffer_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+      - qick:common:xilinx
+      - qick:interfaces:axi4_stream_if
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/avg_buffer_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: avg_buffer
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: avg_buffer
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

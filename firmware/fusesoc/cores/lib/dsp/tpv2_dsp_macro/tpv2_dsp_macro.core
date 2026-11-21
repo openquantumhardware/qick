@@ -1,0 +1,72 @@
+CAPI=2:
+name: qick:dsp:tpv2_dsp_macro:1.0.0
+description: >
+  DSP Macro (Xilinx IP, xilinx.com:ip:dsp_macro:1.0, DSP48E2-backed) used by
+  tprocv2's `arith` peripheral (tpv2_arith). 9-instruction multiply/pre-add/
+  accumulate, A=27 B=18 C=32 D=27 P=46 bits. Behavioural model for sim/lint
+  via tpv2_dsp_macro.sv; real .xci for synth/packaging.
+  NOTE: the .xci's Component_Name is still the unrenamed "dsp_macro_0" (only
+  this repo's copy has been consolidated under rtl_lib/xci/tpv2_dsp_macro/) -
+  before packaging, rename it to tpv2_dsp_macro in Vivado's "Customize IP" so
+  the synth toplevel matches the sim model's module name (same pattern
+  already used for dds_compiler_signal_gen / sgv6_top).
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/tpv2_dsp_macro.sv
+    file_type: systemVerilogSource
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/dsp_macro_0.xci: {file_type: xci}
+
+  tb:
+    files:
+      - tests/tpv2_dsp_macro_tc00.sv
+      - tests/tpv2_dsp_macro_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/tpv2_dsp_macro_tc00.sv
+
+targets:
+  default: &default
+    filesets: [sim_model]
+    toplevel: tpv2_dsp_macro
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: tpv2_dsp_macro
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    filesets: [synth_xci]

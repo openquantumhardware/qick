@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jun 10 21:36:12 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-15.961946 25000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.signed_comparator_ut.
+[sst_width] 206
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@29
+[color] 3
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.clk
+[color] 3
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.rstn
+@421
+[color] 3
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.din_a[15:0]
+[color] 3
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.din_b[15:0]
+@23
+[color] 3
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.op[3:0]
+@28
+[color] 6
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.flag
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_eq
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_ge
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_gt
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_le
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_lt
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.cond_ne
+@22
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.din_a_r[15:0]
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.din_b_r[15:0]
+testrunner.__ts.signed_comparator_ut.u_signed_comparator.op_r[3:0]
+[pattern_trace] 1
+[pattern_trace] 0

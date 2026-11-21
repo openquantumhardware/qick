@@ -1,0 +1,37 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jun 11 16:06:45 2026
+[*]
+[timestart] 0
+[size] 1920 1165
+[pos] -1 -1
+*-14.370290 155000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_set_reg_ut.
+[sst_width] 206
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 410
+@28
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_aclk
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_aresetn
+@22
+testrunner.__ts.axis_set_reg_ut.u_dut.dout_r[15:0]
+@23
+[color] 6
+testrunner.__ts.axis_set_reg_ut.u_dut.dout[15:0]
+@22
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tdata[15:0]
+@28
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tlast
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tready
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tstrb[1:0]
+[color] 3
+testrunner.__ts.axis_set_reg_ut.u_dut.s_axis_tvalid
+[pattern_trace] 1
+[pattern_trace] 0

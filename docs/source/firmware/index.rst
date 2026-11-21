@@ -417,7 +417,7 @@ ordinary pipeline stages for timing closure, confirmed by both sides sharing
 the same clock net in the .tcl.
 
 ``m4_axis`` is the one port that isn't a clean 1-generator mapping: RTL for
-``axis_tmux_v1`` (``firmware/ip/axis_tmux_v1/src/tmux.sv``) shows it demuxes
+``axis_tmux_v1`` (``firmware/fusesoc/cores/ip/axis_tmux_v1/``) shows it demuxes
 one AXI-Stream input to one of *N* outputs by an address tag carried in the
 data word itself (the top 8 bits), not a fixed per-port assignment. On this
 board (``CONFIG.N=3``), that lets tProc channel 4 carry pulse commands for
@@ -429,7 +429,7 @@ two cross into the ADC-tile-2 clock domain via a second CDC block,
 and then ``axis_dyn_readout_v1_0``/``_1``'s ``s0_axis`` config ports.
 
 **On the CDC blocks' purpose:** ``axis_cdcsync_v1`` (RTL:
-``firmware/ip/axis_cdcsync_v1/src/cdcsync.sv``) exposes independent
+``firmware/fusesoc/cores/ip/axis_cdcsync_v1/``) exposes independent
 input-side and output-side clock/reset pairs for up to ``N`` parallel
 same-width streams -- it is a clock-domain-crossing bridge, confirmed by
 tracing each instance's ``aclk`` nets in this board's .tcl (input side tied
@@ -543,4 +543,4 @@ Related Documentation
 * :doc:`readouts/mr_buffer_et` - Multi-rate buffer (DDR4/streaming) shared readout path
 * :doc:`/topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
 * :doc:`/tutorials/README` - tProc v2 tutorial examples
-* `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_
+* `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/fusesoc/cores/ip/axis_signal_gen_v6>`_

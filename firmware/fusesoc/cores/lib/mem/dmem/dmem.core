@@ -1,0 +1,61 @@
+CAPI=2:
+name: qick:mem:dmem:1.0.0
+description: dmem data writer/reader core for the TPROC v1
+
+filesets:
+  hdl:
+    files:
+      - hdl/dmem.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+      - qick:interfaces:bram_if
+      - qick:mem:dmem_ctrl
+      - qick:mem:dmem_single_rw
+      - qick:mem:dmem_axis_reader
+      - qick:mem:dmem_axis_writer
+
+  tb:
+    files:
+      - tests/dmem_tc00.sv
+      - tests/dmem_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/dmem_tc00.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: dmem
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dmem
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

@@ -10,7 +10,7 @@ The **Signal Generator v6** (SG-v6) is the newest version of QICK's
 on-chip waveform engine. It supersedes SG-v5 with a richer feature set,
 lower latency, and full compatibility with all QICK-compatible boards
 (ZCU216, ZCU111, etc.). The module lives in the ``qick`` firmware
-repository under ``firmware/ip/axis_signal_gen_v6/`` and is exposed to Python
+repository under ``firmware/fusesoc/cores/ip/axis_signal_gen_v6/`` and is exposed to Python
 through the ``qick.drivers.generator`` class.
 
 --------------------------------------------------------------------
@@ -512,4 +512,4 @@ Related Documentation
 * :doc:`sg_mux8`, :doc:`sg_mixmux8` - multi-tone generators, for playing several simultaneous fixed tones instead of one arbitrary-envelope pulse
 * :doc:`sg_int4_v2` - a lighter single-tone arbitrary generator (see :doc:`index` for the tradeoffs)
 * :doc:`sg_v4` - the legacy predecessor to SG-v6
-* `SG-v6 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_
+* `SG-v6 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/fusesoc/cores/ip/axis_signal_gen_v6>`_

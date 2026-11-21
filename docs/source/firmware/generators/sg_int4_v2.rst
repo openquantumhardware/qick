@@ -11,7 +11,7 @@ Unlike :doc:`sg_v6`, which runs its DDS and envelope memory at the DAC's
 full parallel sample rate, ``axis_sg_int4_v2`` stores the envelope at 1/4 of
 the output rate and reconstructs the missing samples with a **4x
 interpolation FIR filter** -- hence "int4". The module lives in the ``qick``
-firmware repository under ``firmware/ip/axis_sg_int4_v2/`` and is exposed to
+firmware repository under ``firmware/fusesoc/cores/ip/axis_sg_int4_v2/`` and is exposed to
 Python through ``qick.drivers.generator.AxisSgInt4V2``.
 
 --------------------------------------------------------------------
@@ -23,7 +23,7 @@ Where "int4" comes from
 
 The Xilinx FIR Compiler instance ``fir_0`` inside ``signal_gen.v`` is
 configured with ``Filter_Type = Interpolation`` and ``Interpolation_Rate =
-4`` (read from ``firmware/ip/axis_sg_int4_v2/src/fir_0/fir_0.xci``). Each
+4`` (read from ``firmware/fusesoc/cores/ip/axis_sg_int4_v2/``). Each
 cycle it consumes one complex envelope sample read from a single-rate BRAM
 and produces **4** interpolated I/Q sample pairs, which are fed in parallel
 to **4** DDS instances (``N_DDS = 4``, a ``localparam`` in
@@ -71,7 +71,7 @@ channel.
    baseband-only mode) and always builds separate real/imag BRAMs (no
    real-only envelope mode). Confirmed by the absence of those parameters in
    ``axis_sg_int4_v2.v``/``signal_gen_top.v``/``signal_gen.v``, in contrast
-   to ``firmware/ip/axis_signal_gen_v6/src/signal_gen_top.v`` which has both.
+   to ``firmware/fusesoc/cores/ip/axis_signal_gen_v6/`` which has both.
 
 Because the DDS only needs to synthesize the frequency band around the
 interpolated (quarter-rate) envelope, this generator relies on the RFDC's
@@ -118,7 +118,7 @@ generator with 32-bit frequency and phase").
        samples; ``signal_gen_top.v``/``signal_gen.v`` themselves default to
        ``N = 16`` when instantiated standalone, but the top-level wrapper
        overrides this to 12. Real deployments commonly override it further
-       per channel -- e.g. ``firmware/projects/qick_tprocv2_216_standard/
+       per channel -- e.g. ``firmware/Top/216/tpv2_std/
        bd_2023-1.tcl`` instantiates different ``axis_sg_int4_v2`` copies with
        ``CONFIG.N`` values of 13 and 14 -- so always read the deployed value
        from ``soc.cfg['gens'][i]['maxlen']`` rather than assuming a default.
@@ -265,15 +265,15 @@ layout, read directly from the header comment and bit-slice assignments in
 
 This layout is bit-for-bit identical to SG-v6's 160-bit descriptor (same
 field widths, same bit positions -- compare the header comment in this
-IP's ``ctrl.sv`` against ``firmware/ip/axis_signal_gen_v6/src/ctrl.sv``).
+IP's ``ctrl.sv`` against ``firmware/fusesoc/cores/ip/axis_signal_gen_v6/``).
 Confirmed in the routing firmware itself: in
-``firmware/projects/qick_tprocv2_216_standard/bd_2023-1.tcl``, the
+``firmware/Top/216/tpv2_std/bd_2023-1.tcl``, the
 ``axis_sg_int4_v2_0`` instance's ``s1_axis`` is wired to
 ``sg_translator_5/m_gen_v6_axis`` -- i.e. it uses the **same**
 ``sg_translator`` output path (``OUT_TYPE = 0``, "gen_v6") as SG-v6, not the
 dedicated, 88-bit, 16-bit-freq/phase ``int4_v1`` translation path
 (``OUT_TYPE = 1``) that ``axis_sg_int4_v1`` uses. ``sg_translator``
-(``firmware/ip/qick_sg_translator/src/sg_translator.v``) is the block that
+(``firmware/fusesoc/cores/ip/sg_translator/``) is the block that
 sits between the tProcessor's generic 168-bit wave-memory word (``freq``,
 ``phase``, ``env``, ``gain``, ``length``, ``conf``) and this generator's
 160-bit ``s1_axis`` -- it truncates the tProc's 32-bit ``length`` field down
@@ -388,4 +388,4 @@ Related Documentation
   (shared across all pulsed generators in this doc set).
 * :doc:`/topics/freq_matching` -- keeping generator and readout frequencies
   in sync (relevant here because of the required ``mixer_freq``).
-* `axis_sg_int4_v2 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_sg_int4_v2>`_
+* `axis_sg_int4_v2 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/fusesoc/cores/ip/axis_sg_int4_v2>`_

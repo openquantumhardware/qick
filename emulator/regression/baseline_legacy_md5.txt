@@ -1,0 +1,5 @@
+5d2c37da6e2e05e694ad3d7af6a3da8a  multi_pulse_dec  shape=(584, 2)  max|x|=3880
+0cbdac8e3717a18f8a25ceac74a9ef80  simple_sweep_dec  shape=(5, 108, 2)  max|x|=1752
+514f9f63cb2d668ca2ac0185aa33dc2f  simple_sweep_avg  shape=(1, 5, 2)  max|x|=500.525
+f42b5435dc5b958f0899667cd6598c89  multi_pulse_avg  shape=(1, 2)  max|x|=548.251
+2211c286ed07355d2d5cb7d39b141fd4  mux_pfb_dec  shape=(2, 73, 2)  max|x|=2107

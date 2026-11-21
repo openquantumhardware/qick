@@ -1,0 +1,32 @@
+CAPI=2:
+name: qick:axi:axi_mst_read:1.0.2
+description: >
+  AXI4 master read channel of axis_buffer_ddr: one burst read from DDR into a
+  FIFO, streamed out on AXI4-Stream. Port of the legacy axi_mst_read.
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi_mst_read.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:cdc:cdc_bit_sync
+      - qick:mem:fifo_axi
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: axi_mst_read
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: axi_mst_read
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

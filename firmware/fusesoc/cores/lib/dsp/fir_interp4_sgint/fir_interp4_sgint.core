@@ -1,0 +1,69 @@
+CAPI=2:
+name: qick:dsp:fir_interp4_sgint:1.0.0
+description: >
+  Interpolate-by-4 FIR (Xilinx IP, Component_Name renamed from fir_0), used
+  by axis_sg_int4_v2. Behavioural model for sim/lint (real-arithmetic
+  polyphase convolution, not bit/cycle-exact); real .xci for synth/packaging.
+
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/fir_interp4_sgint.sv
+    file_type: systemVerilogSource
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/fir_interp4_sgint.xci: {file_type: xci}
+      - xci/fir_interp4_sgint.coe: {file_type: user, is_include_file: true}
+
+  tb:
+    files:
+      - tests/fir_interp4_sgint_tc00.sv
+      - tests/fir_interp4_sgint_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: fir_interp4_sgint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  test:
+    description: Simulate the design
+    filesets: [sim_model, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    filesets: [synth_xci]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/fir_interp4_sgint_tc00.sv

@@ -1,0 +1,59 @@
+CAPI=2:
+name: qick:axi:axis_pipe:0.1.1
+description: Elastic pipeline primitive
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_pipe.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:interfaces:axi4_stream_if
+
+  tb:
+    files: &tb_files
+      - tests/axis_pipe_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:interfaces:axi4_stream_if
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axis_pipe_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [axis_pipe]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+

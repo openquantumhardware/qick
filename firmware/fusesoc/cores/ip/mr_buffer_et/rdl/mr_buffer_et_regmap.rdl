@@ -1,0 +1,73 @@
+// mr_buffer_et_regmap.rdl
+// SystemRDL register definition for the mr_buffer_et IP core.
+// Multi-Rate (MR) Buffer with external/software trigger. Captures NM parallel
+// channels (B bits each) into NM independent BRAMs (depth 2**N) at full
+// write-side rate (s_axis_aclk), armed by DW_CAPTURE and started by an external
+// trigger (or DEBUG.FORCE_TRIGGER). The captured window is drained on the read
+// side (m_axis_aclk) as a single B-bit AXI4-Stream when DR_START pulses, and is
+// typically written to DDR by an AXI-DMA (S2MM). Read burst = NM*2**N beats.
+//
+// TYPICAL SEQUENCE (loop settling capture over DMA):
+//   1. DW_CAPTURE = 1                 -> arm writer
+//   2. trigger (HW) or FORCE_TRIGGER  -> BRAMs fill with 2**N samples/channel
+//   3. poll STATUS.CAPTURE_DONE == 1  -> capture complete
+//   4. DR_START = 1                   -> drain the window to M_AXIS (to DMA)
+//   5. DR_START = 0 ; DW_CAPTURE = 0  -> re-arm for next capture
+addrmap mr_buffer_et {
+    name = "mr_buffer_et Registers";
+    desc = "Registers for the mr_buffer_et IP core (multi-rate triggered capture buffer).";
+
+    default regwidth    = 32;
+    default accesswidth = 32;
+    default addressing  = compact;
+
+    // ------------------------------------------------------------------
+    // Write / capture control.
+    // ------------------------------------------------------------------
+    reg {
+        name = "DW_CAPTURE_REG";
+        desc = "Data-writer capture enable. bit0 = DW_CAPTURE: write 1 to ARM the
+                writer. Once armed, the next trigger fills the NM BRAMs with 2**N
+                samples per channel starting at address 0. Write 0 to re-arm for
+                a new capture (also clears STATUS.CAPTURE_DONE).";
+        field { sw = rw; hw = r; } DW_CAPTURE[0:0] = 0;
+    } DW_CAPTURE_REG @0x00;
+
+    // ------------------------------------------------------------------
+    // Read / drain control.
+    // ------------------------------------------------------------------
+    reg {
+        name = "DR_START_REG";
+        desc = "Data-reader start. bit0 = DR_START: write 1 to start draining the
+                captured window out of M_AXIS as one burst of NM*2**N beats
+                (tlast on the final beat). Consume ALL beats before writing 0,
+                otherwise stale data remains in the output FIFO.";
+        field { sw = rw; hw = r; } DR_START[0:0] = 0;
+    } DR_START_REG @0x04;
+
+    // ------------------------------------------------------------------
+    // Status (read-only, HW-driven).
+    // ------------------------------------------------------------------
+    reg {
+        name = "STATUS_REG";
+        desc = "Capture status (read-only). bit0 = CAPTURE_DONE: high once all NM
+                channels have captured 2**N samples (writer FSM in END_ST). The
+                flag is resynchronized from the write clock (s_axis_aclk) to the
+                AXI-Lite clock (s_axi_aclk) via a cdc_bit_sync. Clears when
+                DW_CAPTURE is deasserted (re-arm).";
+        field { sw = r; hw = w; } CAPTURE_DONE[0:0] = 0;
+    } STATUS_REG @0x08;
+
+    // ------------------------------------------------------------------
+    // Debug / force (reg[15]).
+    // ------------------------------------------------------------------
+    reg {
+        name = "DEBUG_REG";
+        desc = "Debug / force controls. bit0 = FORCE_TRIGGER: OR-ed with the
+                external trigger, lets software fire a capture with no HW trigger.
+                bit1 = FORCE_TREADY: forces s_axis_tready high (debug only).
+                Remaining bits reserved.";
+        field { sw = rw; hw = r; } FORCE_TRIGGER[0:0] = 0;
+        field { sw = rw; hw = r; } FORCE_TREADY[1:1]  = 0;
+    } DEBUG_REG @0x3C;
+};

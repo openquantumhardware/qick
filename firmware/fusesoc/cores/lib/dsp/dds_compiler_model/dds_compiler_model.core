@@ -1,0 +1,29 @@
+CAPI=2:
+name: qick:dsp:dds_compiler_model:1.0.0
+description: >
+  Generic parametrized behavioural model of Xilinx DDS Compiler v6.0, shared
+  by all dds_compiler_<variant> library cores for simulation/lint. NOT tied
+  to any specific IP customization — each variant wrapper fixes LATENCY,
+  PHASE_WIDTH and DUAL_OUTPUT to match its own dds_compiler_<variant>.xci.
+filesets:
+  sim_model:
+    files:
+      - hdl/dds_compiler_model.sv
+    file_type: systemVerilogSource
+  lint_files:
+    depend:
+      - qick:common:lint
+targets:
+  default: &default
+    filesets: [sim_model]
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dds_compiler_model
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+  sim:
+    filesets: [sim_model]

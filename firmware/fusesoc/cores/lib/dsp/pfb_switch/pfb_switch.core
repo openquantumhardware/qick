@@ -1,0 +1,67 @@
+CAPI=2:
+name: qick:dsp:pfb_switch:1.0.0
+description: >
+  PFB readouts' reorder + double-buffer swap between the FIRs and the FFT.
+  Port of the legacy pfb_switch + pfb_reorder + pfb_swap (axis_pfb_readout_v3/
+  v4), on qick:mem:fifo.
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb_switch.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:mem:fifo
+
+  tb_ref_vhd:
+    files:
+      - tests/ref/bram_simple_dp_legacy.vhd
+      - tests/ref/fifo_legacy.vhd
+    file_type: vhdlSource
+
+  tb:
+    files:
+      - tests/ref/pfb_reorder_legacy.sv
+      - tests/ref/pfb_swap_legacy.sv
+      - tests/ref/pfb_switch_legacy.v: {file_type: verilogSource}
+      - tests/pfb_switch_tc00.sv
+      - tests/pfb_switch_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb_switch
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb_switch
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (against the legacy RTL as the golden model)
+    filesets: [hdl, tb_ref_vhd, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -timescale=1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_switch_tc00.sv

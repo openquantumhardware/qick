@@ -1,0 +1,16 @@
+CAPI=2:
+name: qick:emulator:axi_router_lite:1.0.0
+description: >
+  AXI4-Lite router of the QICK emulator: one master, the address decides which of the slaves (tProc,
+  generators, readouts, buffers) answers. From the HRL / Harvey Mudd clinic emulator (Diego Martin).
+
+filesets:
+  hdl:
+    files:
+      - hdl/axi_router_lite.sv
+    file_type: systemVerilogSource
+
+targets:
+  default:
+    filesets: [hdl]
+    toplevel: axi_router_lite

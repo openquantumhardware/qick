@@ -1,0 +1,17 @@
+// axis_dyn_readout_v1_regmap.rdl
+// SystemRDL register definition for axis_dyn_readout_v1 IP core.
+//
+// This IP has NO AXI-Lite register interface: configuration
+// (frequency/phase/nsamp/outsel/mode/phrst) arrives entirely over the
+// s0_axis descriptor stream, pushed by the tProc at run time. The
+// production driver (qick_lib/qick/drivers/readout.py, AbsDynReadout) is a
+// connectivity-only DummyIP with no register I/O -- this file is a
+// placeholder kept only so the standard rdl/ scaffold (Makefile,
+// .gitignore) stays consistent with every other IP; it defines no fields.
+addrmap axis_dyn_readout_v1 {
+    name = "axis_dyn_readout_v1 Registers";
+    desc = "No AXI-Lite registers -- configuration is streamed via s0_axis.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+};

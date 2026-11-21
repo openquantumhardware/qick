@@ -1,0 +1,29 @@
+# Custom QICK bus interfaces for Vivado IP packaging (read by ip_packager.py;
+# does not affect FuseSoC core parsing). Port maps copied from the last
+# GUI-packaged xcom (git show 076ab29a4:firmware/ip/xcom/component.xml);
+# Top BDs connect q_peripheral <- qick_processor/QPeriphA and
+# o_core/o_proc/o_time -> qick_processor/CORE_CTRL/PROC_CTRL/TIME_CTRL.
+
+bus_interfaces:
+  - name: q_peripheral
+    vlnv: QICK:QICK:qick_peripheral:1.0
+    abstraction: QICK:QICK:qick_peripheral_rtl:1.0
+    mode: slave
+    port_maps: {Enable: i_core_en, Operation: i_core_op, a_dt: i_core_data1, b_dt: i_core_data2,
+                rdy: o_core_ready, dt_in_1: o_core_data1, dt_in_2: o_core_data2,
+                dt_valid: o_core_valid, flag: o_core_flag}
+  - name: o_core
+    vlnv: QICK:QICK:qick_qproc_control:1.0
+    abstraction: QICK:QICK:qick_qproc_control_rtl:1.0
+    mode: master
+    port_maps: {start: o_core_start, stop: o_core_stop}
+  - name: o_proc
+    vlnv: QICK:QICK:qick_qproc_control:1.0
+    abstraction: QICK:QICK:qick_qproc_control_rtl:1.0
+    mode: master
+    port_maps: {start: o_proc_start, stop: o_proc_stop}
+  - name: o_time
+    vlnv: QICK:QICK:qick_time_control:1.0
+    abstraction: QICK:QICK:qick_time_control_rtl:1.0
+    mode: master
+    port_maps: {time_rst: o_time_rst, time_updt: o_time_update, time_dt: o_time_update_data}

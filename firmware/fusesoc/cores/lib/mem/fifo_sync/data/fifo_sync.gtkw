@@ -1,0 +1,44 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Sat May 30 15:02:34 2026
+[*]
+[timestart] 1701410
+[size] 1920 1140
+[pos] -1 -1
+*-13.911458 1778000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.fifo_sync_ut.
+[treeopen] testrunner.__ts.fifo_sync_ut.dut.
+[treeopen] testrunner.__ts.fifo_sync_ut.dut.xpm_fifo_sync_inst.
+[sst_width] 206
+[signals_width] 168
+[sst_expanded] 1
+[sst_vpaned_height] 767
+@28
+[color] 3
+testrunner.__ts.fifo_sync_ut.dut.clk
+[color] 3
+testrunner.__ts.fifo_sync_ut.dut.rstn
+[color] 3
+testrunner.__ts.fifo_sync_ut.dut.wr_en
+@22
+[color] 3
+testrunner.__ts.fifo_sync_ut.dut.din[15:0]
+@28
+[color] 3
+testrunner.__ts.fifo_sync_ut.dut.rd_en
+testrunner.__ts.fifo_sync_ut.dut.empty_i
+testrunner.__ts.fifo_sync_ut.dut.full_i
+@29
+[color] 6
+testrunner.__ts.fifo_sync_ut.dut.empty
+[color] 6
+testrunner.__ts.fifo_sync_ut.dut.full
+@23
+[color] 6
+testrunner.__ts.fifo_sync_ut.dut.dout_i[15:0]
+[color] 6
+testrunner.__ts.fifo_sync_ut.dut.dout[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,14 @@
+# Interface/port options for Vivado IP packaging (see
+# generators/ip_gen/ip_packager.py). Read by ip_packager.py only; does not
+# affect FuseSoC core parsing.
+#
+# Driver values of the legacy axis_tproc64x32_x8 component (openquantumhardware/qick): the
+# tProc inputs a design may leave open (s1..s4 readout feedback, the tready
+# of unused m1..m8 outputs) tie to 0 / 1, so Top BDs that wire only part of
+# them (tpv1_std: s1, s2) don't get BD 41-759 critical warnings or, worse,
+# a stalled output.
+
+tie_off_ports: [s1_axis_tvalid, s1_axis_tdata, s2_axis_tvalid, s2_axis_tdata,
+                s3_axis_tvalid, s3_axis_tdata, s4_axis_tvalid, s4_axis_tdata]
+tie_high_ports: [m0_axis_tready, m1_axis_tready, m2_axis_tready, m3_axis_tready, m4_axis_tready,
+                 m5_axis_tready, m6_axis_tready, m7_axis_tready, m8_axis_tready]

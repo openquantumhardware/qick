@@ -1,0 +1,5 @@
+# proj.tcl sources the BD and generates the wrapper.
+# It runs after HOG creates the project, which is the correct order.
+Top/2x4/tpv1_std/proj.tcl source
+# The block design proj.tcl sources: listed (used by no run) so that Hog's version and SHA follow it.
+Top/2x4/tpv1_std/bd_2023-1.tcl nosynth noimpl nosim

@@ -1,0 +1,1 @@
+../../../../../../rtl_lib/utils/rising_edge_det.sv

@@ -28,6 +28,10 @@ class QickIP:
         self.cfg['type'] = description['type'].split(':')[-2]
         # this block's unique identifier in the firmware
         self.cfg['fullpath'] = description['fullpath']
+        if 'phys_addr' in description:
+            self.cfg['phys_addr'] = int(description['phys_addr'])
+        if 'addr_range' in description:
+            self.cfg['addr_range'] = int(description['addr_range'])
         # logger for messages associated with this block
         self.logger = logging.getLogger(self['type'])
 
@@ -66,6 +70,11 @@ class SocIP(QickIP, DefaultIP):
         self.REGISTERS = {}
 
         super().__init__(description)
+
+        if 'phys_addr' not in self.cfg and hasattr(self, 'mmio') and hasattr(self.mmio, 'base_addr'):
+            self.cfg['phys_addr'] = int(self.mmio.base_addr)
+        if 'addr_range' not in self.cfg and hasattr(self, 'mmio') and hasattr(self.mmio, 'length'):
+            self.cfg['addr_range'] = int(self.mmio.length)
 
         self._init_config(description)
         self._init_firmware()
@@ -269,6 +278,9 @@ class QickMetadata:
                 next_port = 's'+port[1:]
             elif next_type == "sg_translator":
                 next_port = 's_tproc_axis'
+            elif next_type == "axis_register_slice_nb":
+                # QICK's non-blocking slice (lowercase ports; trace_forward already knows it)
+                next_port = 's_axis'
             elif next_type == "axis_resampler_2x1_v1":
                 next_port = 's_axis'
             elif next_type == "axis_reorder_iq_v1":

@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_tprocv1.xdc

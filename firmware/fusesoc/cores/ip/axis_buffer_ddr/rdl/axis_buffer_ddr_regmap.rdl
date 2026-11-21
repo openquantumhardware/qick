@@ -1,0 +1,63 @@
+// axis_buffer_ddr_regmap.rdl
+// SystemRDL register definition for the axis_buffer_ddr IP core (QICK DDR4
+// buffer).
+//
+// RTL decode is the generic axil_slv core (64 read/write registers; the ones
+// not listed here, 0x1C..0xFC, are unused storage). This RDL is used ONLY for
+// the Python driver layer and documentation -- do NOT generate RTL from it
+// (no --hdl in rdl/Makefile).
+addrmap axis_buffer_ddr {
+    name = "axis_buffer_ddr (DDR4 buffer) Registers";
+    desc = "Start bits and address/length words of the DDR4 write and read channels. The registers are
+            read by the aclk domain (the start bits through a 2-flop synchronizer, the words as they
+            are): write the words before the start bit.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "RSTART_REG";
+        desc = "Read start. Set to read RLENGTH_REG beats from DDR4 at RADDR_REG into the output stream;
+                clear it when the read is done to arm the next one.";
+        field { sw = rw; hw = r; } START[0:0] = 0;
+    } RSTART_REG @0x00;
+
+    reg {
+        name = "RADDR_REG";
+        desc = "Read byte offset from TARGET_SLAVE_BASE_ADDR.";
+        field { sw = rw; hw = r; } ADDR[31:0] = 0;
+    } RADDR_REG @0x04;
+
+    reg {
+        name = "RLENGTH_REG";
+        desc = "Beats of the read burst (the AXI arlen is RLENGTH_REG - 1).";
+        field { sw = rw; hw = r; } LENGTH[31:0] = 0;
+    } RLENGTH_REG @0x08;
+
+    reg {
+        name = "WSTART_REG";
+        desc = "Write start. Set to arm the write: it waits for the trigger input, then writes
+                WNBURST_REG bursts at WADDR_REG. Clear it after the write to arm the next one.";
+        field { sw = rw; hw = r; } START[0:0] = 0;
+    } WSTART_REG @0x0C;
+
+    reg {
+        name = "WADDR_REG";
+        desc = "Write byte offset from TARGET_SLAVE_BASE_ADDR.";
+        field { sw = rw; hw = r; } ADDR[31:0] = 0;
+    } WADDR_REG @0x10;
+
+    reg {
+        name = "WNBURST_REG";
+        desc = "Write bursts: WNBURST_REG bursts of BURST_SIZE + 1 beats. 0 never ends (the burst counter
+                is compared for equality after the first burst).";
+        field { sw = rw; hw = r; } NBURST[31:0] = 0;
+    } WNBURST_REG @0x14;
+
+    reg {
+        name = "WSTATUS_REG";
+        desc = "Write status. BRESP_ERR is set when a write burst got an error response (SLVERR, DECERR) from the
+                memory; it is cleared when the next write starts. It does not stop the write.";
+        field { sw = r; hw = w; } BRESP_ERR[0:0] = 0;
+    } WSTATUS_REG @0x18;
+};

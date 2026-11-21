@@ -1,0 +1,8 @@
+{"op": "w", "addr": 17181704208, "data": 1, "comment": ""}
+{"op": "w", "addr": 17180262400, "data": 0, "comment": "stop avg"}
+{"op": "w", "addr": 17180262408, "data": 584, "comment": "avg buf len"}
+{"op": "w", "addr": 17180262424, "data": 0, "comment": "stop decim"}
+{"op": "w", "addr": 17180262432, "data": 584, "comment": "decim buf len"}
+{"op": "w", "addr": 17180262400, "data": 1, "comment": "start avg"}
+{"op": "w", "addr": 17180262424, "data": 1, "comment": "start decim"}
+{"op": "w", "addr": 17182359552, "data": 4, "comment": "PROC_START (bit 2)"}

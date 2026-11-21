@@ -1,0 +1,22 @@
+# Packaging sidecar (read by ip_packager.py only; FuseSoC ignores it).
+#
+# All 16 s<i>_axis and 16 m<i>_axis interfaces are always present, whatever N is (axis_cdcsync_v1.clock_domains.yaml), as in the
+# legacy IP. A design that uses N < 16 channels leaves the tvalid of the other slave interfaces unconnected, and Vivado reported
+# them as BD 41-759 "no tie-off specified". They are safe to leave low: give them a driver value of 0.
+tie_off_ports:
+  - s0_axis_tvalid
+  - s1_axis_tvalid
+  - s2_axis_tvalid
+  - s3_axis_tvalid
+  - s4_axis_tvalid
+  - s5_axis_tvalid
+  - s6_axis_tvalid
+  - s7_axis_tvalid
+  - s8_axis_tvalid
+  - s9_axis_tvalid
+  - s10_axis_tvalid
+  - s11_axis_tvalid
+  - s12_axis_tvalid
+  - s13_axis_tvalid
+  - s14_axis_tvalid
+  - s15_axis_tvalid

@@ -1,0 +1,14 @@
+# Parameter-dependent interfaces for Vivado IP packaging (ENABLEMENT_DEPENDENCY,
+# see generators/ip_gen/ip_packager.py). Read by ip_packager.py only; does not
+# affect FuseSoC core parsing.
+#
+# Mirrors the legacy IP (openquantumhardware/qick firmware/ip/axis_readout_v2): the
+# GUI-only FULLSPEED_OUTPUT parameter (no HDL generic) hides the full-speed
+# m0_axis output; 111/tpv1_rfbv2_std sets it false.
+
+user_parameters:
+  - {name: FULLSPEED_OUTPUT, format: bool, default: true, description: "Enable additional output port for non-decimated data"}
+
+optional_interfaces:
+  - enabled_when: "$FULLSPEED_OUTPUT"
+    interfaces: [m0_axis]

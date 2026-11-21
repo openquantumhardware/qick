@@ -1,0 +1,5 @@
+000 imm
+001 ALU
+010 stack
+011 s_axis
+100 memory

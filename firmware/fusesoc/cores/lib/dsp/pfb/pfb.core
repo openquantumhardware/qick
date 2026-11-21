@@ -1,0 +1,62 @@
+CAPI=2:
+name: qick:dsp:pfb:1.0.0
+description: >
+  PFB readouts' polyphase filter bank (64 channels, 50 % overlap): pfb_firs
+  -> pfb_switch -> ssrfft_8x64_sync -> pimod_pfb. Port of the legacy pfb.sv
+  (axis_pfb_readout_v3/v4).
+
+filesets:
+  hdl:
+    files:
+      - hdl/pfb.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:pfb_firs
+      - qick:dsp:pfb_switch
+      - qick:dsp:ssrfft_8x64_sync
+      - qick:dsp:pimod_pfb
+
+  tb:
+    files:
+      - tests/ref/pfb_legacy.sv
+      - tests/pfb_tc00.sv
+      - tests/pfb_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: pfb
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: pfb
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design (wiring against the legacy pfb.sv, and a tone per channel)
+    filesets: [hdl, tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ps -L xil_defaultlib]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pfb_tc00.sv

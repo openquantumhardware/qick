@@ -1,0 +1,136 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jun 30 21:51:21 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-8.202758 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.ctrl_sg_v6_ut.
+[sst_width] 206
+[signals_width] 214
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r1[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r2[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r3[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r4[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r5[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_cnt_r6[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.addr_int[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.cnt_n[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.cnt_n_reg[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.cnt_n_reg_hi_r[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.cnt_n_reg_lo_r[17:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.cnt_nsamp_r[15:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r1
+@29
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r2
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r3
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r4
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r5
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r6
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r7
+testrunner.__ts.ctrl_sg_v6_ut.dut.en_reg_r8
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.fifo_dout_r[159:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_int[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r1[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r2[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r3[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r4[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r5[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r6[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.gain_r7[15:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.i_clk
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.i_fifo_dout[159:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.i_fifo_empty
+testrunner.__ts.ctrl_sg_v6_ut.dut.i_rstn
+testrunner.__ts.ctrl_sg_v6_ut.dut.load_int
+testrunner.__ts.ctrl_sg_v6_ut.dut.load_r
+testrunner.__ts.ctrl_sg_v6_ut.dut.mode_int
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.nsamp_int[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_dds_ctrl[1151:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_en
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_fifo_rd_en
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_gain[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_mem_addr[15:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_src[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.o_stdy
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_int[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r1[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r2[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r3[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r4[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r5[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r6[1:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.outsel_r7[1:0]
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_0[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_0_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_int[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_r2[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_r3[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_r4[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.phase_r5[31:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.phrst_int
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_int[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n_r2[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n_r3[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n_r4[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_n_r5[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p0_r1[35:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p0_r2[35:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p1_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p1_r2[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p2_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_p2_r2[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_nm_dsp_r3[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_r1[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_r2[31:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_r2_hi_r[15:0]
+testrunner.__ts.ctrl_sg_v6_ut.dut.pinc_r2_lo_r[17:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.rd_en_int
+testrunner.__ts.ctrl_sg_v6_ut.dut.rd_en_r1
+testrunner.__ts.ctrl_sg_v6_ut.dut.rd_en_r2
+@22
+testrunner.__ts.ctrl_sg_v6_ut.dut.state[31:0]
+@28
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_int
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r1
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r2
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r3
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r4
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r5
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r6
+testrunner.__ts.ctrl_sg_v6_ut.dut.stdysel_r7
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r1
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r2
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r3
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r4
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r5
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r6
+testrunner.__ts.ctrl_sg_v6_ut.dut.sync_reg_r7
+[pattern_trace] 1
+[pattern_trace] 0

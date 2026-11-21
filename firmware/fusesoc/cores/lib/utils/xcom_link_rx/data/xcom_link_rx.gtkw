@@ -1,0 +1,108 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Nov 26 22:54:38 2025
+[*]
+[timestart] 18149000
+[size] 1920 1165
+[pos] -1 -1
+*-17.981575 15548000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.xcom_link_rx_ut.
+[sst_width] 206
+[signals_width] 273
+[sst_expanded] 1
+[sst_vpaned_height] 583
+@800200
+-Tx
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_clk
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_rstn
+@22
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_cfg_tick[3:0]
+@800028
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+@c02028
+[color] 2
+^1 firmware/fusesoc/cores/xcom_link_rx/data/opcodes.txt
+#{OPCODE} (0)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (1)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (2)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (3)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+@28
+[color] 3
+(0)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(1)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(2)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(3)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+@1401200
+-group_end
+@c00022
+[color] 2
+#{ADDR} (4)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (5)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (6)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0] (7)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+@28
+[color] 3
+(4)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(5)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(6)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+[color] 3
+(7)testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_header[7:0]
+@1401200
+-group_end
+@1001200
+-group_end
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_data[31:0]
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.i_valid
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.o_clk
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.o_data
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_tx.o_ready
+@1000200
+-Tx
+@800200
+-Rx
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_clk
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_rstn
+@22
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_id[3:0]
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_xcom_clk
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_xcom_data
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_ack
+@2028
+[color] 2
+^2 firmware/fusesoc/build/fnal_qick_xcom_link_rx_0.1.0/test-xsim/states.txt
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.state_r[2:0]
+[color] 6
+^1 firmware/fusesoc/cores/xcom_link_rx/data/opcodes.txt
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_cmd[3:0]
+@28
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_req
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_data[31:0]
+@22
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_dbg_state[4:0]
+@1000200
+-Rx
+[pattern_trace] 1
+[pattern_trace] 0

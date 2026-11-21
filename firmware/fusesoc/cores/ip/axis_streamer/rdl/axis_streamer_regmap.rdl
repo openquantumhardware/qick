@@ -1,0 +1,230 @@
+// axis_streamer_regmap.rdl
+//
+// SystemRDL register definition for the axis_streamer IP core.
+// AXI4-Stream capture buffer with an AXI4-Lite control interface.
+//
+// ⚠️ THIS FILE AND THE RTL ARE SYNCHRONISED BY HAND.
+//    axis_streamer.sv declares:
+//        R_START = 0, R_FLUSH = 1, R_MODE = 2,
+//        R_NSAMP = 3, R_LOST  = 4, R_STATUS = 5
+//        reg_ro  = (1 << R_LOST) | (1 << R_STATUS)
+//    axil_slv maps byte offset 4*N to reg[N], so the addresses below must stay
+//    at 4*R_*, and every register with sw=r here must have its bit set in
+//    reg_ro there. Change one, change the other.
+//
+//    Note the address space is larger than the map: AXI_AW = 6 gives 16
+//    registers (0x00-0x3C). Offsets 0x18-0x3C are unmapped here but still
+//    exist in axil_slv as writable scratch, so they read back whatever was
+//    written. They are not part of the programming interface.
+
+addrmap axis_streamer_regmap {
+    name = "axis_streamer Registers";
+    desc = "Registers for the axis_streamer IP core: an AXI4-Stream capture
+            buffer that packetises a captured stream for DMA readout.
+
+            Programming sequence:
+              1. wait for STATUS.IDLE
+              2. write NSAMP, MODE, FLUSH
+              3. arm the DMA S2MM receive
+              4. write START = 1
+              5. one-shot: wait for the DMA to see tlast, or poll STATUS.DONE
+                 continuous: run until you choose to stop
+              6. write START = 0
+              7. poll STATUS.IDLE, then read LOST";
+
+    default regwidth    = 32;
+    default accesswidth = 32;
+    default addressing  = compact;
+
+    // ------------------------------------------------------------------
+    // START @ 0x00
+    // ------------------------------------------------------------------
+    reg {
+        name = "START_REG";
+        desc = "Block enable.";
+
+        field {
+            name = "START";
+            desc = "LEVEL enable, not a pulse. Hold it high for the whole run.
+
+                    STOPPING IS NOT INSTANTANEOUS: this bit crosses two flops
+                    before the core's FSM sees it, so the block keeps streaming
+                    normally for a few cycles after the write retires. Never
+                    assume the output stopped on the next beat - poll
+                    STATUS.IDLE instead.";
+            sw = rw; hw = r;
+        } START[0:0] = 0;
+    } START_REG @ 0x00;
+
+    // ------------------------------------------------------------------
+    // FLUSH @ 0x04
+    // ------------------------------------------------------------------
+    reg {
+        name = "FLUSH_REG";
+        desc = "What to do with a partial packet when the block is stopped.";
+
+        field {
+            name = "FLUSH";
+            desc = "1 = drain the leftover beats, and the final one carries
+                    tlast so the DMA can close its descriptor.
+                    0 = discard the partial packet.
+
+                    With 0, at most ONE beat still escapes: a beat already
+                    presented on the bus completes its handshake, because
+                    withdrawing tvalid would violate AXI4-Stream.
+
+                    A one-shot packet that completed is not partial: what
+                    the source writes after its last word is discarded
+                    whatever FLUSH says, and nothing follows the packet.
+
+                    Write this before START, together with MODE and NSAMP.";
+            sw = rw; hw = r;
+        } FLUSH[0:0] = 0;
+    } FLUSH_REG @ 0x04;
+
+    // ------------------------------------------------------------------
+    // MODE @ 0x08
+    // ------------------------------------------------------------------
+    reg {
+        name = "MODE_REG";
+        desc = "Operating mode.";
+
+        field {
+            name = "MODE";
+            desc = "0 = one-shot: emit one packet of NSAMP beats, then set
+                    STATUS.DONE and wait for START to be cleared.
+                    1 = continuous: emit back-to-back packets of NSAMP beats
+                    until stopped.
+
+                    Sampled only while the block is stopped, so it is stable
+                    for the whole run. Write it before START.";
+            sw = rw; hw = r;
+        } MODE[0:0] = 0;
+    } MODE_REG @ 0x08;
+
+    // ------------------------------------------------------------------
+    // NSAMP @ 0x0C
+    // ------------------------------------------------------------------
+    reg {
+        name = "NSAMP_REG";
+        desc = "Packet length.";
+
+        field {
+            name = "NSAMP";
+            desc = "Beats per packet. tlast is asserted on beat NSAMP-1.
+
+                    0 keeps the block in IDLE: the packet-end condition would
+                    be unreachable, so the core refuses to start.
+
+                    MUST MATCH THE DMA DESCRIPTOR. The S2MM channel closes a
+                    descriptor when it sees tlast, so the descriptor buffer
+                    must be NSAMP * (B_AXIS/8) bytes - 4 bytes per beat with
+                    the default B_AXIS = 32. Check that the DMA's Buffer Length
+                    Register is wide enough: the 14-bit default caps NSAMP at
+                    4095.
+
+                    Sampled only while the block is stopped. Write it before
+                    START.";
+            sw = rw; hw = r;
+        } NSAMP[31:0] = 0;
+    } NSAMP_REG @ 0x0C;
+
+    // ------------------------------------------------------------------
+    // LOST @ 0x10 (read-only, driven by hardware)
+    // ------------------------------------------------------------------
+    reg {
+        name = "LOST_REG";
+        desc = "Input beats that could not be stored, latched when the block
+                leaves the run state.";
+
+        field {
+            name = "LOST";
+            desc = "Counts CYCLES in which the source offered data while the
+                    buffer was full - not distinct beats. The two coincide for
+                    the intended source, a converter that produces one new
+                    sample per clock and cannot be stalled, where
+
+                        samples offered == samples stored + LOST
+
+                    holds exactly and LOST is the number of samples lost. A
+                    non-zero value means the record has gaps and the DMA did
+                    not keep up.
+
+                    Feed the block from a well-behaved AXI4-Stream master
+                    instead and the meaning changes: that master holds one beat
+                    across every stalled cycle, so the same beat is counted
+                    many times and nothing is actually lost.
+
+                    ONLY READ THIS WHILE STATUS.IDLE IS SET. The counter is
+                    latched in the capture clock domain and read from the
+                    AXI-Lite domain with no handshake, so a read taken mid-run
+                    can return a torn value. Poll STATUS.OVERFLOW during a run
+                    instead.";
+            sw = r; hw = w;
+        } LOST[31:0] = 0;
+    } LOST_REG @ 0x10;
+
+    // ------------------------------------------------------------------
+    // STATUS @ 0x14 (read-only, driven by hardware)
+    // ------------------------------------------------------------------
+    reg {
+        name = "STATUS_REG";
+        desc = "Status flags from the capture core.
+
+                EVERY BIT IS RESYNCHRONISED INDIVIDUALLY into the AXI-Lite
+                clock domain, so the bits are NOT coherent with each other: a
+                read taken during a transition can show RUNNING = 0 and DONE =
+                0 at the same time. That is fine for polling a single flag, but
+                do not build edge detection or state decoding on combinations
+                of them.
+
+                The flags are decoded rather than exposing the raw FSM
+                encoding, precisely because a multi-bit state value
+                synchronised bit-by-bit could be caught in a combination that
+                never existed.";
+
+        field {
+            name = "RUNNING";
+            desc = "The core is capturing and streaming.";
+            sw = r; hw = w;
+        } RUNNING[0:0] = 0;
+
+        field {
+            name = "DONE";
+            desc = "A one-shot packet has finished. Clear START to return to
+                    idle. Never set in continuous mode.";
+            sw = r; hw = w;
+        } DONE[1:1] = 0;
+
+        field {
+            name = "IDLE";
+            desc = "Safe to reconfigure NSAMP, MODE and FLUSH, and LOST holds
+                    the count for the run that just ended. Poll this after
+                    clearing START rather than assuming the block stopped.";
+            sw = r; hw = w;
+        } IDLE[2:2] = 0;
+
+        field {
+            name = "OVERFLOW";
+            desc = "Sticky: at least one sample was lost during this run or the
+                    last one. Cleared automatically when a new run starts. This
+                    is the flag to poll DURING a run; LOST is the exact count
+                    afterwards.";
+            sw = r; hw = w;
+        } OVERFLOW[3:3] = 0;
+
+        field {
+            name = "FIFO_FULL";
+            desc = "Instantaneous buffer state, diagnostic only. Racy by
+                    construction - do not use it for flow control.";
+            sw = r; hw = w;
+        } FIFO_FULL[4:4] = 0;
+
+        field {
+            name = "FIFO_EMPTY";
+            desc = "Instantaneous buffer state, diagnostic only. Racy by
+                    construction - do not use it for flow control.";
+            sw = r; hw = w;
+        } FIFO_EMPTY[5:5] = 0;
+    } STATUS_REG @ 0x14;
+};

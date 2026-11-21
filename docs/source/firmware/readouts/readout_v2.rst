@@ -9,7 +9,7 @@ Readout v2 (axis_readout_v2) - QICK Firmware
 **axis_readout_v2** is the digital down-converter (DDC) IP that sits between
 the RFDC's ADC output and :doc:`avg_buffer`. It is the readout used on
 tProc-v1-style single-tone (non-multiplexed, non-PFB) readout channels. The
-module lives under ``firmware/ip/axis_readout_v2/`` and is exposed to Python
+module lives under ``firmware/fusesoc/cores/ip/axis_readout_v2/`` and is exposed to Python
 through ``qick.drivers.readout.AxisReadoutV2``.
 
 --------------------------------------------------------------------
@@ -42,8 +42,7 @@ The datapath, in order:
    (fixed by the shared, reused ``fir_decim8_dynro`` block) and a 3-way
    ``OUTSEL`` mux (product/dds/raw ADC) inside ``down_conversion_ro_v2``,
    which differs from the ``N_DDS=16`` / no-``OUTSEL`` description above
-   -- that prose describes the pre-fusesoc-port ``firmware/ip/
-   axis_readout_v2/`` RTL and hasn't been reconciled with the port yet.
+   -- that prose describes the pre-fusesoc-port legacy RTL and hasn't been reconciled with the port yet.
 
 --------------------------------------------------------------------
 2. Frequency/Output Control (``ctrl.sv``)

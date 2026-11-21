@@ -1,0 +1,98 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu Jul 23 01:09:00 2026
+[*]
+[timestart] 0
+[size] 1920 1140
+[pos] -3841 24
+*-19.525099 1557000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.axis_streamer_ut.
+[treeopen] testrunner.__ts.axis_streamer_ut.dut.
+[sst_width] 206
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 2
+testrunner.__ts.axis_streamer_ut.dut.start_reg
+[color] 2
+testrunner.__ts.axis_streamer_ut.dut.mode_reg
+@22
+[color] 2
+testrunner.__ts.axis_streamer_ut.dut.nsamp_reg[31:0]
+[color] 2
+testrunner.__ts.axis_streamer_ut.dut.lost_reg[31:0]
+@28
+[color] 2
+testrunner.__ts.axis_streamer_ut.dut.flush_reg
+@22
+testrunner.__ts.axis_streamer_ut.dut.dbg_probe[31:0]
+testrunner.__ts.axis_streamer_ut.dut.reg_ro[4:0]
+@c00200
+-m_axis
+@28
+testrunner.__ts.axis_streamer_ut.dut.m_axis_aclk
+testrunner.__ts.axis_streamer_ut.dut.m_axis_aresetn
+@22
+testrunner.__ts.axis_streamer_ut.dut.m_axis_tdata[31:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.m_axis_tlast
+testrunner.__ts.axis_streamer_ut.dut.m_axis_tready
+testrunner.__ts.axis_streamer_ut.dut.m_axis_tvalid
+@1401200
+-m_axis
+@c00201
+-s_axi
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_aclk
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axi_araddr[5:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_aresetn
+testrunner.__ts.axis_streamer_ut.dut.s_axi_arprot[2:0]
+testrunner.__ts.axis_streamer_ut.dut.s_axi_arready
+testrunner.__ts.axis_streamer_ut.dut.s_axi_arvalid
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axi_awaddr[5:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_awprot[2:0]
+testrunner.__ts.axis_streamer_ut.dut.s_axi_awready
+testrunner.__ts.axis_streamer_ut.dut.s_axi_awvalid
+testrunner.__ts.axis_streamer_ut.dut.s_axi_bready
+testrunner.__ts.axis_streamer_ut.dut.s_axi_bresp[1:0]
+testrunner.__ts.axis_streamer_ut.dut.s_axi_bvalid
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axi_rdata[31:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_rready
+testrunner.__ts.axis_streamer_ut.dut.s_axi_rresp[1:0]
+testrunner.__ts.axis_streamer_ut.dut.s_axi_rvalid
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axi_wdata[31:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_wready
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axi_wstrb[3:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axi_wvalid
+@1401201
+-s_axi
+@800200
+-s_axis
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axis_aclk
+testrunner.__ts.axis_streamer_ut.dut.s_axis_aresetn
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axis_tdata[15:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axis_tready
+@22
+testrunner.__ts.axis_streamer_ut.dut.s_axis_tuser[7:0]
+@28
+testrunner.__ts.axis_streamer_ut.dut.s_axis_tvalid
+@1000200
+-s_axis
+[pattern_trace] 1
+[pattern_trace] 0

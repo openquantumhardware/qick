@@ -1,0 +1,28 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jul  7 15:00:05 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-16.129150 204000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.cdc_gray_sync_ut.
+[sst_width] 206
+[signals_width] 167
+[sst_expanded] 1
+[sst_vpaned_height] 696
+@28
+[color] 3
+testrunner.__ts.cdc_gray_sync_ut.u_cdc_gray_sync.i_clk
+[color] 3
+testrunner.__ts.cdc_gray_sync_ut.u_cdc_gray_sync.i_rstn
+@22
+[color] 3
+testrunner.__ts.cdc_gray_sync_ut.u_cdc_gray_sync.i_d[31:0]
+@23
+[color] 6
+testrunner.__ts.cdc_gray_sync_ut.u_cdc_gray_sync.o_d[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

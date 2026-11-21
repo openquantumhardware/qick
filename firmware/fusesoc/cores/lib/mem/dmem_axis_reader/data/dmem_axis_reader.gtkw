@@ -1,0 +1,74 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Mon Jun 29 21:25:23 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-17.647093 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.dmem_axis_reader_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.dmem_axis_reader_ut.u_dut.clk
+@29
+testrunner.__ts.dmem_axis_reader_ut.u_dut.rstn
+@28
+testrunner.__ts.dmem_axis_reader_ut.u_dut.ack_int
+@22
+testrunner.__ts.dmem_axis_reader_ut.u_dut.addr_i[9:0]
+testrunner.__ts.dmem_axis_reader_ut.u_dut.addr_r[9:0]
+testrunner.__ts.dmem_axis_reader_ut.u_dut.cnt[9:0]
+@28
+testrunner.__ts.dmem_axis_reader_ut.u_dut.data_en
+@22
+testrunner.__ts.dmem_axis_reader_ut.u_dut.data_r[15:0]
+@28
+testrunner.__ts.dmem_axis_reader_ut.u_dut.exec_ack_o
+testrunner.__ts.dmem_axis_reader_ut.u_dut.exec_i
+@22
+testrunner.__ts.dmem_axis_reader_ut.u_dut.len_i[9:0]
+testrunner.__ts.dmem_axis_reader_ut.u_dut.len_r[9:0]
+@28
+testrunner.__ts.dmem_axis_reader_ut.u_dut.load0_state
+testrunner.__ts.dmem_axis_reader_ut.u_dut.load1_state
+testrunner.__ts.dmem_axis_reader_ut.u_dut.sel_r
+testrunner.__ts.dmem_axis_reader_ut.u_dut.send_state
+@2024
+[color] 2
+^1 firmware/fusesoc/cores/lib/mem/dmem_axis_reader/data/states.txt
+testrunner.__ts.dmem_axis_reader_ut.u_dut.state[2:0]
+@800200
+-m_bram
+@28
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.i_clk
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.i_rst
+@22
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.addr[9:0]
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.din[15:0]
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.dout[15:0]
+@28
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.en
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.we
+testrunner.__ts.dmem_axis_reader_ut.bram_if_i.we_be[1:0]
+@1000200
+-m_bram
+@800200
+-m_axis
+@28
+testrunner.__ts.dmem_axis_reader_ut.axis_if.aclk
+testrunner.__ts.dmem_axis_reader_ut.axis_if.aresetn
+@22
+testrunner.__ts.dmem_axis_reader_ut.axis_if.tdata[15:0]
+@28
+testrunner.__ts.dmem_axis_reader_ut.axis_if.tlast
+testrunner.__ts.dmem_axis_reader_ut.axis_if.tready
+testrunner.__ts.dmem_axis_reader_ut.axis_if.tvalid
+@1000200
+-m_axis
+[pattern_trace] 1
+[pattern_trace] 0

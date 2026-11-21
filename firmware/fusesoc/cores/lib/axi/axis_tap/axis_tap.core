@@ -1,0 +1,58 @@
+CAPI=2:
+name: qick:utils:axis_tap:0.1.0
+description: Elastic pipeline primitive
+
+filesets:
+  hdl:
+    files:
+      - hdl/axis_tap.sv
+    file_type: systemVerilogSource
+    depend: 
+      - qick:interfaces:axi4_stream_if
+
+  tb:
+    files: &tb_files
+      - tests/axis_tap_tc00.sv
+      - tests/axis_tap_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - qick:common:sim_base
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axis_tap_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - hdl
+      - lint_files
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [axis_tap]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-timescale=1ns/1ns -debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+

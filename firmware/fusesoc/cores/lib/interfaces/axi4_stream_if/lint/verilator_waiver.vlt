@@ -1,0 +1,6 @@
+`verilator_config
+// axi4_stream_if carries every AXI4-Stream signal and parameter; an instance
+// drives and reads only the ones it uses.
+lint_off -rule UNUSEDPARAM  -file "*axi4_stream_if.sv"
+lint_off -rule UNUSEDSIGNAL -file "*axi4_stream_if.sv"
+lint_off -rule UNDRIVEN     -file "*axi4_stream_if.sv"

@@ -1,0 +1,44 @@
+CAPI=2:
+name: qick:dsp:dds_compiler_signal_gen_mux:1.0.0
+description: >
+  DDS Compiler, "signal_gen_mux" variant (Xilinx IP, Component_Name
+  renamed from dds_compiler_0). Used by: axis_sg_mux4_v3, axis_sg_mux8_v1.
+  Behavioural model for sim/lint via dds_compiler_model; real .xci for
+  synth/packaging.
+filesets:
+  # Behavioural model for simulation and lint (RTL-pure, no Xilinx IP).
+  sim_model:
+    files:
+      - hdl/dds_compiler_signal_gen_mux.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:dsp:dds_compiler_model
+
+  # Real Xilinx IP for synthesis/packaging.
+  synth_xci:
+    files:
+      - xci/dds_compiler_signal_gen_mux.xci: {file_type: xci}
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+targets:
+  default: &default
+    filesets: [sim_model]
+
+  lint:
+    <<: *default
+    filesets_append: [lint_files]
+    default_tool: veriblelint
+    toplevel: dds_compiler_signal_gen_mux
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  sim:
+    filesets: [sim_model]
+
+  synth:
+    filesets: [synth_xci]

@@ -1,0 +1,151 @@
+// xcom_regmap.rdl
+// SystemRDL register definition for the xcom IP core (QICK board-to-board
+// communication over the synchronous clock + data link).
+//
+// RTL decode is the generic axil_slv core (AUTO_CLEAR_BIT0=1 for CTRL_REG).
+// This RDL is used ONLY for the Python driver layer and documentation -- do
+// NOT generate RTL from it (no --hdl in rdl/Makefile).
+// The indexes are those of the legacy xcom_axil_slv.sv (QICK:QICK:xcom:1.0).
+// There, index 5 reads 0 and drives nothing: TX_RX_DDR_REG exists only from
+// the DDR link on. Index 11 reads 0 in both and is not
+// declared here.
+addrmap xcom {
+    name = "xcom Registers";
+    desc = "Command registers (CTRL_REG..ADDR_REG), link configuration
+            (CFG_REG, TX_RX_DDR_REG) and the readback of what the other
+            boards sent.";
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    reg {
+        name = "CTRL_REG";
+        desc = "One-shot command register. Write VALID=1 together with OP in
+                a single write: the whole word self-clears to 0 one cycle
+                after any nonzero write (axil_slv's AUTO_CLEAR_BIT0; the
+                legacy slave clears bit 0 only). OP[4]=1 runs the command on
+                this board (LOC), OP[4]=0 sends it to the board in
+                AXI_DATA1_REG (NET); the opcodes are QICK_Xcom.opcodes.";
+        field { sw = rw; hw = r; } VALID[0:0] = 0;
+        field { sw = rw; hw = r; } OP[5:1]    = 0;
+    } CTRL_REG @0x00;
+
+    reg {
+        name = "CFG_REG";
+        desc = "Link configuration, a level (synchronised into the time
+                clock).";
+        field { sw = rw; hw = r; desc = "One bit every 2*(TICK+1) time-clock cycles; values above 10 act as 10. Ignored with TX_RX_DDR_REG.TX_CLK_BOOST."; } TICK[3:0] = 0;
+        field { sw = rw; hw = r; desc = "Invert the transmitted clock."; } CLK_POL[8:8] = 0;
+        field { sw = rw; hw = r; desc = "Sample the first bit on the falling edge."; } CLK_PHA[9:9] = 0;
+        field { sw = rw; hw = r; desc = "Detect the received clock phase (fixes a clock pair swapped in the hardware)."; } AUTO_PHA[10:10] = 0;
+        field { sw = rw; hw = r; desc = "Do not wait for the external sync input: QRST_SYNC is sent and executed as soon as it is decoded."; } SYNC_DIS[28:28] = 0;
+        field { sw = rw; hw = r; desc = "Internal loopback of the transmitter into the last receive channel (LOOPBACK and DEBUG parameters)."; } LOOPBACK[31:31] = 0;
+    } CFG_REG @0x04;
+
+    reg {
+        name = "AXI_DATA1_REG";
+        desc = "First operand of the next CTRL_REG command: the destination
+                board (NET), or the ID / flag of a LOC command.";
+        field { sw = rw; hw = r; } DATA1[31:0] = 0;
+    } AXI_DATA1_REG @0x08;
+
+    reg {
+        name = "AXI_DATA2_REG";
+        desc = "Second operand of the next CTRL_REG command: the data sent.";
+        field { sw = rw; hw = r; } DATA2[31:0] = 0;
+    } AXI_DATA2_REG @0x0C;
+
+    reg {
+        name = "ADDR_REG";
+        desc = "Selects which of the 16 memory words MEM_REG reads back.";
+        field { sw = rw; hw = r; } ADDR[3:0] = 0;
+    } ADDR_REG @0x10;
+
+    reg {
+        name = "TX_RX_DDR_REG";
+        desc = "DDR link configuration. Delays are taps of
+                the ODELAYE3 / IDELAYE3 (COUNT mode); the RX delay is stepped
+                to the value written.";
+        field { sw = rw; hw = r; } TX_DELAY[8:0]     = 0;
+        field { sw = rw; hw = r; desc = "Transmit at twice the xcom_clk rate through the ODDR (about 215 MHz)."; } TX_CLK_BOOST[11:11] = 0;
+        field { sw = rw; hw = r; desc = "Send a fixed test pattern on the data line."; } TX_BIST_EN[15:15] = 0;
+        field { sw = rw; hw = r; } RX_DELAY[24:16]   = 0;
+    } TX_RX_DDR_REG @0x14;
+
+    reg {
+        name = "ID_REG";
+        desc = "This board's XCOM ID (XCOM_SET_ID or XCOM_AUTO_ID).";
+        field { sw = r; hw = w; } ID[3:0] = 0;
+    } ID_REG @0x18;
+
+    reg {
+        name = "FLAG_REG";
+        desc = "Flag set or cleared by the other boards (XCOM_SET_FLAG,
+                XCOM_CLEAR_FLAG) or by XCOM_WRITE_FLAG.";
+        field { sw = r; hw = w; } FLAG[0:0] = 0;
+    } FLAG_REG @0x1C;
+
+    reg {
+        name = "DATA1_REG";
+        desc = "Last data received for register 1 (XCOM_SEND_*_1).";
+        field { sw = r; hw = w; } DATA1[31:0] = 0;
+    } DATA1_REG @0x20;
+
+    reg {
+        name = "DATA2_REG";
+        desc = "Last data received for register 2 (XCOM_SEND_*_2).";
+        field { sw = r; hw = w; } DATA2[31:0] = 0;
+    } DATA2_REG @0x24;
+
+    reg {
+        name = "MEM_REG";
+        desc = "Memory word selected by ADDR_REG.";
+        field { sw = r; hw = w; } MEM[31:0] = 0;
+    } MEM_REG @0x28;
+
+    reg {
+        name = "RX_DATA_REG";
+        desc = "Debug: last data word received.";
+        field { sw = r; hw = w; } RX_DATA[31:0] = 0;
+    } RX_DATA_REG @0x30;
+
+    reg {
+        name = "TX_DATA_REG";
+        desc = "Debug: last data word transmitted.";
+        field { sw = r; hw = w; } TX_DATA[31:0] = 0;
+    } TX_DATA_REG @0x34;
+
+    reg {
+        name = "STATUS_REG";
+        desc = "xcom_txrx's o_dbg_status.";
+        field { sw = r; hw = w; desc = "0 IDLE, 1 WVLD, 2 WSYNC, 3 WRDY."; } TX_STATE[1:0] = 0;
+        field { sw = r; hw = w; } RX_QCTRL[2:2] = 0;
+        field { sw = r; hw = w; } RX_VALID[3:3] = 0;
+        field { sw = r; hw = w; desc = "Receive channel 0: 0 IDLE, 1 HEADER, 2 DATA, 3 REQ, 4 ACK."; } RX_STATE[10:6] = 0;
+        field { sw = r; hw = w; } TX_READY[16:16] = 0;
+        field { sw = r; hw = w; } BOARD_ID[20:17] = 0;
+        field { sw = r; hw = w; desc = "Commands executed, modulo 16."; } CMD_CNTR[24:21] = 0;
+    } STATUS_REG @0x38;
+
+    reg {
+        name = "DEBUG_REG";
+        desc = "xcom_txrx's o_dbg_data (DEBUG parameter = 1, else 0). Bits
+                [31:29] are 0; on a legacy block they are CFG_REG.TICK[2:0].";
+        field { sw = r; hw = w; } LOC_REQ[0:0]    = 0;
+        field { sw = r; hw = w; } LOC_ACK[1:1]    = 0;
+        field { sw = r; hw = w; } LOC_SET_ID[2:2] = 0;
+        field { sw = r; hw = w; } LOC_WFLG[3:3]   = 0;
+        field { sw = r; hw = w; } LOC_WREG[4:4]   = 0;
+        field { sw = r; hw = w; } LOC_WMEM[5:5]   = 0;
+        field { sw = r; hw = w; } NET_REQ[6:6]    = 0;
+        field { sw = r; hw = w; } NET_ACK[7:7]    = 0;
+        field { sw = r; hw = w; } NET_HEADER[15:8] = 0;
+        field { sw = r; hw = w; } RX_OP[19:16]    = 0;
+        field { sw = r; hw = w; } TX_AUTO_ID[20:20] = 0;
+        field { sw = r; hw = w; } RX_NO_DT[21:21] = 0;
+        field { sw = r; hw = w; } RX_WFLG[22:22]  = 0;
+        field { sw = r; hw = w; } RX_WREG[23:23]  = 0;
+        field { sw = r; hw = w; } RX_WMEM[24:24]  = 0;
+        field { sw = r; hw = w; } RX_CHID[28:25]  = 0;
+    } DEBUG_REG @0x3C;
+};

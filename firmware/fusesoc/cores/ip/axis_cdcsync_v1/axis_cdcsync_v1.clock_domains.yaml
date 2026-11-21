@@ -1,0 +1,16 @@
+# Clock domain associations for Vivado IP packaging
+# This file is read by ip_packager.py and does not affect FuseSoC core parsing
+#
+# Mirrors the legacy IP (openquantumhardware/qick firmware/ip/axis_cdcsync_v1/component.xml):
+# the sixteen s<i>_axis are on s_axis_aclk, the sixteen m<i>_axis on
+# m_axis_aclk. All 32 interfaces are always present, whatever N is.
+
+clock_domains:
+  - name: s_axis_aclk
+    interfaces: [s0_axis, s1_axis, s2_axis, s3_axis, s4_axis, s5_axis, s6_axis, s7_axis,
+                 s8_axis, s9_axis, s10_axis, s11_axis, s12_axis, s13_axis, s14_axis, s15_axis]
+    reset: s_axis_aresetn
+  - name: m_axis_aclk
+    interfaces: [m0_axis, m1_axis, m2_axis, m3_axis, m4_axis, m5_axis, m6_axis, m7_axis,
+                 m8_axis, m9_axis, m10_axis, m11_axis, m12_axis, m13_axis, m14_axis, m15_axis]
+    reset: m_axis_aresetn

@@ -1,0 +1,13 @@
+# Source HDL files for qick_zcu216 
+# Paths relative to the repository root 
+# Format: <path> [vhdl_library] (Verilog ignores the library)
+#
+# Example:
+# firmware/src/qick_top.v
+# firmware/src/axis_signal_gen_v6.v
+# firmware/src/axis_readout_v2.v
+#
+# INSTRUCTIONS:
+#   1. List all your .v, .sv, or .vhd files here 
+#   2. Order matters: depends on hierarchy (include children before parents) 
+#   3. For VHDL with libraries: firmware/src/my_pkg.vhd works 

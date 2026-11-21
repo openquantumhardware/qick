@@ -1,0 +1,1 @@
+### TODO: Update SBY file paths to sources and write readme/makefile to explain how to run equivalence checks

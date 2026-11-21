@@ -8,7 +8,7 @@ Support & Utility Cores - QICK Firmware
 
 The three cores on this page -- **axis_constant_iq**, **axis_set_reg**, and
 **axis_streamer** -- are small, single-purpose utility blocks that live under
-``firmware/ip/`` alongside the readout and signal-generator families but
+``firmware/fusesoc/cores/ip/`` alongside the readout and signal-generator families but
 don't belong to either one. Each is 1-7 RTL files, so rather than a
 full page per core (as :doc:`readouts/readout_v2`, :doc:`generators/sg_v6`, etc. get), they
 share this one page, one section each.
@@ -29,7 +29,7 @@ share this one page, one section each.
 1.1 General Description
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-**axis_constant_iq** (``firmware/ip/axis_constant_iq/``, top module
+**axis_constant_iq** (``firmware/fusesoc/cores/ip/axis_constant_iq/``, top module
 ``axis_constant_iq.sv``) is the simplest signal source in QICK: it holds one
 constant, software-written complex (I, Q) value and streams it out on
 ``m_axis`` forever, once armed. As the Python driver's docstring puts it, it
@@ -179,7 +179,7 @@ normally invoked automatically as part of program configuration.
 2.1 General Description
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-**axis_set_reg** (``firmware/ip/axis_set_reg/src/axis_set_reg.sv``) is a
+**axis_set_reg** (``firmware/rtl_lib/ip/axis_set_reg.sv``) is a
 single-file, single-clock-domain "capture and hold" register. Its own header
 comment describes it plainly: *"Simple register that captures AXI-Stream
 slave data when tvalid is high."* There is no AXI-Lite interface and no
@@ -266,7 +266,7 @@ end up driving.
 3.1 General Description
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-**axis_streamer** (``firmware/ip/axis_streamer/``) is, per its own header
+**axis_streamer** (``firmware/fusesoc/cores/ip/axis_streamer/``) is, per its own header
 comment, *"AXI4-Stream buffer with an AXI4-Lite control interface, for DMA
 readout of a captured stream."* The top module (``axis_streamer.sv``) wraps
 two pieces:

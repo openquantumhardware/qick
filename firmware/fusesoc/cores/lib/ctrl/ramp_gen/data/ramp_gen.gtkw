@@ -1,0 +1,59 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul  8 22:19:03 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-16.442549 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.ramp_gen_ut.
+[sst_width] 206
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@29
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_clk
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_rstn
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_trigger
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_en
+@23
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_b[15:0]
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_m[15:0]
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_n_steps[15:0]
+[color] 3
+testrunner.__ts.ramp_gen_ut.dut.i_wait[15:0]
+@22
+testrunner.__ts.ramp_gen_ut.dut.b_r[15:0]
+testrunner.__ts.ramp_gen_ut.dut.bs_cur_sat[15:0]
+testrunner.__ts.ramp_gen_ut.dut.bs_r[15:0]
+testrunner.__ts.ramp_gen_ut.dut.bs_sub_ext[16:0]
+testrunner.__ts.ramp_gen_ut.dut.cnt[15:0]
+testrunner.__ts.ramp_gen_ut.dut.m_r[15:0]
+testrunner.__ts.ramp_gen_ut.dut.ms_nxt_sat[15:0]
+testrunner.__ts.ramp_gen_ut.dut.ms_r[15:0]
+testrunner.__ts.ramp_gen_ut.dut.ms_sum_ext[16:0]
+testrunner.__ts.ramp_gen_ut.dut.n_r[15:0]
+@10022
+[color] 6
+testrunner.__ts.ramp_gen_ut.dut.o_y[15:0]
+@20000
+-
+-
+@28
+testrunner.__ts.ramp_gen_ut.dut.state[1:0]
+@22
+testrunner.__ts.ramp_gen_ut.dut.w_r[15:0]
+testrunner.__ts.ramp_gen_ut.dut.wcnt[15:0]
+@28
+testrunner.__ts.ramp_gen_ut.dut.y_valid
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,16 @@
+CAPI=2:
+# Everything a QICK SVUnit testbench needs: the SVUnit library, the assertion
+# macros that report into it, and the simulation clock generator.
+name: qick:common:sim_base:0.2.0
+description: Simulation base of the QICK testbenches (SVUnit, assertion macros, clk_gen)
+
+filesets:
+  sim:
+    depend:
+      - svunit
+      - qick:common:svunit_assert_macros
+      - qick:common:clk_gen
+
+targets:
+  default:
+    filesets: [sim]

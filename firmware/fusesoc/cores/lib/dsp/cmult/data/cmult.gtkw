@@ -1,0 +1,67 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue Jul  7 20:44:36 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -1 -1
+*-17.389896 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.cmult_ut.
+[treeopen] testrunner.__ts.cmult_ut.dut.
+[sst_width] 206
+[signals_width] 142
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+testrunner.__ts.cmult_ut.dut.i_clk
+@29
+testrunner.__ts.cmult_ut.dut.i_rstn
+@22
+testrunner.__ts.cmult_ut.dut.a_im[15:0]
+testrunner.__ts.cmult_ut.dut.a_re[15:0]
+testrunner.__ts.cmult_ut.dut.acc_im[32:0]
+testrunner.__ts.cmult_ut.dut.acc_im_r[32:0]
+testrunner.__ts.cmult_ut.dut.acc_re[32:0]
+testrunner.__ts.cmult_ut.dut.acc_re_r[32:0]
+testrunner.__ts.cmult_ut.dut.b_im[15:0]
+testrunner.__ts.cmult_ut.dut.b_re[15:0]
+@28
+testrunner.__ts.cmult_ut.dut.conja_r
+testrunner.__ts.cmult_ut.dut.conja_s
+testrunner.__ts.cmult_ut.dut.conjb_r
+testrunner.__ts.cmult_ut.dut.conjb_s
+@22
+testrunner.__ts.cmult_ut.dut.dina_r[31:0]
+testrunner.__ts.cmult_ut.dut.dinb_r[31:0]
+@28
+testrunner.__ts.cmult_ut.dut.i_conja
+testrunner.__ts.cmult_ut.dut.i_conjb
+@22
+testrunner.__ts.cmult_ut.dut.i_dina[31:0]
+testrunner.__ts.cmult_ut.dut.i_dinb[31:0]
+@28
+testrunner.__ts.cmult_ut.dut.i_valid
+@22
+testrunner.__ts.cmult_ut.dut.o_dout[31:0]
+@28
+testrunner.__ts.cmult_ut.dut.o_valid
+@22
+testrunner.__ts.cmult_ut.dut.pp_ii[31:0]
+testrunner.__ts.cmult_ut.dut.pp_ii_r[31:0]
+testrunner.__ts.cmult_ut.dut.pp_ir[31:0]
+testrunner.__ts.cmult_ut.dut.pp_ir_r[31:0]
+testrunner.__ts.cmult_ut.dut.pp_ri[31:0]
+testrunner.__ts.cmult_ut.dut.pp_ri_r[31:0]
+testrunner.__ts.cmult_ut.dut.pp_rr[31:0]
+testrunner.__ts.cmult_ut.dut.pp_rr_r[31:0]
+testrunner.__ts.cmult_ut.dut.q_im_r[15:0]
+testrunner.__ts.cmult_ut.dut.q_re_r[15:0]
+@28
+testrunner.__ts.cmult_ut.dut.valid_r1
+testrunner.__ts.cmult_ut.dut.valid_r2
+testrunner.__ts.cmult_ut.dut.valid_r3
+testrunner.__ts.cmult_ut.dut.valid_r4
+[pattern_trace] 1
+[pattern_trace] 0

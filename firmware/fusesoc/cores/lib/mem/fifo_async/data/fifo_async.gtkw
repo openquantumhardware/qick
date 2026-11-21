@@ -1,0 +1,83 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul 22 15:06:18 2026
+[*]
+[timestart] 0
+[size] 1920 1045
+[pos] -921 -1
+*-23.560705 2367000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.fifo_async_ut.
+[treeopen] testrunner.__ts.fifo_async_ut.dut.
+[sst_width] 206
+[signals_width] 227
+[sst_expanded] 1
+[sst_vpaned_height] 696
+@28
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.wr_clk
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.wr_rstn
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.wr_en
+@22
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.din[31:0]
+@28
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.rd_clk
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.rd_rstn
+[color] 3
+testrunner.__ts.fifo_async_ut.dut.rd_en
+testrunner.__ts.fifo_async_ut.dut.rst
+testrunner.__ts.fifo_async_ut.dut.sleep_i
+testrunner.__ts.fifo_async_ut.dut.wr_rst_busy
+@29
+testrunner.__ts.fifo_async_ut.dut.rd_rst_busy
+@28
+[color] 6
+testrunner.__ts.fifo_async_ut.dut.full
+[color] 6
+testrunner.__ts.fifo_async_ut.dut.wr_err
+[color] 6
+testrunner.__ts.fifo_async_ut.dut.empty
+[color] 6
+testrunner.__ts.fifo_async_ut.dut.data_valid
+@22
+[color] 6
+testrunner.__ts.fifo_async_ut.dut.dout[31:0]
+@c00200
+-xpm_fifo_async
+@28
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.almost_empty
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.almost_full
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.data_valid
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.dbiterr
+@22
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.din[31:0]
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.dout[31:0]
+@28
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.empty
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.full
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.injectdbiterr
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.injectsbiterr
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.overflow
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.prog_empty
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.prog_full
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_clk
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_en
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rd_rst_busy
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.rst
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.sbiterr
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.sleep
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.underflow
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_ack
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_clk
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_en
+testrunner.__ts.fifo_async_ut.dut.u_fifo_async.wr_rst_busy
+@1401200
+-xpm_fifo_async
+[pattern_trace] 1
+[pattern_trace] 0

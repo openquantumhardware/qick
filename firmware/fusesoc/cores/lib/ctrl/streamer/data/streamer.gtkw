@@ -1,0 +1,79 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed Jul 22 21:10:32 2026
+[*]
+[timestart] 816200
+[size] 1920 1045
+[pos] -1 -1
+*-16.326605 1115000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.streamer_ut.
+[treeopen] testrunner.__ts.streamer_ut.dut.
+[sst_width] 206
+[signals_width] 235
+[sst_expanded] 1
+[sst_vpaned_height] 363
+@28
+[color] 2
+testrunner.__ts.streamer_ut.dut.start_reg
+[color] 2
+testrunner.__ts.streamer_ut.dut.flush_reg
+[color] 2
+testrunner.__ts.streamer_ut.dut.mode_reg
+@24
+[color] 2
+testrunner.__ts.streamer_ut.dut.nsamp_reg[31:0]
+@23
+[color] 2
+testrunner.__ts.streamer_ut.dut.lost_reg[31:0]
+@28
+testrunner.__ts.streamer_ut.dut.s_axis_aclk
+testrunner.__ts.streamer_ut.dut.s_axis_aresetn
+testrunner.__ts.streamer_ut.dut.s_axis_tvalid
+testrunner.__ts.streamer_ut.dut.s_axis_tready
+@22
+testrunner.__ts.streamer_ut.dut.s_axis_tdata[15:0]
+testrunner.__ts.streamer_ut.dut.s_axis_tuser[7:0]
+@28
+testrunner.__ts.streamer_ut.dut.m_axis_aclk
+testrunner.__ts.streamer_ut.dut.m_axis_aresetn
+testrunner.__ts.streamer_ut.dut.m_axis_tvalid
+testrunner.__ts.streamer_ut.dut.m_axis_tready
+@22
+testrunner.__ts.streamer_ut.dut.m_axis_tdata[31:0]
+@28
+testrunner.__ts.streamer_ut.dut.m_axis_tlast
+@22
+testrunner.__ts.streamer_ut.dut.cnt[31:0]
+testrunner.__ts.streamer_ut.dut.cnt_full[31:0]
+testrunner.__ts.streamer_ut.dut.dbg_probe[31:0]
+testrunner.__ts.streamer_ut.dut.fifo_din[23:0]
+testrunner.__ts.streamer_ut.dut.fifo_dout[23:0]
+@28
+testrunner.__ts.streamer_ut.dut.fifo_empty
+testrunner.__ts.streamer_ut.dut.fifo_full
+testrunner.__ts.streamer_ut.dut.fifo_rd_en
+testrunner.__ts.streamer_ut.dut.fifo_wr_en
+testrunner.__ts.streamer_ut.dut.idle_state
+testrunner.__ts.streamer_ut.dut.last_cnt
+@22
+testrunner.__ts.streamer_ut.dut.last_dout[23:0]
+@28
+testrunner.__ts.streamer_ut.dut.last_dv
+@22
+testrunner.__ts.streamer_ut.dut.lost_reg_r[31:0]
+@28
+testrunner.__ts.streamer_ut.dut.mode_reg_r
+@22
+testrunner.__ts.streamer_ut.dut.nsamp_reg_r[31:0]
+@28
+testrunner.__ts.streamer_ut.dut.run_state
+testrunner.__ts.streamer_ut.dut.run_state_ack
+testrunner.__ts.streamer_ut.dut.run_state_sclk
+testrunner.__ts.streamer_ut.dut.run_state_sclk_d
+testrunner.__ts.streamer_ut.dut.start_reg_resync
+testrunner.__ts.streamer_ut.dut.state[1:0]
+testrunner.__ts.streamer_ut.dut.wait_end_state
+[pattern_trace] 1
+[pattern_trace] 0

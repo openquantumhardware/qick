@@ -1,0 +1,48 @@
+// axis_constant_iq_regmap.rdl
+// SystemRDL definition for axis_constant_iq IP core registers
+
+addrmap axis_constant_iq {
+    name = "AXIS Constant IQ Registers";
+    desc = "Registers for the axis_constant_iq IP core. Plays a constant IQ value.";
+
+    default regwidth = 32;
+    default accesswidth = 32;
+    default addressing = compact;
+
+    // --- REAL_REG: I component (0x00) ---
+    reg {
+        name = "REAL_REG";
+        desc = "16-bit I (real) component of the constant output (signed).";
+        field {
+            name = "I";
+            desc = "In-phase component";
+            sw = rw;
+            hw = r;
+        } I[15:0] = 0;
+    } REAL_REG @0x00;
+
+    // --- IMAG_REG: Q component (0x04) ---
+    reg {
+        name = "IMAG_REG";
+        desc = "16-bit Q (imaginary) component of the constant output (signed).";
+        field {
+            name = "Q";
+            desc = "Quadrature component";
+            sw = rw;
+            hw = r;
+        } Q[15:0] = 0;
+    } IMAG_REG @0x04;
+
+    // --- WE_REG: Write-enable strobe (0x08) ---
+    reg {
+        name = "WE_REG";
+        desc = "Update strobe. REAL_REG/IMAG_REG are latched into the output stream on a RISING EDGE of WE (after synchronisation to the stream clock). WE does not clear itself: write 1 then 0 for every update.";
+        field {
+            name = "WE";
+            desc = "Update strobe, edge-sensitive and not self-clearing: 0 -> 1 latches I/Q; write 1 then 0 to update again.";
+            sw = rw;
+            hw = r;
+            swmod;
+        } WE[0:0] = 0;
+    } WE_REG @0x08;
+};

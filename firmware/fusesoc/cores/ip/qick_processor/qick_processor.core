@@ -1,0 +1,113 @@
+CAPI=2:
+name: qick:ip:qick_processor:1.0.29
+description: "QICK AXI4-Stream Timed Processor v2 (qick_processor) IP core"
+
+filesets:
+  hdl:
+    files:
+      - hdl/qick_processor.sv
+    file_type: systemVerilogSource
+    depend:
+      - qick:ip:qick_processor_regmap
+      - qick:interfaces:axi4_lite_if
+      - qick:cdc:cdc_reg_sync
+      - qick:processors:tprocv2
+
+  constraints:
+    files:
+      - constraints/qick_processor.xdc: {file_type: xdc}
+    file_type: xdc
+
+  constraints_ooc:
+    files:
+      - constraints/qick_processor_ooc.xdc: {file_type: xdc}
+    file_type: xdc
+
+  tb:
+    files:
+      - tests/qick_processor_tc00.sv
+      - tests/qick_processor_tests.sv: {is_include_file: true}
+      - tests/qick_processor_prog_tests.sv: {is_include_file: true}
+      - tests/qick_processor_tc01.sv
+      - tests/qick_processor_pause_tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - qick:common:xilinx
+      - qick:common:sim_base
+      - qick:interfaces:axi4_lite_if
+      - qick:ip:qick_periph_loopback
+
+  test_data:
+    files:
+      - tests/data/prog_dport.hex     : {file_type: user, copyto: prog_dport.hex}
+      - tests/data/prog_loop.hex      : {file_type: user, copyto: prog_loop.hex}
+      - tests/data/prog_pa_pb.hex     : {file_type: user, copyto: prog_pa_pb.hex}
+      - tests/data/prog_clear_qpa.hex : {file_type: user, copyto: prog_clear_qpa.hex}
+      - tests/data/prog_clear_qpb.hex : {file_type: user, copyto: prog_clear_qpb.hex}
+      - tests/data/prog_lb_flag0.hex  : {file_type: user, copyto: prog_lb_flag0.hex}
+      - tests/data/prog_lb_flag1.hex  : {file_type: user, copyto: prog_lb_flag1.hex}
+      - tests/data/prog_lb_busy.hex   : {file_type: user, copyto: prog_lb_busy.hex}
+      - tests/data/prog_pa_s6_s7.hex  : {file_type: user, copyto: prog_pa_s6_s7.hex}
+      - tests/data/prog_pa_s6_s7_cd.hex : {file_type: user, copyto: prog_pa_s6_s7_cd.hex}
+      - tests/data/prog_regs.hex      : {file_type: user, copyto: prog_regs.hex}
+      - tests/data/prog_nb_one_a.hex    : {file_type: user, copyto: prog_nb_one_a.hex}
+      - tests/data/prog_nb_one_b.hex    : {file_type: user, copyto: prog_nb_one_b.hex}
+      - tests/data/prog_nb_both.hex     : {file_type: user, copyto: prog_nb_both.hex}
+      - tests/data/prog_nb_clear_a.hex  : {file_type: user, copyto: prog_nb_clear_a.hex}
+      - tests/data/prog_nb_clear_b.hex  : {file_type: user, copyto: prog_nb_clear_b.hex}
+      - tests/data/prog_nb_flag_odd.hex : {file_type: user, copyto: prog_nb_flag_odd.hex}
+      - tests/data/prog_nb_flag_even.hex: {file_type: user, copyto: prog_nb_flag_even.hex}
+      - tests/data/prog_nb_flagb_odd.hex  : {file_type: user, copyto: prog_nb_flagb_odd.hex}
+      - tests/data/prog_nb_flagb_even.hex : {file_type: user, copyto: prog_nb_flagb_even.hex}
+      - tests/data/prog_nb_cross_a1_b0.hex : {file_type: user, copyto: prog_nb_cross_a1_b0.hex}
+      - tests/data/prog_nb_cross_a0_b1.hex : {file_type: user, copyto: prog_nb_cross_a0_b1.hex}
+      - tests/data/prog_nb_busy_a.hex   : {file_type: user, copyto: prog_nb_busy_a.hex}
+      - tests/data/prog_nb_busy_b.hex   : {file_type: user, copyto: prog_nb_busy_b.hex}
+      - tests/data/prog_nb_ext_flag.hex : {file_type: user, copyto: prog_nb_ext_flag.hex}
+      - tests/data/prog_nb_ext_poll.hex : {file_type: user, copyto: prog_nb_ext_poll.hex}
+
+  lint_files:
+    depend:
+      - qick:common:lint
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/qick_processor_tc00.sv
+          - tests/qick_processor_tc01.sv
+
+targets:
+  default: &default
+    filesets: [hdl]
+    toplevel: qick_processor
+
+  lint:
+    filesets: [hdl, lint_files]
+    toplevel: qick_processor
+    default_tool: veriblelint
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    description: Simulate the design
+    filesets: [hdl, tb, test_data]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -top work.glbl -timescale=1ns/1ps -d SVUNIT]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+
+  synth:
+    <<: *default
+    description: OOC Synthesis with Vivado (validate RTL + packages)
+    default_tool: vivado
+    tools:
+      vivado:
+        part: xczu49dr-ffvf1760-2-e
+        pnr: none

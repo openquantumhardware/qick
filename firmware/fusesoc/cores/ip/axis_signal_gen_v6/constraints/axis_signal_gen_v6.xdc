@@ -1,0 +1,1 @@
+../../../../../rtl_lib/constraints/axis_signal_gen_v6.xdc
